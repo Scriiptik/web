@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Телефон как веб-камера (без сервера)</title>
     <style>
+        /* стили без изменений */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
@@ -119,6 +120,7 @@
                 <div class="qr-container" id="offer-qr"></div>
                 <div class="status" id="desktop-status">Создание оффера...</div>
                 <button class="btn" id="reset-desktop">🔄 Начать заново</button>
+                <button class="btn secondary" id="scan-answer-btn">📷 Сканировать ответ с телефона</button>
             </div>
             <div id="desktop-step2" class="hidden">
                 <p>Шаг 2: Отсканируйте QR‑код с телефона</p>
@@ -179,6 +181,7 @@
             const remoteVideo = document.getElementById('remote-video');
             const remoteVideoBox = document.getElementById('desktop-video-box');
             const resetBtn = document.getElementById('reset-desktop');
+            const scanAnswerBtn = document.getElementById('scan-answer-btn');
             const desktopScanner = document.getElementById('desktop-scanner');
             const desktopScannerStatus = document.getElementById('desktop-scanner-status');
             const answerInput = document.getElementById('answer-input');
@@ -207,15 +210,17 @@
             let localStream = null;
             let scannerStream = null;
             let scanInterval = null;
+            let offerGenerated = false;
 
             // ---------- Утилиты ----------
-            function stopScanner(stream) {
+            function stopScanner() {
                 if (scanInterval) {
                     clearInterval(scanInterval);
                     scanInterval = null;
                 }
-                if (stream) {
-                    stream.getTracks().forEach(t => t.stop());
+                if (scannerStream) {
+                    scannerStream.getTracks().forEach(t => t.stop());
+                    scannerStream = null;
                 }
                 if (desktopScanner.srcObject) {
                     desktopScanner.srcObject.getTracks().forEach(t => t.stop());
@@ -247,16 +252,28 @@
                 desktopStep2.classList.add('hidden');
                 remoteVideoBox.classList.add('hidden');
                 offerQr.innerHTML = '';
+                desktopStatus.textContent = 'Создание оффера...';
+                offerGenerated = false;
 
                 // Создаём peer, который будет только принимать видео (не отправлять)
                 peer = new SimplePeer({
                     initiator: true,
-                    trickle: false, // ждём полного SDP
+                    trickle: false, // ждём полный SDP со всеми кандидатами
                     config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
                 });
 
+                // Устанавливаем таймаут на случай, если сбор кандидатов завис
+                const timeout = setTimeout(() => {
+                    if (!offerGenerated) {
+                        desktopStatus.textContent = 'Таймаут при создании оффера. Попробуйте ещё раз.';
+                        cleanupPeer();
+                    }
+                }, 10000); // 10 секунд
+
                 peer.on('signal', (data) => {
                     if (data.type === 'offer') {
+                        offerGenerated = true;
+                        clearTimeout(timeout);
                         // Показываем оффер в виде QR-кода
                         const offerStr = JSON.stringify(data);
                         offerQr.innerHTML = '';
@@ -266,6 +283,9 @@
                             height: 250,
                         });
                         desktopStatus.textContent = 'Оффер создан. Отсканируйте телефоном.';
+                        console.log('Offer created:', data);
+                    } else {
+                        console.log('Signal event (not offer):', data);
                     }
                 });
 
@@ -292,39 +312,39 @@
                     remoteVideo.srcObject = null;
                     remoteVideoBox.classList.add('hidden');
                 });
-
-                // Обработка ввода ответа вручную
-                submitAnswer.onclick = () => {
-                    const answerText = answerInput.value.trim();
-                    if (!answerText) return;
-                    try {
-                        const answer = JSON.parse(answerText);
-                        peer.signal(answer);
-                        desktopStep2.classList.add('hidden');
-                        desktopStatus.textContent = 'Подключение...';
-                    } catch (e) {
-                        alert('Неверный формат ответа');
-                    }
-                };
-
-                // Кнопка назад
-                backToStep1.onclick = () => {
-                    stopScanner(scannerStream);
-                    desktopStep1.classList.remove('hidden');
-                    desktopStep2.classList.add('hidden');
-                };
-
-                // Кнопка сброса
-                resetBtn.onclick = () => {
-                    stopScanner(scannerStream);
-                    cleanupPeer();
-                    initDesktop();
-                };
             }
+
+            // Обработка ввода ответа вручную
+            submitAnswer.onclick = () => {
+                const answerText = answerInput.value.trim();
+                if (!answerText) return;
+                try {
+                    const answer = JSON.parse(answerText);
+                    peer.signal(answer);
+                    desktopStep2.classList.add('hidden');
+                    desktopStatus.textContent = 'Подключение...';
+                } catch (e) {
+                    alert('Неверный формат ответа');
+                }
+            };
+
+            // Кнопка назад
+            backToStep1.onclick = () => {
+                stopScanner();
+                desktopStep1.classList.remove('hidden');
+                desktopStep2.classList.add('hidden');
+            };
+
+            // Кнопка сброса
+            resetBtn.onclick = () => {
+                stopScanner();
+                cleanupPeer();
+                initDesktop();
+            };
 
             // Сканирование ответа на ПК
             async function startDesktopScanner() {
-                stopScanner(scannerStream);
+                stopScanner();
                 desktopStep1.classList.add('hidden');
                 desktopStep2.classList.remove('hidden');
                 desktopScannerStatus.textContent = 'Сканирование...';
@@ -349,7 +369,7 @@
                                 const answer = JSON.parse(code.data);
                                 if (answer.type === 'answer') {
                                     desktopScannerStatus.textContent = '✅ Ответ получен';
-                                    stopScanner(scannerStream);
+                                    stopScanner();
                                     peer.signal(answer);
                                     desktopStep2.classList.add('hidden');
                                     desktopStatus.textContent = 'Подключение...';
@@ -365,9 +385,11 @@
                 }
             }
 
+            scanAnswerBtn.onclick = startDesktopScanner;
+
             // ---------- Телефон ----------
             async function initMobileScanner() {
-                stopScanner(scannerStream);
+                stopScanner();
                 mobileStep1.classList.remove('hidden');
                 mobileStep2.classList.add('hidden');
                 mobileStreaming.classList.add('hidden');
@@ -393,7 +415,7 @@
                                 const offer = JSON.parse(code.data);
                                 if (offer.type === 'offer') {
                                     mobileScannerStatus.textContent = '✅ Оффер получен';
-                                    stopScanner(scannerStream);
+                                    stopScanner();
                                     createAnswer(offer);
                                 }
                             } catch (e) {
@@ -424,8 +446,20 @@
                         config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
                     });
 
+                    // Таймаут для генерации ответа
+                    const timeout = setTimeout(() => {
+                        if (!answerGenerated) {
+                            mobileStatus.textContent = 'Таймаут при создании ответа.';
+                            cleanupPeer();
+                        }
+                    }, 10000);
+
+                    let answerGenerated = false;
+
                     peer.on('signal', (data) => {
                         if (data.type === 'answer') {
+                            answerGenerated = true;
+                            clearTimeout(timeout);
                             const answerStr = JSON.stringify(data);
                             answerQr.innerHTML = '';
                             new QRCode(answerQr, {
@@ -434,6 +468,9 @@
                                 height: 250,
                             });
                             mobileStatus.textContent = 'Ответ создан. Отсканируйте компьютером.';
+                            console.log('Answer created:', data);
+                        } else {
+                            console.log('Signal event (not answer):', data);
                         }
                     });
 
@@ -472,7 +509,7 @@
                 try {
                     const offer = JSON.parse(offerText);
                     if (offer.type === 'offer') {
-                        stopScanner(scannerStream);
+                        stopScanner();
                         createAnswer(offer);
                     } else {
                         alert('Это не оффер');
@@ -505,13 +542,6 @@
                 desktopView.classList.remove('hidden');
                 mobileView.classList.add('hidden');
                 initDesktop();
-
-                // Кнопка для перехода к сканированию ответа
-                const scanAnswerBtn = document.createElement('button');
-                scanAnswerBtn.className = 'btn secondary';
-                scanAnswerBtn.textContent = '📷 Сканировать ответ с телефона';
-                scanAnswerBtn.onclick = startDesktopScanner;
-                desktopStep1.appendChild(scanAnswerBtn);
             }
         })();
     </script>
