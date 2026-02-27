@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Телефон как веб-камера через QR</title>
+    <title>Телефон как веб-камера (QR)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -158,9 +158,9 @@
 
             // Общие переменные
             let peer = null;
-            let currentCall = null;      // активный звонок (медиа)
-            let localStream = null;       // видеопоток с телефона
-            let scanner = null;            // экземпляр Instascan
+            let currentCall = null;
+            let localStream = null;
+            let scanner = null;
 
             // --- Вспомогательные функции ---
             function stopScanner() {
@@ -168,9 +168,13 @@
                     scanner.stop().catch(e => console.warn('Остановка сканера', e));
                     scanner = null;
                 }
+                // Дополнительно очистим preview, если там остался поток
+                if (preview.srcObject) {
+                    preview.srcObject.getTracks().forEach(t => t.stop());
+                    preview.srcObject = null;
+                }
             }
 
-            // Остановить медиапоток
             function stopLocalStream() {
                 if (localStream) {
                     localStream.getTracks().forEach(track => track.stop());
@@ -178,11 +182,10 @@
                 }
             }
 
-            // Полный сброс на мобильном
             function resetMobileToScanner(reason) {
                 if (currentCall) currentCall.close();
                 if (peer) peer.destroy();
-                if (localStream) stopLocalStream();
+                stopLocalStream();
                 peer = null;
                 currentCall = null;
 
@@ -190,8 +193,8 @@
                 mobileStreaming.classList.add('hidden');
                 mobileTitle.textContent = '📱 Телефон';
                 scannerStatus.textContent = reason || 'Сканирование...';
-                // перезапустить сканер
-                initMobileScanner();
+                // перезапустить сканер с небольшой задержкой
+                setTimeout(() => initMobileScanner(), 300);
             }
 
             // --- Получение параметра из URL ---
@@ -226,23 +229,31 @@
                 });
 
                 peer.on('call', (call) => {
-                    // Входящий звонок от телефона
+                    console.log('📞 Входящий звонок');
                     desktopStatus.textContent = '📞 Входящий вызов...';
-                    call.answer(); // отвечаем, не передавая свой поток (ПК не отправляет видео)
+                    call.answer(); // отвечаем без своего видео
 
                     call.on('stream', (remoteStream) => {
-                        // Получили видеопоток с телефона
-                        remoteVideo.srcObject = remoteStream;
-                        remoteVideo.play().catch(e => console.warn(e));
+                        console.log('📹 Поток получен');
+                        // Показываем контейнер с видео
                         remoteVideoBox.classList.remove('hidden');
+                        remoteVideo.srcObject = remoteStream;
+                        remoteVideo.play().catch(e => console.warn('play error', e));
                         desktopStatus.textContent = '✅ Трансляция с телефона';
                     });
 
                     call.on('close', () => {
+                        console.log('❌ Звонок закрыт');
                         remoteVideo.srcObject = null;
                         remoteVideoBox.classList.add('hidden');
                         desktopStatus.textContent = '❌ Телефон отключился';
                         currentCall = null;
+                    });
+
+                    call.on('error', (err) => {
+                        console.error('Call error:', err);
+                        remoteVideoBox.classList.add('hidden');
+                        desktopStatus.textContent = 'Ошибка соединения';
                     });
 
                     currentCall = call;
@@ -266,15 +277,17 @@
 
             // --- Мобильная часть: запуск трансляции на переданный ID ---
             async function startStreamingAndCall(remoteId) {
-                stopScanner();
+                stopScanner(); // остановили сканер, освобождаем камеру
                 mobileScanner.classList.add('hidden');
                 mobileStreaming.classList.remove('hidden');
                 streamStatus.textContent = '⏳ Запрос доступа к камере...';
 
+                // Небольшая задержка, чтобы камера точно освободилась
+                await new Promise(resolve => setTimeout(resolve, 300));
+
                 try {
-                    // Запрашиваем доступ к камере (задняя, если возможно)
                     const constraints = {
-                        video: { facingMode: { ideal: 'environment' } }, // предпочтение задней камере
+                        video: { facingMode: { ideal: 'environment' } },
                         audio: false
                     };
                     localStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -285,11 +298,12 @@
                     peer = new Peer();
 
                     peer.on('open', () => {
-                        // Совершаем звонок на remoteId
+                        console.log('📱 Мобильный peer открыт, звоним на', remoteId);
                         const call = peer.call(remoteId, localStream);
                         currentCall = call;
 
                         call.on('close', () => {
+                            console.log('📴 Звонок закрыт');
                             resetMobileToScanner('Соединение закрыто');
                         });
 
@@ -310,7 +324,7 @@
                     console.error('getUserMedia error', err);
                     streamStatus.textContent = '❌ Нет доступа к камере';
                     mobileInfo.textContent = 'Разрешите доступ к камере и повторите';
-                    // Возврат к сканеру через кнопку?
+                    // Возвращаемся в режим сканера через кнопку "Остановить" или автоматически
                 }
             }
 
@@ -363,11 +377,9 @@
 
                     const connectId = getConnectParam();
                     if (connectId) {
-                        // Если открыто по ссылке с параметром — сразу начинаем трансляцию
                         removeConnectParam();
                         startStreamingAndCall(connectId);
                     } else {
-                        // Обычный режим: сканер
                         resetMobileToScanner('Готов к сканированию');
                     }
                 } else {
@@ -387,7 +399,7 @@
             // Очистка при уходе
             window.addEventListener('beforeunload', () => {
                 if (peer) peer.destroy();
-                if (localStream) stopLocalStream();
+                stopLocalStream();
                 stopScanner();
             });
         })();
