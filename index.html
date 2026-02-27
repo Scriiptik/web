@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Phone as Webcam (No Server)</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<style>
+body {
+    background:#0b0f14;
+    color:#fff;
+    font-family:Arial;
+    text-align:center;
+    padding:20px;
+}
+video {
+    width:90%;
+    max-width:600px;
+    border:2px solid #00ff88;
+    margin-top:20px;
+}
+textarea {
+    width:90%;
+    height:120px;
+    background:#000;
+    color:#0f0;
+}
+button {
+    margin:10px;
+    padding:10px 20px;
+    font-size:16px;
+}
+canvas {
+    margin-top:20px;
+}
+</style>
+</head>
+<body>
+
+<h2>📱 Phone → PC Webcam (HTML only)</h2>
+
+<div id="pc">
+    <button onclick="createOffer()">Создать QR (ПК)</button>
+    <canvas id="qr"></canvas>
+    <br>
+    <textarea id="answer" placeholder="Вставь ANSWER с телефона"></textarea><br>
+    <button onclick="setAnswer()">Подключить</button>
+</div>
+
+<div id="phone" style="display:none">
+    <button onclick="startCamera()">Включить камеру</button><br>
+    <textarea id="offer" placeholder="Вставь OFFER с ПК"></textarea><br>
+    <button onclick="createAnswer()">Создать ANSWER</button>
+    <canvas id="qr2"></canvas>
+</div>
+
+<video id="remote" autoplay playsinline></video>
+
+<script>
+let pc = new RTCPeerConnection();
+let stream;
+
+pc.ontrack = e => remote.srcObject = e.streams[0];
+
+function isMobile(){
+    return /Android|iPhone/i.test(navigator.userAgent);
+}
+
+if(isMobile()){
+    document.getElementById("pc").style.display="none";
+    document.getElementById("phone").style.display="block";
+}
+
+async function startCamera(){
+    stream = await navigator.mediaDevices.getUserMedia({video:true});
+    stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+}
+
+async function createOffer(){
+    let offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    QRCode.toCanvas(qr, JSON.stringify(offer));
+}
+
+async function createAnswer(){
+    let offer = JSON.parse(document.getElementById("offer").value);
+    await pc.setRemoteDescription(offer);
+    let answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    QRCode.toCanvas(qr2, JSON.stringify(answer));
+}
+
+async function setAnswer(){
+    let answer = JSON.parse(document.getElementById("answer").value);
+    await pc.setRemoteDescription(answer);
+}
+</script>
+
+</body>
+</html>
