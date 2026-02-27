@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Телефон как веб-камера (QR всегда генерируется)</title>
+    <title>Телефон как веб-камера (рабочий сервер)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -92,10 +92,10 @@
         .error { color: #ff9999; }
     </style>
 
-    <!-- Библиотеки: старая версия PeerJS (минимум CORS) + jsQR + qrcode -->
+    <!-- Библиотеки: актуальный PeerJS (1.5.2) + jsQR + qrcode -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/peerjs@0.3.20/dist/peer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
     <div class="card">
@@ -236,10 +236,13 @@
                 desktopStatus.textContent = `ID: ${currentPeerId}`;
                 generateQRWithId(currentPeerId);
 
-                // Попытка подключиться к серверу PeerJS с этим ID
+                // Используем стандартный облачный сервер PeerJS (peerjs.com)
+                // Опции: указываем ключ по умолчанию и iceServers для надежности
                 if (peer) peer.destroy();
-                // Используем старый облачный сервер
-                peer = new Peer(currentPeerId, { host: '0.peerjs.com', port: 9000, path: '/' });
+                peer = new Peer(currentPeerId, {
+                    key: 'peerjs',   // ключ для облачного сервера
+                    config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+                });
 
                 peer.on('open', (id) => {
                     desktopInfo.textContent = '✅ Сервер доступен, ожидаем звонок...';
@@ -357,7 +360,10 @@
                     streamStatus.textContent = '🔗 Подключаемся...';
 
                     if (peer) peer.destroy();
-                    peer = new Peer({ host: '0.peerjs.com', port: 9000, path: '/' });
+                    peer = new Peer({
+                        key: 'peerjs',
+                        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+                    });
 
                     peer.on('open', () => {
                         console.log('📱 Телефон готов, звоним на', remoteId);
