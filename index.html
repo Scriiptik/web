@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Телефон как веб-камера (QR-обмен)</title>
+    <title>Телефон как веб-камера (QR-обмен, исправлено)</title>
     <style>
+        /* Стили без изменений, можно оставить как в предыдущем ответе */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
@@ -106,14 +107,14 @@
         .small-note { font-size: 13px; color: #aaa; margin-top: 8px; }
     </style>
 
-    <!-- Библиотеки: simple-peer, qrcode, jsQR -->
-    <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- Библиотеки: qrcode-generator (вместо qrcodejs), jsQR, simple-peer -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
 </head>
 <body>
     <div class="card">
-        <!-- ПК: два шага -->
+        <!-- ПК -->
         <div id="desktop-view" class="hidden">
             <h2>🖥️ Компьютер</h2>
             <div id="desktop-step1">
@@ -122,7 +123,7 @@
                 <div class="status" id="desktop-status">Создание оффера...</div>
                 <button class="btn" id="reset-desktop">🔄 Начать заново</button>
                 <button class="btn secondary" id="go-to-scan">📷 Шаг 2: Сканировать ответ</button>
-                <div class="small-note">Если сканирование не работает, можно вручную вставить ответ ниже</div>
+                <div class="small-note">Если сканирование не работает, вставьте ответ вручную:</div>
                 <textarea id="answer-input" rows="3" placeholder="Вставьте SDP ответ (JSON)"></textarea>
                 <button class="btn" id="submit-answer">Подключиться</button>
             </div>
@@ -139,7 +140,7 @@
             </div>
         </div>
 
-        <!-- Телефон: два шага -->
+        <!-- Телефон -->
         <div id="mobile-view" class="hidden">
             <h2>📱 Телефон</h2>
             <div id="mobile-step1">
@@ -172,6 +173,23 @@
     <script>
         (function() {
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+            // ---------- Функция генерации QR-кода (исправленная) ----------
+            function generateQRCode(container, text) {
+                container.innerHTML = ''; // очищаем
+                try {
+                    // Используем максимальную версию 40 и низкий уровень коррекции для большей ёмкости
+                    let qr = qrcode(40, 'L');
+                    qr.addData(text);
+                    qr.make();
+                    // Создаём изображение с размером модуля 4 пикселя
+                    const imgTag = qr.createImgTag(4);
+                    container.innerHTML = imgTag;
+                } catch (e) {
+                    console.error('Ошибка генерации QR:', e);
+                    container.innerHTML = '<span style="color:red">Ошибка: текст слишком длинный</span>';
+                }
+            }
 
             // Элементы ПК
             const desktopView = document.getElementById('desktop-view');
@@ -266,12 +284,7 @@
                 peer.on('signal', (data) => {
                     if (data.type === 'offer') {
                         const offerStr = JSON.stringify(data);
-                        offerQr.innerHTML = '';
-                        new QRCode(offerQr, {
-                            text: offerStr,
-                            width: 250,
-                            height: 250,
-                        });
+                        generateQRCode(offerQr, offerStr);
                         desktopStatus.textContent = '✅ Оффер готов. Шаг 2: отсканируйте ответ.';
                     }
                 });
@@ -428,19 +441,13 @@
                     peer.on('signal', (data) => {
                         if (data.type === 'answer') {
                             const answerStr = JSON.stringify(data);
-                            answerQr.innerHTML = '';
-                            new QRCode(answerQr, {
-                                text: answerStr,
-                                width: 250,
-                                height: 250,
-                            });
+                            generateQRCode(answerQr, answerStr);
                             mobileStatus.textContent = '✅ Ответ готов. Отсканируйте его компьютером.';
                         }
                     });
 
                     peer.on('connect', () => {
                         mobileStatus.textContent = 'Соединение установлено';
-                        // Переходим в режим трансляции
                         mobileStep2.classList.add('hidden');
                         mobileStreaming.classList.remove('hidden');
                         streamStatus.textContent = '🔴 Трансляция активна';
