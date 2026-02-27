@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>QR‑соединение ПК ⇄ Телефон</title>
+    <title>Телефон как веб-камера через QR</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: #f0f2f5;
+            background: #0b0f14;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -16,31 +16,45 @@
             padding: 16px;
         }
         .card {
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            max-width: 500px;
+            background: #1e242b;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            max-width: 600px;
             width: 100%;
             padding: 24px;
-            text-align: center;
+            color: #f0f4f8;
         }
-        h2 { color: #1a1a1a; margin-bottom: 16px; font-weight: 600; }
+        h2 { font-weight: 600; margin-bottom: 16px; color: white; }
         .qr-container {
             background: white;
             padding: 20px;
-            border-radius: 20px;
+            border-radius: 24px;
             display: inline-block;
             margin: 16px 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
         #qrcode { display: flex; justify-content: center; }
         .status {
-            background: #e8f0fe;
+            background: #2a333d;
             border-radius: 40px;
             padding: 12px 20px;
             margin: 16px 0;
-            color: #0066cc;
+            color: #99c2ff;
             font-weight: 500;
+        }
+        .video-container {
+            background: #000;
+            border-radius: 24px;
+            overflow: hidden;
+            margin: 16px 0;
+            aspect-ratio: 16/9;
+            position: relative;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
         .scanner-container {
             width: 100%;
@@ -49,24 +63,14 @@
             border-radius: 24px;
             overflow: hidden;
             margin: 16px 0;
-            position: relative;
         }
         #preview {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        .message-box {
-            border: 1px solid #e0e0e0;
-            border-radius: 30px;
-            padding: 16px;
-            margin: 16px 0;
-            background: #fafafa;
-            font-size: 16px;
-            min-height: 60px;
-        }
         .btn {
-            background: #0066cc;
+            background: #3a6ea5;
             color: white;
             border: none;
             border-radius: 40px;
@@ -78,33 +82,38 @@
             width: 100%;
             max-width: 280px;
             margin: 8px auto;
+            border: 1px solid #5f8bc9;
         }
-        .btn:active { transform: scale(0.97); background: #0052a3; }
+        .btn:active { background: #2c4f7a; transform: scale(0.97); }
+        .btn.danger { background: #b02e2e; border-color: #d66; }
         .hidden { display: none; }
-        .info { color: #666; font-size: 14px; margin-top: 16px; }
+        .info { color: #a0b3cc; font-size: 14px; margin-top: 16px; }
     </style>
 
-    <!-- Библиотеки: QR-генератор, сканер QR, PeerJS -->
+    <!-- Библиотеки -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/instascan@2.0.0-rc.1/dist/instascan.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
     <div class="card">
-        <!-- Десктопный интерфейс (генерирует QR) -->
+        <!-- Десктоп (ПК) -->
         <div id="desktop-view" class="hidden">
-            <h2>📸 Компьютер</h2>
-            <p>Ваш код для подключения телефона:</p>
+            <h2>🖥️ Компьютер</h2>
+            <p>Отсканируйте код камерой телефона</p>
             <div class="qr-container" id="qrcode"></div>
             <div class="status" id="desktop-status">Ожидание подключения...</div>
-            <div class="message-box" id="desktop-message">📱 Сообщение от телефона появится здесь</div>
-            <button class="btn" id="reset-desktop">🔄 Новый код</button>
-            <div class="info">Отсканируйте QR‑код камерой телефона</div>
+            <div id="desktop-video-box" class="video-container hidden">
+                <video id="remote-video" autoplay playsinline></video>
+            </div>
+            <button class="btn" id="reset-desktop">🔄 Новый QR‑код</button>
+            <div class="info">После подключения здесь появится видео с телефона</div>
         </div>
 
-        <!-- Мобильный интерфейс (сканирует или подключается) -->
+        <!-- Мобильный интерфейс -->
         <div id="mobile-view" class="hidden">
             <h2 id="mobile-title">📱 Телефон</h2>
+            <!-- Режим сканера -->
             <div id="mobile-scanner" class="">
                 <p>Наведите камеру на QR‑код с ПК</p>
                 <div class="scanner-container">
@@ -112,12 +121,13 @@
                 </div>
                 <div class="status" id="scanner-status">Сканирование...</div>
             </div>
-            <div id="mobile-connected" class="hidden">
-                <div class="status" style="background: #d4edda; color: #155724;">✅ Подключено к ПК</div>
-                <div class="message-box" id="mobile-message">💬 Введите сообщение</div>
-                <input type="text" id="message-input" placeholder="Сообщение для ПК" style="width:100%; padding:12px; border-radius:30px; border:1px solid #ccc; margin:8px 0;">
-                <button class="btn" id="send-message">📨 Отправить</button>
-                <button class="btn" id="disconnect-mobile">❌ Отключиться</button>
+            <!-- Режим трансляции -->
+            <div id="mobile-streaming" class="hidden">
+                <div class="video-container">
+                    <video id="local-video" autoplay playsinline muted></video>
+                </div>
+                <div class="status" id="stream-status">🔴 Трансляция идёт</div>
+                <button class="btn danger" id="stop-stream">⏹️ Остановить и выйти</button>
             </div>
             <div class="info" id="mobile-info"></div>
         </div>
@@ -125,59 +135,34 @@
 
     <script>
         (function() {
-            // --- Определение устройства ---
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            
-            // --- DOM элементы ---
+
+            // DOM
             const desktopView = document.getElementById('desktop-view');
             const mobileView = document.getElementById('mobile-view');
             const qrcodeDiv = document.getElementById('qrcode');
             const desktopStatus = document.getElementById('desktop-status');
-            const desktopMessage = document.getElementById('desktop-message');
+            const remoteVideo = document.getElementById('remote-video');
+            const remoteVideoBox = document.getElementById('desktop-video-box');
             const resetBtn = document.getElementById('reset-desktop');
-            
+
             const mobileScanner = document.getElementById('mobile-scanner');
-            const mobileConnected = document.getElementById('mobile-connected');
+            const mobileStreaming = document.getElementById('mobile-streaming');
             const mobileTitle = document.getElementById('mobile-title');
             const scannerStatus = document.getElementById('scanner-status');
             const preview = document.getElementById('preview');
-            const mobileMessageDiv = document.getElementById('mobile-message');
-            const messageInput = document.getElementById('message-input');
-            const sendBtn = document.getElementById('send-message');
-            const disconnectBtn = document.getElementById('disconnect-mobile');
+            const localVideo = document.getElementById('local-video');
+            const streamStatus = document.getElementById('stream-status');
+            const stopBtn = document.getElementById('stop-stream');
             const mobileInfo = document.getElementById('mobile-info');
 
-            // --- Общие переменные ---
-            let peer = null;            // текущий Peer объект
-            let conn = null;             // активное соединение
-            let currentPeerId = null;    // ID своего пира (для ПК)
-            let scanner = null;           // экземпляр Instascan
+            // Общие переменные
+            let peer = null;
+            let currentCall = null;      // активный звонок (медиа)
+            let localStream = null;       // видеопоток с телефона
+            let scanner = null;            // экземпляр Instascan
 
             // --- Вспомогательные функции ---
-            function showDesktop() {
-                desktopView.classList.remove('hidden');
-                mobileView.classList.add('hidden');
-            }
-
-            function showMobile() {
-                desktopView.classList.add('hidden');
-                mobileView.classList.remove('hidden');
-            }
-
-            // Парсинг GET параметра connect из URL
-            function getConnectParam() {
-                const urlParams = new URLSearchParams(window.location.search);
-                return urlParams.get('connect');
-            }
-
-            // Обновить URL без перезагрузки (убрать параметр connect)
-            function removeConnectParam() {
-                const url = new URL(window.location);
-                url.searchParams.delete('connect');
-                window.history.replaceState({}, document.title, url);
-            }
-
-            // Остановить сканер, если он запущен
             function stopScanner() {
                 if (scanner) {
                     scanner.stop().catch(e => console.warn('Остановка сканера', e));
@@ -185,18 +170,51 @@
                 }
             }
 
-            // --- Логика для ПК (десктоп) ---
-            function initDesktop() {
-                // Если уже есть пир, уничтожаем
+            // Остановить медиапоток
+            function stopLocalStream() {
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = null;
+                }
+            }
+
+            // Полный сброс на мобильном
+            function resetMobileToScanner(reason) {
+                if (currentCall) currentCall.close();
                 if (peer) peer.destroy();
-                peer = new Peer(); // генерирует случайный ID
+                if (localStream) stopLocalStream();
+                peer = null;
+                currentCall = null;
+
+                mobileScanner.classList.remove('hidden');
+                mobileStreaming.classList.add('hidden');
+                mobileTitle.textContent = '📱 Телефон';
+                scannerStatus.textContent = reason || 'Сканирование...';
+                // перезапустить сканер
+                initMobileScanner();
+            }
+
+            // --- Получение параметра из URL ---
+            function getConnectParam() {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('connect');
+            }
+
+            function removeConnectParam() {
+                const url = new URL(window.location);
+                url.searchParams.delete('connect');
+                window.history.replaceState({}, document.title, url);
+            }
+
+            // --- Логика для ПК ---
+            function initDesktop() {
+                if (peer) peer.destroy();
+                peer = new Peer();
 
                 peer.on('open', (id) => {
-                    currentPeerId = id;
-                    desktopStatus.textContent = `Ваш ID: ${id}`;
-                    // Генерируем QR-код с URL, содержащим этот ID
+                    desktopStatus.textContent = `ID: ${id}`;
                     const connectUrl = `${window.location.origin}${window.location.pathname}?connect=${id}`;
-                    qrcodeDiv.innerHTML = ''; // очищаем
+                    qrcodeDiv.innerHTML = '';
                     new QRCode(qrcodeDiv, {
                         text: connectUrl,
                         width: 250,
@@ -207,20 +225,27 @@
                     });
                 });
 
-                peer.on('connection', (incomingConn) => {
-                    conn = incomingConn;
-                    desktopStatus.textContent = '✅ Телефон подключён!';
-                    
-                    conn.on('data', (data) => {
-                        // Получено сообщение от телефона
-                        desktopMessage.textContent = `📱 Телефон: ${data}`;
+                peer.on('call', (call) => {
+                    // Входящий звонок от телефона
+                    desktopStatus.textContent = '📞 Входящий вызов...';
+                    call.answer(); // отвечаем, не передавая свой поток (ПК не отправляет видео)
+
+                    call.on('stream', (remoteStream) => {
+                        // Получили видеопоток с телефона
+                        remoteVideo.srcObject = remoteStream;
+                        remoteVideo.play().catch(e => console.warn(e));
+                        remoteVideoBox.classList.remove('hidden');
+                        desktopStatus.textContent = '✅ Трансляция с телефона';
                     });
 
-                    conn.on('close', () => {
+                    call.on('close', () => {
+                        remoteVideo.srcObject = null;
+                        remoteVideoBox.classList.add('hidden');
                         desktopStatus.textContent = '❌ Телефон отключился';
-                        desktopMessage.textContent = '📱 Сообщение от телефона появится здесь';
-                        conn = null;
+                        currentCall = null;
                     });
+
+                    currentCall = call;
                 });
 
                 peer.on('error', (err) => {
@@ -229,103 +254,93 @@
                 });
             }
 
-            // Сброс на ПК (новый код)
             resetBtn.addEventListener('click', () => {
                 if (peer) peer.destroy();
-                if (conn) conn.close();
-                conn = null;
+                if (currentCall) currentCall.close();
+                remoteVideo.srcObject = null;
+                remoteVideoBox.classList.add('hidden');
                 qrcodeDiv.innerHTML = '';
                 desktopStatus.textContent = 'Генерируем новый код...';
-                desktopMessage.textContent = '📱 Сообщение от телефона появится здесь';
                 initDesktop();
             });
 
-            // --- Логика для телефона ---
-            // Подключиться к удалённому пиру по ID
-            function connectToPeer(remoteId) {
+            // --- Мобильная часть: запуск трансляции на переданный ID ---
+            async function startStreamingAndCall(remoteId) {
                 stopScanner();
                 mobileScanner.classList.add('hidden');
-                mobileConnected.classList.remove('hidden');
-                mobileInfo.textContent = `Подключение к ${remoteId}...`;
+                mobileStreaming.classList.remove('hidden');
+                streamStatus.textContent = '⏳ Запрос доступа к камере...';
 
-                if (peer) peer.destroy();
-                peer = new Peer();
+                try {
+                    // Запрашиваем доступ к камере (задняя, если возможно)
+                    const constraints = {
+                        video: { facingMode: { ideal: 'environment' } }, // предпочтение задней камере
+                        audio: false
+                    };
+                    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    localVideo.srcObject = localStream;
+                    streamStatus.textContent = '🔴 Подключение...';
 
-                peer.on('open', () => {
-                    conn = peer.connect(remoteId);
-                    
-                    conn.on('open', () => {
-                        mobileInfo.textContent = '';
-                        mobileTitle.textContent = '📱 Подключено';
-                        scannerStatus.textContent = 'Соединение установлено';
-                        // Можно отправить приветственное сообщение
-                        conn.send('Привет с телефона!');
+                    if (peer) peer.destroy();
+                    peer = new Peer();
+
+                    peer.on('open', () => {
+                        // Совершаем звонок на remoteId
+                        const call = peer.call(remoteId, localStream);
+                        currentCall = call;
+
+                        call.on('close', () => {
+                            resetMobileToScanner('Соединение закрыто');
+                        });
+
+                        call.on('error', (err) => {
+                            console.error('Call error', err);
+                            resetMobileToScanner('Ошибка соединения');
+                        });
+
+                        streamStatus.textContent = '✅ Трансляция активна';
                     });
 
-                    conn.on('data', (data) => {
-                        // Получено сообщение от ПК (если нужно)
-                        mobileMessageDiv.textContent = `🖥️ ПК: ${data}`;
+                    peer.on('error', (err) => {
+                        console.error('Peer error', err);
+                        resetMobileToScanner('Ошибка Peer');
                     });
 
-                    conn.on('close', () => {
-                        resetMobileToScanner('Соединение закрыто');
-                    });
-
-                    conn.on('error', (err) => {
-                        resetMobileToScanner('Ошибка соединения');
-                        console.error(err);
-                    });
-                });
-
-                peer.on('error', (err) => {
-                    resetMobileToScanner('Ошибка Peer: ' + err.type);
-                });
+                } catch (err) {
+                    console.error('getUserMedia error', err);
+                    streamStatus.textContent = '❌ Нет доступа к камере';
+                    mobileInfo.textContent = 'Разрешите доступ к камере и повторите';
+                    // Возврат к сканеру через кнопку?
+                }
             }
 
-            // Вернуть мобильный интерфейс в режим сканера
-            function resetMobileToScanner(reason) {
-                if (conn) conn.close();
-                if (peer) peer.destroy();
-                peer = null;
-                conn = null;
-                mobileScanner.classList.remove('hidden');
-                mobileConnected.classList.add('hidden');
-                mobileTitle.textContent = '📱 Телефон';
-                scannerStatus.textContent = reason || 'Сканирование...';
-                // Пытаемся перезапустить сканер
-                initMobileScanner();
-            }
-
-            // Инициализация сканера Instascan
+            // --- Инициализация сканера на телефоне ---
             function initMobileScanner() {
                 if (!preview) return;
                 stopScanner();
 
                 scanner = new Instascan.Scanner({ video: preview, mirror: false, scanPeriod: 2 });
                 scanner.addListener('scan', (content) => {
-                    // Сработало при обнаружении QR
-                    scannerStatus.textContent = 'QR обнаружен!';
-                    // Пытаемся извлечь параметр connect из URL
+                    scannerStatus.textContent = 'QR найден!';
                     try {
                         const url = new URL(content);
                         const connectId = url.searchParams.get('connect');
                         if (connectId) {
                             stopScanner();
-                            connectToPeer(connectId);
+                            startStreamingAndCall(connectId);
                         } else {
-                            scannerStatus.textContent = 'Неверный QR (нет connect)';
+                            scannerStatus.textContent = 'Неверный QR (нет ID)';
                         }
                     } catch (e) {
-                        scannerStatus.textContent = 'Это не ссылка';
+                        scannerStatus.textContent = 'Не является ссылкой';
                     }
                 });
 
                 Instascan.Camera.getCameras().then((cameras) => {
                     if (cameras.length > 0) {
-                        // Обычно задняя камера имеет больший приоритет
                         const rear = cameras.find(c => c.name.toLowerCase().includes('back') || c.name.toLowerCase().includes('rear'));
                         scanner.start(rear || cameras[0]);
-                        scannerStatus.textContent = 'Камера запущена';
+                        scannerStatus.textContent = 'Камера готова';
                     } else {
                         scannerStatus.textContent = 'Камера не найдена';
                     }
@@ -335,53 +350,44 @@
                 });
             }
 
-            // Отправка сообщения с телефона на ПК
-            sendBtn.addEventListener('click', () => {
-                if (conn && conn.open) {
-                    const msg = messageInput.value.trim() || 'Пустое сообщение';
-                    conn.send(msg);
-                    mobileMessageDiv.textContent = `🖥️ Вы: ${msg}`;
-                    messageInput.value = '';
-                } else {
-                    alert('Нет подключения');
-                }
+            // Кнопка остановки трансляции на телефоне
+            stopBtn.addEventListener('click', () => {
+                resetMobileToScanner('Трансляция остановлена');
             });
 
-            disconnectBtn.addEventListener('click', () => {
-                resetMobileToScanner('Отключено вручную');
-            });
-
-            // --- Точка входа ---
+            // --- Инициализация в зависимости от устройства и параметров ---
             function init() {
                 if (isMobile) {
-                    showMobile();
+                    mobileView.classList.remove('hidden');
+                    desktopView.classList.add('hidden');
+
                     const connectId = getConnectParam();
                     if (connectId) {
-                        // Если перешли по ссылке с параметром — сразу подключаемся
-                        removeConnectParam(); // чистим URL
-                        mobileScanner.classList.add('hidden');
-                        mobileConnected.classList.remove('hidden');
-                        connectToPeer(connectId);
+                        // Если открыто по ссылке с параметром — сразу начинаем трансляцию
+                        removeConnectParam();
+                        startStreamingAndCall(connectId);
                     } else {
-                        // Обычный режим — сканирование
+                        // Обычный режим: сканер
                         resetMobileToScanner('Готов к сканированию');
                     }
                 } else {
-                    showDesktop();
+                    desktopView.classList.remove('hidden');
+                    mobileView.classList.add('hidden');
                     initDesktop();
                 }
             }
 
-            // Запуск после загрузки DOM
+            // Запуск
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', init);
             } else {
                 init();
             }
 
-            // Очистка при закрытии/уходе со страницы
+            // Очистка при уходе
             window.addEventListener('beforeunload', () => {
                 if (peer) peer.destroy();
+                if (localStream) stopLocalStream();
                 stopScanner();
             });
         })();
