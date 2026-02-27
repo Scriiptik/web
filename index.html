@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Телефон как веб-камера (рабочий сервер)</title>
+    <title>Телефон как веб-камера (автовыбор сервера)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -87,12 +87,14 @@
         }
         .btn:active { background: #2c4f7a; transform: scale(0.97); }
         .btn.danger { background: #b02e2e; border-color: #d66; }
+        .btn.secondary { background: #4b5c6b; border-color: #7f8c8d; }
         .hidden { display: none; }
         .info { color: #a0b3cc; font-size: 14px; margin-top: 16px; }
         .error { color: #ff9999; }
+        input { width: 100%; padding: 12px; border-radius: 30px; border: none; margin: 10px 0; font-size: 16px; background: #2a333d; color: white; }
     </style>
 
-    <!-- Библиотеки: актуальный PeerJS (1.5.2) + jsQR + qrcode -->
+    <!-- Библиотеки: PeerJS 1.5.2 + jsQR + qrcode -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -122,6 +124,14 @@
                     <video id="preview" autoplay playsinline></video>
                 </div>
                 <div class="status" id="scanner-status">Сканирование...</div>
+                <button class="btn secondary" id="manual-connect-btn">🔤 Ввести ID вручную</button>
+            </div>
+            <!-- Режим ручного ввода ID -->
+            <div id="manual-connect" class="hidden">
+                <p>Введите ID, отображаемый на компьютере</p>
+                <input type="text" id="peer-id-input" placeholder="например pc-abc123">
+                <button class="btn" id="connect-manual">Подключиться</button>
+                <button class="btn secondary" id="back-to-scanner">← Назад к сканеру</button>
             </div>
             <!-- Режим трансляции -->
             <div id="mobile-streaming" class="hidden">
@@ -137,10 +147,9 @@
 
     <script>
         (function() {
-            // Определение мобильного устройства
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-            // DOM элементы
+            // DOM
             const desktopView = document.getElementById('desktop-view');
             const mobileView = document.getElementById('mobile-view');
             const qrcodeDiv = document.getElementById('qrcode');
@@ -151,6 +160,7 @@
             const resetBtn = document.getElementById('reset-desktop');
 
             const mobileScanner = document.getElementById('mobile-scanner');
+            const manualConnectDiv = document.getElementById('manual-connect');
             const mobileStreaming = document.getElementById('mobile-streaming');
             const mobileTitle = document.getElementById('mobile-title');
             const scannerStatus = document.getElementById('scanner-status');
@@ -159,14 +169,25 @@
             const streamStatus = document.getElementById('stream-status');
             const stopBtn = document.getElementById('stop-stream');
             const mobileInfo = document.getElementById('mobile-info');
+            const manualConnectBtn = document.getElementById('manual-connect-btn');
+            const backToScanner = document.getElementById('back-to-scanner');
+            const connectManualBtn = document.getElementById('connect-manual');
+            const peerIdInput = document.getElementById('peer-id-input');
 
             // Общие переменные
             let peer = null;
             let currentCall = null;
-            let localStream = null;       // поток с камеры телефона для трансляции
-            let scannerStream = null;      // поток для сканера
-            let scanInterval = null;       // интервал для jsQR
-            let currentPeerId = null;      // ID пира на ПК
+            let localStream = null;
+            let scannerStream = null;
+            let scanInterval = null;
+            let currentPeerId = null;
+
+            // Список серверов PeerJS для попыток подключения (порядок важен)
+            const peerServers = [
+                { host: 'peerjs.com', port: 443, secure: true, key: 'peerjs' },          // официальный облачный
+                { host: '0.peerjs.com', port: 9000, secure: false, key: 'peerjs' },       // старый (иногда работает)
+                { host: 'peerjs-server.herokuapp.com', port: 443, secure: true, key: 'peerjs' } // ещё один публичный
+            ];
 
             // ---------- Вспомогательные функции ----------
             function stopScannerStream() {
@@ -198,10 +219,10 @@
                 currentCall = null;
 
                 mobileScanner.classList.remove('hidden');
+                manualConnectDiv.classList.add('hidden');
                 mobileStreaming.classList.add('hidden');
                 mobileTitle.textContent = '📱 Телефон';
                 scannerStatus.textContent = reason || 'Сканирование...';
-                // запускаем сканер заново
                 initMobileScanner();
             }
 
@@ -215,6 +236,52 @@
                 const url = new URL(window.location);
                 url.searchParams.delete('connect');
                 window.history.replaceState({}, document.title, url);
+            }
+
+            // ---------- Создание Peer с перебором серверов ----------
+            function createPeer(id, onSuccess, onFailure) {
+                let currentServerIndex = 0;
+
+                function tryNextServer() {
+                    if (currentServerIndex >= peerServers.length) {
+                        onFailure('Ни один сервер не ответил');
+                        return;
+                    }
+
+                    const server = peerServers[currentServerIndex++];
+                    const peerOptions = {
+                        host: server.host,
+                        port: server.port,
+                        secure: server.secure,
+                        key: server.key,
+                        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] },
+                        debug: 2 // подробные логи в консоль
+                    };
+
+                    desktopInfo.textContent = `⏳ Подключение к ${server.host}...`;
+                    const newPeer = id ? new Peer(id, peerOptions) : new Peer(peerOptions);
+
+                    const timeout = setTimeout(() => {
+                        // Если за 5 секунд нет ответа, считаем сервер недоступным
+                        newPeer.destroy();
+                        tryNextServer();
+                    }, 5000);
+
+                    newPeer.on('open', (assignedId) => {
+                        clearTimeout(timeout);
+                        desktopInfo.textContent = `✅ Подключено к ${server.host}`;
+                        onSuccess(newPeer, assignedId);
+                    });
+
+                    newPeer.on('error', (err) => {
+                        clearTimeout(timeout);
+                        console.warn(`Сервер ${server.host} ошибка:`, err);
+                        newPeer.destroy();
+                        tryNextServer();
+                    });
+                }
+
+                tryNextServer();
             }
 
             // ---------- ПК: генерация QR и создание Peer ----------
@@ -231,57 +298,45 @@
             }
 
             function initDesktop() {
-                // Генерируем случайный ID (6 символов)
                 currentPeerId = 'pc-' + Math.random().toString(36).substring(2, 8);
                 desktopStatus.textContent = `ID: ${currentPeerId}`;
                 generateQRWithId(currentPeerId);
+                desktopInfo.textContent = '⏳ Поиск доступного сервера...';
 
-                // Используем стандартный облачный сервер PeerJS (peerjs.com)
-                // Опции: указываем ключ по умолчанию и iceServers для надежности
-                if (peer) peer.destroy();
-                peer = new Peer(currentPeerId, {
-                    key: 'peerjs',   // ключ для облачного сервера
-                    config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-                });
+                createPeer(currentPeerId, (newPeer, id) => {
+                    peer = newPeer;
 
-                peer.on('open', (id) => {
-                    desktopInfo.textContent = '✅ Сервер доступен, ожидаем звонок...';
-                });
+                    peer.on('call', (call) => {
+                        console.log('📞 Входящий звонок');
+                        desktopStatus.textContent = '📞 Входящий звонок...';
+                        call.answer();
 
-                peer.on('call', (call) => {
-                    console.log('📞 Входящий звонок');
-                    desktopStatus.textContent = '📞 Входящий звонок...';
-                    call.answer(); // отвечаем без отправки своего видео
+                        call.on('stream', (remoteStream) => {
+                            console.log('📹 Поток получен');
+                            remoteVideoBox.classList.remove('hidden');
+                            remoteVideo.srcObject = remoteStream;
+                            remoteVideo.play().catch(e => console.warn('play error', e));
+                            desktopStatus.textContent = '✅ Трансляция с телефона';
+                        });
 
-                    call.on('stream', (remoteStream) => {
-                        console.log('📹 Поток получен');
-                        remoteVideoBox.classList.remove('hidden');
-                        remoteVideo.srcObject = remoteStream;
-                        remoteVideo.play().catch(e => console.warn('play error', e));
-                        desktopStatus.textContent = '✅ Трансляция с телефона';
-                        desktopInfo.textContent = '';
+                        call.on('close', () => {
+                            console.log('❌ Звонок закрыт');
+                            remoteVideo.srcObject = null;
+                            remoteVideoBox.classList.add('hidden');
+                            desktopStatus.textContent = `ID: ${currentPeerId} (ожидание)`;
+                            currentCall = null;
+                        });
+
+                        call.on('error', (err) => {
+                            console.error('Ошибка звонка:', err);
+                            remoteVideoBox.classList.add('hidden');
+                            desktopStatus.textContent = 'Ошибка соединения';
+                        });
+
+                        currentCall = call;
                     });
-
-                    call.on('close', () => {
-                        console.log('❌ Звонок закрыт');
-                        remoteVideo.srcObject = null;
-                        remoteVideoBox.classList.add('hidden');
-                        desktopStatus.textContent = `ID: ${currentPeerId} (ожидание)`;
-                        currentCall = null;
-                    });
-
-                    call.on('error', (err) => {
-                        console.error('Ошибка звонка:', err);
-                        remoteVideoBox.classList.add('hidden');
-                        desktopStatus.textContent = 'Ошибка соединения';
-                    });
-
-                    currentCall = call;
-                });
-
-                peer.on('error', (err) => {
-                    desktopInfo.innerHTML = `<span class="error">⚠️ Сервер PeerJS недоступен. Видеосвязь может не работать, но QR-код действителен.</span>`;
-                    console.error(err);
+                }, (errorMsg) => {
+                    desktopInfo.innerHTML = `<span class="error">⚠️ ${errorMsg}. Видеосвязь может не работать, но QR-код действителен.</span>`;
                 });
             }
 
@@ -290,7 +345,7 @@
                 if (currentCall) currentCall.close();
                 remoteVideo.srcObject = null;
                 remoteVideoBox.classList.add('hidden');
-                initDesktop(); // сгенерирует новый ID и QR
+                initDesktop();
             });
 
             // ---------- Телефон: сканер (jsQR) ----------
@@ -299,12 +354,11 @@
 
                 try {
                     scannerStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { facingMode: 'environment' } // предпочитаем заднюю камеру
+                        video: { facingMode: 'environment' }
                     });
                     preview.srcObject = scannerStream;
                     await preview.play();
 
-                    // Создаём скрытый canvas для анализа кадров
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
 
@@ -337,7 +391,7 @@
                 } catch (err) {
                     console.error('Ошибка доступа к камере:', err);
                     scannerStatus.textContent = 'Нет доступа к камере';
-                    mobileInfo.textContent = 'Разрешите доступ к камере и перезагрузите страницу.';
+                    mobileInfo.textContent = 'Разрешите доступ к камере или используйте ручной ввод.';
                 }
             }
 
@@ -345,10 +399,10 @@
             async function startStreamingAndCall(remoteId) {
                 stopScannerStream();
                 mobileScanner.classList.add('hidden');
+                manualConnectDiv.classList.add('hidden');
                 mobileStreaming.classList.remove('hidden');
                 streamStatus.textContent = '⏳ Запрашиваем камеру...';
 
-                // Небольшая задержка для гарантии освобождения
                 await new Promise(r => setTimeout(r, 300));
 
                 try {
@@ -357,15 +411,11 @@
                         audio: false
                     });
                     localVideo.srcObject = localStream;
-                    streamStatus.textContent = '🔗 Подключаемся...';
+                    streamStatus.textContent = '🔗 Подключаемся к серверу...';
 
-                    if (peer) peer.destroy();
-                    peer = new Peer({
-                        key: 'peerjs',
-                        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-                    });
-
-                    peer.on('open', () => {
+                    // На телефоне тоже пробуем серверы по очереди
+                    createPeer(null, (newPeer, id) => {
+                        peer = newPeer;
                         console.log('📱 Телефон готов, звоним на', remoteId);
                         const call = peer.call(remoteId, localStream);
                         currentCall = call;
@@ -381,11 +431,9 @@
                         });
 
                         streamStatus.textContent = '✅ Трансляция активна';
-                    });
-
-                    peer.on('error', (err) => {
-                        console.error('Ошибка Peer:', err);
-                        resetMobileToScanner('Ошибка Peer. Сервер недоступен.');
+                    }, (errorMsg) => {
+                        streamStatus.textContent = '❌ Ошибка сервера';
+                        mobileInfo.textContent = errorMsg;
                     });
                 } catch (err) {
                     console.error('Ошибка доступа к камере:', err);
@@ -394,12 +442,34 @@
                 }
             }
 
-            // Кнопка остановки на телефоне
+            // ---------- Обработчики ручного ввода ----------
+            manualConnectBtn.addEventListener('click', () => {
+                stopScannerStream();
+                mobileScanner.classList.add('hidden');
+                manualConnectDiv.classList.remove('hidden');
+            });
+
+            backToScanner.addEventListener('click', () => {
+                manualConnectDiv.classList.add('hidden');
+                mobileScanner.classList.remove('hidden');
+                initMobileScanner();
+            });
+
+            connectManualBtn.addEventListener('click', () => {
+                const id = peerIdInput.value.trim();
+                if (id) {
+                    stopScannerStream();
+                    startStreamingAndCall(id);
+                } else {
+                    alert('Введите ID');
+                }
+            });
+
             stopBtn.addEventListener('click', () => {
                 resetMobileToScanner('Трансляция остановлена');
             });
 
-            // ---------- Инициализация в зависимости от устройства ----------
+            // ---------- Инициализация ----------
             function init() {
                 if (isMobile) {
                     mobileView.classList.remove('hidden');
@@ -419,14 +489,12 @@
                 }
             }
 
-            // Запуск после загрузки DOM
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', init);
             } else {
                 init();
             }
 
-            // Очистка при уходе со страницы
             window.addEventListener('beforeunload', () => {
                 if (peer) peer.destroy();
                 stopLocalStream();
