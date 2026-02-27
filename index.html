@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Телефон как веб-камера (исправлено)</title>
+    <title>Телефон как веб-камера (QR всегда генерируется)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -89,9 +89,10 @@
         .btn.danger { background: #b02e2e; border-color: #d66; }
         .hidden { display: none; }
         .info { color: #a0b3cc; font-size: 14px; margin-top: 16px; }
+        .error { color: #ff9999; }
     </style>
 
-    <!-- Библиотеки: старая версия PeerJS (без CORS) + jsQR + qrcode -->
+    <!-- Библиотеки: старая версия PeerJS (минимум CORS) + jsQR + qrcode -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/peerjs@0.3.20/dist/peer.min.js"></script>
@@ -103,12 +104,12 @@
             <h2>🖥️ Компьютер</h2>
             <p>Отсканируйте этот QR‑код камерой телефона</p>
             <div class="qr-container" id="qrcode"></div>
-            <div class="status" id="desktop-status">Ожидание подключения...</div>
+            <div class="status" id="desktop-status">Генерация кода...</div>
             <div id="desktop-video-box" class="video-container hidden">
                 <video id="remote-video" autoplay playsinline></video>
             </div>
             <button class="btn" id="reset-desktop">🔄 Новый QR‑код</button>
-            <div class="info">После подключения здесь появится видео с телефона</div>
+            <div class="info" id="desktop-info"></div>
         </div>
 
         <!-- Телефон -->
@@ -144,6 +145,7 @@
             const mobileView = document.getElementById('mobile-view');
             const qrcodeDiv = document.getElementById('qrcode');
             const desktopStatus = document.getElementById('desktop-status');
+            const desktopInfo = document.getElementById('desktop-info');
             const remoteVideo = document.getElementById('remote-video');
             const remoteVideoBox = document.getElementById('desktop-video-box');
             const resetBtn = document.getElementById('reset-desktop');
@@ -164,6 +166,7 @@
             let localStream = null;       // поток с камеры телефона для трансляции
             let scannerStream = null;      // поток для сканера
             let scanInterval = null;       // интервал для jsQR
+            let currentPeerId = null;      // ID пира на ПК
 
             // ---------- Вспомогательные функции ----------
             function stopScannerStream() {
@@ -214,24 +217,32 @@
                 window.history.replaceState({}, document.title, url);
             }
 
-            // ---------- ПК: инициализация Peer ----------
+            // ---------- ПК: генерация QR и создание Peer ----------
+            function generateQRWithId(id) {
+                qrcodeDiv.innerHTML = '';
+                new QRCode(qrcodeDiv, {
+                    text: `${window.location.origin}${window.location.pathname}?connect=${id}`,
+                    width: 250,
+                    height: 250,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
+
             function initDesktop() {
+                // Генерируем случайный ID (6 символов)
+                currentPeerId = 'pc-' + Math.random().toString(36).substring(2, 8);
+                desktopStatus.textContent = `ID: ${currentPeerId}`;
+                generateQRWithId(currentPeerId);
+
+                // Попытка подключиться к серверу PeerJS с этим ID
                 if (peer) peer.destroy();
-                // Используем старый облачный сервер PeerJS (без CORS)
-                peer = new Peer({ host: '0.peerjs.com', port: 9000, path: '/' });
+                // Используем старый облачный сервер
+                peer = new Peer(currentPeerId, { host: '0.peerjs.com', port: 9000, path: '/' });
 
                 peer.on('open', (id) => {
-                    desktopStatus.textContent = `ID: ${id}`;
-                    const connectUrl = `${window.location.origin}${window.location.pathname}?connect=${id}`;
-                    qrcodeDiv.innerHTML = '';
-                    new QRCode(qrcodeDiv, {
-                        text: connectUrl,
-                        width: 250,
-                        height: 250,
-                        colorDark: "#000000",
-                        colorLight: "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.H
-                    });
+                    desktopInfo.textContent = '✅ Сервер доступен, ожидаем звонок...';
                 });
 
                 peer.on('call', (call) => {
@@ -245,13 +256,14 @@
                         remoteVideo.srcObject = remoteStream;
                         remoteVideo.play().catch(e => console.warn('play error', e));
                         desktopStatus.textContent = '✅ Трансляция с телефона';
+                        desktopInfo.textContent = '';
                     });
 
                     call.on('close', () => {
                         console.log('❌ Звонок закрыт');
                         remoteVideo.srcObject = null;
                         remoteVideoBox.classList.add('hidden');
-                        desktopStatus.textContent = '❌ Телефон отключился';
+                        desktopStatus.textContent = `ID: ${currentPeerId} (ожидание)`;
                         currentCall = null;
                     });
 
@@ -265,7 +277,7 @@
                 });
 
                 peer.on('error', (err) => {
-                    desktopStatus.textContent = 'Ошибка: ' + err.type;
+                    desktopInfo.innerHTML = `<span class="error">⚠️ Сервер PeerJS недоступен. Видеосвязь может не работать, но QR-код действителен.</span>`;
                     console.error(err);
                 });
             }
@@ -275,9 +287,7 @@
                 if (currentCall) currentCall.close();
                 remoteVideo.srcObject = null;
                 remoteVideoBox.classList.add('hidden');
-                qrcodeDiv.innerHTML = '';
-                desktopStatus.textContent = 'Генерируем новый код...';
-                initDesktop();
+                initDesktop(); // сгенерирует новый ID и QR
             });
 
             // ---------- Телефон: сканер (jsQR) ----------
@@ -369,7 +379,7 @@
 
                     peer.on('error', (err) => {
                         console.error('Ошибка Peer:', err);
-                        resetMobileToScanner('Ошибка Peer');
+                        resetMobileToScanner('Ошибка Peer. Сервер недоступен.');
                     });
                 } catch (err) {
                     console.error('Ошибка доступа к камере:', err);
