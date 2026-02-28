@@ -2,67 +2,154 @@
 <html>
 <head>
     <title>Совместное рисование</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; background: #f0f0f0; }
-        canvas { display: block; background: white; touch-action: none; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #f0f0f0;
+            font-family: sans-serif;
+        }
+        canvas {
+            display: block;
+            background: white;
+            touch-action: none; /* отключает прокрутку/масштабирование при касании */
+            width: 100vw;
+            height: 100vh;
+        }
         #controls {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(255,255,255,0.9);
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 100;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(0,0,0,0.1);
+            max-width: 300px;
+        }
+        .control-group {
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
         }
         input, button {
-            margin: 2px;
-            padding: 5px;
+            padding: 8px 12px;
             font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            outline: none;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button#clearBtn {
+            background: #f44336;
+        }
+        button#clearBtn:hover {
+            background: #d32f2f;
+        }
+        #peerIdDisplay {
+            font-weight: bold;
+            word-break: break-all;
+            background: #e3f2fd;
+            padding: 6px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        .note {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
         }
     </style>
+    <!-- Подключаем PeerJS с публичного CDN -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
-    <div id="controls">
-        <div>
-            <button id="createBtn">Создать соединение</button>
-            <span id="peerIdDisplay"></span>
-        </div>
-        <div>
-            <input id="peerIdInput" placeholder="ID друга" />
-            <button id="connectBtn">Подключиться</button>
-        </div>
-        <div><button id="clearBtn">Очистить</button></div>
-    </div>
     <canvas id="canvas"></canvas>
+
+    <div id="controls">
+        <div class="control-group">
+            <button id="createBtn">🎨 Создать комнату</button>
+            <div id="peerIdDisplay">—</div>
+        </div>
+        <div class="control-group">
+            <input type="text" id="peerIdInput" placeholder="ID друга">
+            <button id="connectBtn">🔗 Подключиться</button>
+        </div>
+        <div class="control-group">
+            <button id="clearBtn">🗑 Очистить холст</button>
+        </div>
+        <div class="note">
+            ↑ Ваш ID появляется после нажатия «Создать комнату».<br>
+            Передайте его другу. Друг вводит ваш ID и нажимает «Подключиться».<br>
+            Рисуйте мышью или пальцем — линии появятся у обоих.
+        </div>
+    </div>
 
     <script>
         (function() {
+            // ----- Элементы интерфейса -----
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
-            let drawing = false;
-            let peer = null;
-            let conn = null;  // активное соединение
-            let peerId = null;
+            const peerIdDisplay = document.getElementById('peerIdDisplay');
+            const peerIdInput = document.getElementById('peerIdInput');
+            const createBtn = document.getElementById('createBtn');
+            const connectBtn = document.getElementById('connectBtn');
+            const clearBtn = document.getElementById('clearBtn');
 
-            // Настройка размеров canvas на весь экран
+            // ----- Состояние приложения -----
+            let drawing = false;
+            let peer = null;          // экземпляр Peer
+            let conn = null;          // активное соединение (peer-to-peer)
+            let myId = null;
+
+            // ----- Настройка холста на весь экран -----
             function resizeCanvas() {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
-                // Можно перерисовать сохранённое изображение, если хотите сохранять рисунок
+                // При изменении размера содержимое стирается, но для простоты не восстанавливаем
+                // При желании можно хранить историю линий и перерисовывать
             }
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
-            // Рисование
+            // ----- Вспомогательная функция для получения координат (мышь/тач) -----
+            function getCoordinates(e) {
+                e.preventDefault(); // важно для touch, чтобы не скроллило
+                let clientX, clientY;
+                if (e.touches) {
+                    // touch-событие
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+                return { x: clientX, y: clientY };
+            }
+
+            // ----- Функции рисования (локальные + отправка событий) -----
             function startDrawing(e) {
                 e.preventDefault();
                 drawing = true;
-                ctx.beginPath();
                 const pos = getCoordinates(e);
+                ctx.beginPath();
                 ctx.moveTo(pos.x, pos.y);
-                // Отправляем событие начала рисования другу
+                // Отправляем другу начало штриха
                 if (conn && conn.open) {
                     conn.send({ type: 'start', x: pos.x, y: pos.y });
                 }
@@ -73,81 +160,73 @@
                 if (!drawing) return;
                 const pos = getCoordinates(e);
                 ctx.lineTo(pos.x, pos.y);
-                ctx.strokeStyle = 'black';
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 3;
                 ctx.lineCap = 'round';
                 ctx.stroke();
                 ctx.beginPath();
                 ctx.moveTo(pos.x, pos.y);
-                // Отправляем событие движения
+                // Отправляем движение
                 if (conn && conn.open) {
                     conn.send({ type: 'draw', x: pos.x, y: pos.y });
                 }
             }
 
-            function stopDrawing() {
+            function stopDrawing(e) {
+                e.preventDefault();
                 drawing = false;
-                ctx.beginPath(); // подготовка к новому штриху
+                ctx.beginPath(); // готовим новый путь
                 if (conn && conn.open) {
                     conn.send({ type: 'stop' });
                 }
             }
 
-            // Получение координат мыши/пальца
-            function getCoordinates(e) {
-                let x, y;
-                if (e.touches) {
-                    // сенсорное событие
-                    x = e.touches[0].clientX;
-                    y = e.touches[0].clientY;
-                } else {
-                    x = e.clientX;
-                    y = e.clientY;
-                }
-                return { x, y };
-            }
-
-            // Обработчики событий мыши
+            // ----- Привязка событий рисования к холсту -----
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
             canvas.addEventListener('mouseleave', stopDrawing);
 
-            // Обработчики touch-событий для мобильных устройств
-            canvas.addEventListener('touchstart', startDrawing);
-            canvas.addEventListener('touchmove', draw);
-            canvas.addEventListener('touchend', stopDrawing);
-            canvas.addEventListener('touchcancel', stopDrawing);
+            canvas.addEventListener('touchstart', startDrawing, { passive: false });
+            canvas.addEventListener('touchmove', draw, { passive: false });
+            canvas.addEventListener('touchend', stopDrawing, { passive: false });
+            canvas.addEventListener('touchcancel', stopDrawing, { passive: false });
 
-            // Инициализация PeerJS
-            peer = new Peer();  // подключается к публичному серверу peerjs.com
+            // ----- Инициализация Peer (подключение к публичному серверу) -----
+            peer = new Peer(); // можно указать опции: { debug: 2 } для логов
 
             peer.on('open', function(id) {
-                peerId = id;
-                document.getElementById('peerIdDisplay').textContent = 'Ваш ID: ' + id;
+                myId = id;
+                peerIdDisplay.textContent = myId;
             });
 
-            // Обработка входящего соединения
+            peer.on('error', function(err) {
+                console.error('PeerJS error:', err);
+                alert('Ошибка соединения: ' + err.type);
+            });
+
+            // ----- Обработка входящего соединения (кто-то подключается к нам) -----
             peer.on('connection', function(connection) {
                 conn = connection;
                 setupConnection(conn);
             });
 
-            // Настройка соединения (общий код для входящего и исходящего)
+            // ----- Общая настройка соединения (для входящего и исходящего) -----
             function setupConnection(connection) {
                 conn = connection;
                 conn.on('open', function() {
-                    console.log('Соединение установлено');
+                    console.log('Соединение установлено с:', conn.peer);
+                    // Можно показать сообщение пользователю, но для простоты пропустим
                 });
                 conn.on('data', function(data) {
-                    // Получены данные от друга – рисуем на своём холсте
+                    // Получены данные от удалённого друга — рисуем на своём холсте
                     if (data.type === 'start') {
                         ctx.beginPath();
                         ctx.moveTo(data.x, data.y);
                     } else if (data.type === 'draw') {
                         ctx.lineTo(data.x, data.y);
-                        ctx.strokeStyle = 'black';
-                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = '#000000';
+                        ctx.lineWidth = 3;
                         ctx.lineCap = 'round';
                         ctx.stroke();
                         ctx.beginPath();
@@ -158,31 +237,57 @@
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                     }
                 });
+                conn.on('close', function() {
+                    console.log('Соединение закрыто');
+                    conn = null;
+                });
+                conn.on('error', function(err) {
+                    console.error('Connection error:', err);
+                });
             }
 
-            // Создаём соединение (по кнопке «Подключиться»)
-            document.getElementById('connectBtn').addEventListener('click', function() {
-                const friendId = document.getElementById('peerIdInput').value.trim();
-                if (friendId) {
-                    conn = peer.connect(friendId);
-                    setupConnection(conn);
+            // ----- Кнопка "Создать комнату" (фактически просто показывает ID) -----
+            createBtn.addEventListener('click', function() {
+                if (myId) {
+                    // Копируем ID в буфер обмена (удобно для отправки другу)
+                    navigator.clipboard?.writeText(myId).then(() => {
+                        alert('Ваш ID скопирован в буфер обмена!');
+                    }).catch(() => {
+                        alert('Ваш ID: ' + myId);
+                    });
+                } else {
+                    alert('Инициализация ещё не завершена, подождите несколько секунд.');
                 }
             });
 
-            // Кнопка очистки холста
-            document.getElementById('clearBtn').addEventListener('click', function() {
+            // ----- Кнопка "Подключиться" (инициируем соединение с другом) -----
+            connectBtn.addEventListener('click', function() {
+                const friendId = peerIdInput.value.trim();
+                if (!friendId) {
+                    alert('Введите ID друга');
+                    return;
+                }
+                if (!peer) {
+                    alert('Peer не инициализирован');
+                    return;
+                }
+                // Создаём исходящее соединение
+                const connection = peer.connect(friendId);
+                setupConnection(connection);
+            });
+
+            // ----- Кнопка "Очистить холст" -----
+            clearBtn.addEventListener('click', function() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 if (conn && conn.open) {
                     conn.send({ type: 'clear' });
                 }
             });
 
-            // Кнопка «Создать соединение» просто показывает ID, но можно и автоматически копировать
-            document.getElementById('createBtn').addEventListener('click', function() {
-                // ID уже отображается, можно добавить копирование в буфер
-                navigator.clipboard?.writeText(peerId).catch(() => {});
+            // ----- Для отладки: показываем при ошибках -----
+            window.addEventListener('error', function(e) {
+                console.error('Global error:', e.error);
             });
-
         })();
     </script>
 </body>
