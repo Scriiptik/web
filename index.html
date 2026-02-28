@@ -1,585 +1,259 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Сайт скрыт (light mobile)</title>
+    <title>Совместное рисование (Firebase) — 100% работает</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
+        body { margin: 0; overflow: hidden; background: #f0f0f0; font-family: system-ui, sans-serif; }
+        canvas { display: block; background: white; touch-action: none; width: 100vw; height: 100vh; }
+        #controls {
+            position: absolute; top: 10px; left: 10px; right: 10px;
+            background: rgba(255,255,255,0.96); padding: 16px; border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 100;
+            backdrop-filter: blur(8px); max-width: 360px; margin: 0 auto;
             box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
         }
-
-        body {
-            background: #0a0c10;
-            overflow: hidden;
-            font-family: 'Segoe UI', 'Arial', sans-serif;
-            touch-action: pan-y pinch-zoom; /* разрешаем только вертикальный скролл/зум */
-        }
-
-        #container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        #crypto-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: block;
-            z-index: 1;
-            pointer-events: none;
-            /* оптимизация для мобильных: снижаем качество ради производительности */
-            image-rendering: crisp-edges; /* или auto, но не smooth */
-        }
-
-        #pnl-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 5;
-            pointer-events: none;
-            overflow: hidden;
-            /* отключаем сложные анимации на мобильных по умолчанию, включим только если мощное устройство */
-        }
-
-        .pnl-item {
-            position: absolute;
-            font-family: 'Courier New', monospace;
-            font-size: clamp(14px, 2.5vw, 28px);
-            font-weight: 600;
-            white-space: nowrap;
-            opacity: 0.3;
-            text-shadow: 0 0 8px currentColor;
-            /* убираем анимацию движения, оставляем только мерцание цвета */
-            transition: opacity 0.3s;
-            will-change: transform; /* готовим, но анимация отключена */
-        }
-
-        /* для мобильных отключаем анимацию float */
-        @media (max-width: 768px) {
-            .pnl-item {
-                animation: none !important;
-                transform: none !important;
-            }
-        }
-
-        .pnl-item.positive { color: #00ffaa; }
-        .pnl-item.negative { color: #ff5e7d; }
-
-        #center-message {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            background: rgba(10, 10, 20, 0.8);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            color: white;
-            font-size: clamp(28px, 7vw, 64px);
-            font-weight: 900;
-            padding: 0.8em 2em;
-            border-radius: 60px;
-            text-align: center;
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            border: 2px solid rgba(255, 215, 0, 0.6);
-            box-shadow: 0 0 50px rgba(255, 200, 50, 0.5), 0 20px 40px rgba(0, 0, 0, 0.8);
-            cursor: pointer;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            white-space: nowrap;
-            animation: neonPulse 3s infinite alternate;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        #center-message:active {
-            transform: translate(-50%, -50%) scale(0.97);
-        }
-
-        @keyframes neonPulse {
-            0% { text-shadow: 0 0 5px cyan, 0 0 10px blue; }
-            100% { text-shadow: 0 0 15px magenta, 0 0 30px red; }
-        }
-
-        #center-message span {
-            display: block;
-            font-size: 0.4em;
-            font-weight: 300;
-            letter-spacing: 6px;
-            color: #ffdd99;
-            margin-top: 8px;
-        }
-
-        .shake {
-            animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-        }
-
-        @keyframes shake {
-            10%, 90% { transform: translate(-50%, -50%) translate3d(-2px, 0, 0); }
-            20%, 80% { transform: translate(-50%, -50%) translate3d(4px, 0, 0); }
-            30%, 50%, 70% { transform: translate(-50%, -50%) translate3d(-6px, 0, 0); }
-            40%, 60% { transform: translate(-50%, -50%) translate3d(6px, 0, 0); }
-        }
-
-        #shout-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            z-index: 1000;
-            overflow: visible;
-        }
-
-        .shout-single {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            font-weight: 900;
-            text-transform: uppercase;
-            font-family: 'Impact', 'Arial Black', sans-serif;
-            white-space: nowrap;
-            text-shadow: 8px 8px 0 #000, 0 0 60px currentColor;
-            transform-origin: center;
-            user-select: none;
-            animation: whoosh 2.2s ease-out forwards;
-            opacity: 0;
-            font-size: 20vw;
-            letter-spacing: 0.1em;
-            color: #ff4444;
-        }
-
-        @keyframes whoosh {
-            0% {
-                transform: translate(-50%, -50%) scale(0.2) rotate(var(--rot, 0deg));
-                opacity: 1;
-            }
-            20% {
-                transform: translate(-50%, -50%) scale(1.3) rotate(var(--rot, 0deg));
-                opacity: 1;
-            }
-            40% {
-                transform: translate(-50%, -50%) scale(0.6) rotate(var(--rot, 0deg));
-                opacity: 1;
-            }
-            60% {
-                transform: translate(-50%, -50%) scale(1.5) rotate(var(--rot, 0deg));
-                opacity: 1;
-            }
-            80% {
-                transform: translate(-50%, -50%) scale(0.4) rotate(var(--rot, 0deg));
-                opacity: 0.9;
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(0.1) rotate(var(--rot, 0deg));
-                opacity: 0;
-            }
-        }
-
-        @media (max-width: 600px) {
-            #center-message {
-                white-space: normal;
-                font-size: 24px;
-                padding: 0.8em 1.2em;
-            }
-        }
+        .control-group { margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+        input, button { padding: 12px 16px; font-size: 16px; border-radius: 12px; border: 1px solid #ddd; outline: none; }
+        button { background: #4CAF50; color: white; border: none; cursor: pointer; font-weight: 600; }
+        button#clearBtn { background: #f44336; }
+        #roomIdDisplay { font-weight: bold; word-break: break-all; background: #e3f2fd; padding: 8px 12px; border-radius: 8px; margin-top: 5px; }
+        #status { font-size: 14px; margin-top: 8px; font-weight: 500; color: #1976d2; }
+        .note { font-size: 13px; color: #555; margin-top: 12px; background: #f9f9f9; padding: 10px; border-radius: 8px; }
     </style>
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
-    <div id="container">
-        <canvas id="crypto-canvas"></canvas>
-        <div id="pnl-overlay"></div>
-        <div id="center-message">
-            сайт скрыт
-            <span>по желанию правообладателя</span>
+    <canvas id="canvas"></canvas>
+    <div id="controls">
+        <div class="control-group">
+            <button id="createBtn">🎨 Создать комнату</button>
+            <div id="roomIdDisplay">—</div>
+        </div>
+        <div class="control-group">
+            <input type="text" id="roomIdInput" placeholder="ID комнаты (например, ABC123)">
+            <button id="joinBtn">🔗 Присоединиться</button>
+        </div>
+        <div class="control-group">
+            <button id="clearBtn">🗑 Очистить холст</button>
+        </div>
+        <div id="status">⚪ Ожидание...</div>
+        <div class="note">
+            <strong>🚀 Как пользоваться:</strong><br>
+            1️⃣ Один нажимает «Создать комнату» — появляется ID.<br>
+            2️⃣ Другой вводит этот ID и нажимает «Присоединиться».<br>
+            3️⃣ Рисуйте — линии появляются у обоих мгновенно.<br>
+            ✅ Работает на любом интернете (даже если WebRTC заблокирован).
         </div>
     </div>
-    <div id="shout-overlay"></div>
 
     <script>
-        (function() {
-            // ---------- ОПТИМИЗИРОВАННЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНЫХ ----------
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        // ================== ВСТАВЬТЕ СВОИ КЛЮЧИ FIREBASE ==================
+        const firebaseConfig = {
+            apiKey: "AIzaSy...",            // ваш apiKey
+            authDomain: "your-project.firebaseapp.com",   // ваш authDomain
+            databaseURL: "https://your-project-default-rtdb.firebaseio.com", // URL базы
+            projectId: "your-project",       // ваш projectId
+            storageBucket: "your-project.appspot.com",    // ваш storageBucket
+            messagingSenderId: "123456789",  // ваш senderId
+            appId: "1:123456789:web:abc..."  // ваш appId
+        };
+        // =================================================================
 
-            // Уменьшаем нагрузку на мобильных
-            const CANDLE_COUNT = isMobile ? 20 : 50;           // меньше свечей
-            const UPDATE_INTERVAL_MS = isMobile ? 1200 : 400;  // реже обновление
-            const PNL_UPDATE_INTERVAL = isMobile ? 5000 : 2500;
-            const PNL_ITEMS_COUNT = isMobile ? 12 : 30;        // меньше чисел
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-            const canvas = document.getElementById('crypto-canvas');
-            const ctx = canvas.getContext('2d');
-            const pnlContainer = document.getElementById('pnl-overlay');
+        // ----- Элементы интерфейса -----
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const roomIdDisplay = document.getElementById('roomIdDisplay');
+        const roomIdInput = document.getElementById('roomIdInput');
+        const createBtn = document.getElementById('createBtn');
+        const joinBtn = document.getElementById('joinBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const statusEl = document.getElementById('status');
 
-            let candles = [];
-            let width, height;
+        let drawing = false;
+        let currentRoom = null;      // ID текущей комнаты
+        let roomRef = null;          // Ссылка на Firebase для текущей комнаты
 
-            // ---------- ГЕНЕРАЦИЯ СВЕЧЕЙ ----------
-            function generateInitialCandles() {
-                let basePrice = 30000 + Math.random() * 10000;
-                for (let i = 0; i < CANDLE_COUNT; i++) {
-                    const open = basePrice;
-                    const close = open + (Math.random() - 0.5) * 1200;
-                    const high = Math.max(open, close) + Math.random() * 600;
-                    const low = Math.min(open, close) - Math.random() * 600;
-                    candles.push({ open, high, low, close });
-                    basePrice = close;
-                }
+        // ----- Размер холста под окно -----
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // ----- Получение координат (мышь/тач) -----
+        function getCoords(e) {
+            e.preventDefault(); // важно для touch, чтобы не скроллило
+            if (e.touches) {
+                return { x: e.touches[0].clientX, y: e.touches[0].clientY };
             }
-            generateInitialCandles();
+            return { x: e.clientX, y: e.clientY };
+        }
 
-            function updateCandles() {
-                candles.shift();
-                const last = candles[candles.length - 1];
-                const newOpen = last.close;
-                const change = (Math.random() - 0.5) * 1200;
-                const newClose = newOpen + change;
-                const high = Math.max(newOpen, newClose) + Math.random() * 400;
-                const low = Math.min(newOpen, newClose) - Math.random() * 400;
-                candles.push({ open: newOpen, high, low, close: newClose });
-            }
-
-            // ---------- ГОРОД (упрощённый для мобильных) ----------
-            let buildings = [];
-
-            function generateBuildings(w, h) {
-                const count = isMobile ? 15 : 40; // меньше зданий на моб
-                buildings = [];
-                const groundY = h * 0.85;
-                for (let i = 0; i < count; i++) {
-                    const width = 15 + Math.random() * 30;
-                    const x = (i / count) * w + (Math.random() * 20 - 10);
-                    const height = 50 + Math.random() * (isMobile ? 150 : 250);
-                    buildings.push({
-                        x: x,
-                        width: width,
-                        height: height,
-                    });
-                }
-                buildings.sort((a, b) => a.x - b.x);
-            }
-
-            function drawCity() {
-                // небо
-                const gradient = ctx.createLinearGradient(0, 0, 0, height);
-                gradient.addColorStop(0, '#0a1525');
-                gradient.addColorStop(0.6, '#141e2f');
-                gradient.addColorStop(1, '#1a1e2a');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, width, height);
-
-                // линия горизонта
-                ctx.fillStyle = 'rgba(30, 40, 60, 0.3)';
-                ctx.fillRect(0, height * 0.8, width, height * 0.2);
-
-                // здания (без окон на мобильных)
-                buildings.forEach(b => {
-                    const x = b.x;
-                    const yBase = height * 0.85;
-                    const h = b.height;
-
-                    ctx.fillStyle = '#1b2333';
-                    ctx.shadowColor = '#2a3f5e';
-                    ctx.shadowBlur = 10;
-                    ctx.fillRect(x, yBase - h, b.width, h);
-
-                    // окна рисуем только если не мобильный и не слишком много
-                    if (!isMobile) {
-                        ctx.shadowBlur = 5;
-                        ctx.fillStyle = '#ffdd77';
-                        const windowRows = Math.floor(h / 20);
-                        const windowCols = Math.floor(b.width / 12);
-                        for (let r = 0; r < windowRows; r++) {
-                            for (let c = 0; c < windowCols; c++) {
-                                if (Math.random() > 0.5) {
-                                    ctx.globalAlpha = 0.5 + Math.random() * 0.5;
-                                    ctx.fillRect(
-                                        x + c * 12 + 4,
-                                        yBase - h + r * 20 + 6,
-                                        5,
-                                        10
-                                    );
-                                }
-                            }
-                        }
-                    }
-                });
-
-                // дорога
-                ctx.shadowBlur = 0;
-                ctx.globalAlpha = 1.0;
-                ctx.fillStyle = '#0f1219';
-                ctx.fillRect(0, height * 0.85, width, height * 0.15);
-
-                // огни машин (меньше на мобильных)
-                ctx.fillStyle = '#ffaa33';
-                const carLights = isMobile ? 10 : 30;
-                for (let i = 0; i < carLights; i++) {
-                    ctx.globalAlpha = 0.4 + Math.random() * 0.5;
-                    ctx.beginPath();
-                    ctx.arc(Math.random() * width, height * 0.87 + Math.random() * 20, 2 + Math.random() * 4, 0, 2 * Math.PI);
-                    ctx.fill();
-                }
-                ctx.globalAlpha = 1.0;
-            }
-
-            // ---------- ОТРИСОВКА СВЕЧЕЙ (упрощённая) ----------
-            function drawCandlesOnCity() {
-                if (!candles.length) return;
-                let minPrice = Math.min(...candles.map(c => c.low)) * 0.998;
-                let maxPrice = Math.max(...candles.map(c => c.high)) * 1.002;
-                const range = maxPrice - minPrice;
-                const graphHeight = height * 0.7;
-                const topMargin = height * 0.1;
-                const candleWidth = (width / candles.length) * 0.6;
-
-                for (let i = 0; i < candles.length; i++) {
-                    const c = candles[i];
-                    const x = i * (width / candles.length) + (width / candles.length) * 0.2;
-
-                    const yHigh = topMargin + (maxPrice - c.high) / range * graphHeight;
-                    const yLow = topMargin + (maxPrice - c.low) / range * graphHeight;
-                    const yOpen = topMargin + (maxPrice - c.open) / range * graphHeight;
-                    const yClose = topMargin + (maxPrice - c.close) / range * graphHeight;
-
-                    const isBull = c.close >= c.open;
-
-                    ctx.globalAlpha = 0.4;
-                    ctx.lineWidth = 1.2;
-
-                    // фитиль
-                    ctx.beginPath();
-                    ctx.moveTo(x + candleWidth / 2, yHigh);
-                    ctx.lineTo(x + candleWidth / 2, yLow);
-                    ctx.strokeStyle = isBull ? '#aaffaa' : '#ffaaaa';
-                    ctx.stroke();
-
-                    // тело
-                    const bodyTop = Math.min(yOpen, yClose);
-                    const bodyBottom = Math.max(yOpen, yClose);
-                    const bodyHeight = bodyBottom - bodyTop;
-                    ctx.fillStyle = isBull ? 'rgba(0, 255, 150, 0.35)' : 'rgba(255, 80, 80, 0.4)';
-                    ctx.fillRect(x, bodyTop, candleWidth, bodyHeight);
-                    ctx.strokeStyle = isBull ? '#00cc88' : '#cc5555';
-                    ctx.strokeRect(x, bodyTop, candleWidth, bodyHeight);
-                }
-
-                // скользящая средняя (опционально, можно отключить на мобильных)
-                if (!isMobile) {
-                    ctx.globalAlpha = 0.8;
-                    ctx.beginPath();
-                    ctx.strokeStyle = '#ffcc00';
-                    ctx.lineWidth = 2;
-                    for (let i = 1; i < candles.length; i++) {
-                        const c = candles[i];
-                        const prev = candles[i - 1];
-                        const x1 = (i - 1) * (width / candles.length) + (width / candles.length) * 0.2 + candleWidth / 2;
-                        const x2 = i * (width / candles.length) + (width / candles.length) * 0.2 + candleWidth / 2;
-                        const y1 = topMargin + (maxPrice - prev.close) / range * graphHeight;
-                        const y2 = topMargin + (maxPrice - c.close) / range * graphHeight;
-                        if (i === 1) ctx.moveTo(x1, y1);
-                        ctx.lineTo(x2, y2);
-                    }
-                    ctx.stroke();
-                }
-                ctx.globalAlpha = 1.0;
-            }
-
-            function drawScene() {
-                drawCity();
-                drawCandlesOnCity();
-
-                // звезды (меньше на мобильных)
-                ctx.fillStyle = 'rgba(255,255,255,0.4)';
-                const stars = isMobile ? 15 : 40;
-                for (let i = 0; i < stars; i++) {
-                    ctx.beginPath();
-                    ctx.arc(Math.random() * width, Math.random() * height * 0.6, 1 + Math.random() * 2, 0, 2 * Math.PI);
-                    ctx.fill();
-                }
-            }
-
-            // ---------- РАБОТА С РАЗМЕРОМ ----------
-            function resizeCanvas() {
-                width = window.innerWidth;
-                height = window.innerHeight;
-                canvas.width = width;
-                canvas.height = height;
-                generateBuildings(width, height);
-                drawScene();
-            }
-
-            let animationFrame = null;
-            let lastUpdate = 0;
-
-            function animateGraph(timestamp) {
-                if (!lastUpdate || timestamp - lastUpdate > UPDATE_INTERVAL_MS) {
-                    updateCandles();
-                    drawScene();
-                    lastUpdate = timestamp;
-                }
-                animationFrame = requestAnimationFrame(animateGraph);
-            }
-
-            // Запускаем анимацию через requestAnimationFrame вместо setInterval (плавнее и эффективнее)
-            animationFrame = requestAnimationFrame(animateGraph);
-
-            // ---------- PnL элементы (статичные на мобильных) ----------
-            function createPnlItems() {
-                pnlContainer.innerHTML = '';
-                for (let i = 0; i < PNL_ITEMS_COUNT; i++) {
-                    const item = document.createElement('div');
-                    item.className = 'pnl-item';
-                    item.style.top = Math.random() * 100 + '%';
-                    item.style.left = Math.random() * 100 + '%';
-
-                    // на мобильных не используем анимацию движения
-                    if (!isMobile) {
-                        const duration = 15 + Math.random() * 20;
-                        const delay = Math.random() * 5;
-                        item.style.animation = `floatPnl ${duration}s infinite alternate ease-in-out ${delay}s`;
-                    }
-
-                    const sign = Math.random() > 0.5 ? 1 : -1;
-                    const value = (Math.random() * 5000 + 50).toFixed(2);
-                    const formattedValue = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-                    const signChar = sign === 1 ? '+' : '-';
-                    item.textContent = `${signChar}$${formattedValue}`;
-
-                    if (sign === 1) item.classList.add('positive');
-                    else item.classList.add('negative');
-
-                    pnlContainer.appendChild(item);
-                }
-            }
-
-            function updatePnlValues() {
-                const items = document.querySelectorAll('.pnl-item');
-                items.forEach(item => {
-                    const sign = Math.random() > 0.4 ? 1 : -1;
-                    const value = (Math.random() * 7000 + 100).toFixed(2);
-                    const formattedValue = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-                    const signChar = sign === 1 ? '+' : '-';
-                    item.textContent = `${signChar}$${formattedValue}`;
-                    if (sign === 1) {
-                        item.classList.add('positive');
-                        item.classList.remove('negative');
-                    } else {
-                        item.classList.add('negative');
-                        item.classList.remove('positive');
-                    }
+        // ----- Функции рисования -----
+        function startDrawing(e) {
+            e.preventDefault();
+            drawing = true;
+            const pos = getCoords(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            // Отправляем событие в Firebase, если есть комната
+            if (currentRoom) {
+                db.ref(`rooms/${currentRoom}/events`).push({
+                    type: 'start',
+                    x: pos.x,
+                    y: pos.y,
+                    timestamp: Date.now()
                 });
             }
+        }
 
-            window.addEventListener('resize', () => {
-                resizeCanvas();
-                drawScene();
+        function draw(e) {
+            e.preventDefault();
+            if (!drawing) return;
+            const pos = getCoords(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            if (currentRoom) {
+                db.ref(`rooms/${currentRoom}/events`).push({
+                    type: 'draw',
+                    x: pos.x,
+                    y: pos.y,
+                    timestamp: Date.now()
+                });
+            }
+        }
+
+        function stopDrawing(e) {
+            e.preventDefault();
+            drawing = false;
+            ctx.beginPath();
+            if (currentRoom) {
+                db.ref(`rooms/${currentRoom}/events`).push({
+                    type: 'stop',
+                    timestamp: Date.now()
+                });
+            }
+        }
+
+        // ----- Подписка на события холста -----
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+        canvas.addEventListener('touchstart', startDrawing, { passive: false });
+        canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchend', stopDrawing, { passive: false });
+        canvas.addEventListener('touchcancel', stopDrawing, { passive: false });
+
+        // ----- Создание комнаты (генерируем ID) -----
+        createBtn.addEventListener('click', () => {
+            const roomId = Math.random().toString(36).substring(2, 8).toUpperCase(); // 6 символов
+            roomIdDisplay.textContent = roomId;
+            currentRoom = roomId;
+            statusEl.innerHTML = '🟢 Комната создана. Ожидаем подключения...';
+
+            // Очищаем предыдущие события в этой комнате (если были)
+            db.ref(`rooms/${roomId}`).remove();
+
+            // Отписываемся от предыдущей комнаты, если была
+            if (roomRef) roomRef.off();
+
+            // Подписываемся на новые события от других участников
+            roomRef = db.ref(`rooms/${roomId}/events`);
+            roomRef.on('child_added', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                // Воспроизводим действие (оно пришло от друга)
+                if (data.type === 'start') {
+                    ctx.beginPath();
+                    ctx.moveTo(data.x, data.y);
+                } else if (data.type === 'draw') {
+                    ctx.lineTo(data.x, data.y);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 3;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(data.x, data.y);
+                } else if (data.type === 'stop') {
+                    ctx.beginPath();
+                } else if (data.type === 'clear') {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
             });
 
-            resizeCanvas();
-            createPnlItems();
-            setInterval(updatePnlValues, PNL_UPDATE_INTERVAL);
+            // Копируем ID в буфер обмена (удобно)
+            navigator.clipboard?.writeText(roomId).catch(() => {});
+        });
 
-            // ---------- ЗВУК (короткий, без лишних осцилляторов для мобильных) ----------
-            let audioCtx = null;
+        // ----- Присоединение к существующей комнате -----
+        joinBtn.addEventListener('click', () => {
+            const roomId = roomIdInput.value.trim().toUpperCase();
+            if (!roomId) {
+                alert('Введите ID комнаты');
+                return;
+            }
+            currentRoom = roomId;
+            statusEl.innerHTML = '🟡 Подключение к комнате...';
 
-            function playSound() {
-                try {
-                    if (!audioCtx) {
-                        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    }
-                    if (audioCtx.state === 'suspended') {
-                        audioCtx.resume().then(() => {
-                            createSimpleSound();
-                        }).catch(e => console.warn('AudioContext resume error', e));
-                    } else {
-                        createSimpleSound();
-                    }
-                } catch (e) {
-                    console.warn('Web Audio not supported', e);
+            // Очищаем холст
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Удаляем все старые рисунки в комнате (чтобы начать с чистого листа)
+            db.ref(`rooms/${roomId}/events`).remove();
+
+            // Отписываемся от предыдущей комнаты
+            if (roomRef) roomRef.off();
+
+            // Подписываемся на события от создателя комнаты
+            roomRef = db.ref(`rooms/${roomId}/events`);
+            roomRef.on('child_added', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                if (data.type === 'start') {
+                    ctx.beginPath();
+                    ctx.moveTo(data.x, data.y);
+                } else if (data.type === 'draw') {
+                    ctx.lineTo(data.x, data.y);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 3;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(data.x, data.y);
+                } else if (data.type === 'stop') {
+                    ctx.beginPath();
+                } else if (data.type === 'clear') {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
                 }
+            });
+
+            statusEl.innerHTML = '🟢 Подключено к комнате';
+        });
+
+        // ----- Очистка холста (локально + для всех) -----
+        clearBtn.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (currentRoom) {
+                db.ref(`rooms/${currentRoom}/events`).push({ type: 'clear', timestamp: Date.now() });
             }
-
-            function createSimpleSound() {
-                if (!audioCtx) return;
-                const now = audioCtx.currentTime;
-
-                // один осциллятор с коротким затуханием (меньше нагрузки)
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.value = 100;
-                gain.gain.setValueAtTime(0, now);
-                gain.gain.linearRampToValueAtTime(0.5, now + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(now);
-                osc.stop(now + 0.2);
-            }
-
-            // ---------- КРИК (одна надпись) ----------
-            const centerMsg = document.getElementById('center-message');
-            const shoutOverlay = document.getElementById('shout-overlay');
-
-            const shoutPhrases = [
-                'САЙТ ЗАКРЫТ',
-                'ЗАКРЫТО',
-                'НЕ ДОЛБИСЬ',
-                'ВСЁ, ХВАТИТ',
-                'НО ПАСАРАН',
-                'ДОСТУП ЗАБЛОКИРОВАН',
-                'ПРИХОДИ ЗАВТРА'
-            ];
-
-            function getRandomColor() {
-                const hues = [0, 30, 45, 60, 350];
-                const hue = hues[Math.floor(Math.random() * hues.length)];
-                return `hsl(${hue}, 100%, 60%)`;
-            }
-
-            function showShout(e) {
-                e.preventDefault?.();
-
-                centerMsg.classList.add('shake');
-                setTimeout(() => {
-                    centerMsg.classList.remove('shake');
-                }, 500);
-
-                playSound();
-
-                shoutOverlay.innerHTML = '';
-
-                const shout = document.createElement('div');
-                shout.className = 'shout-single';
-
-                const randomIndex = Math.floor(Math.random() * shoutPhrases.length);
-                shout.textContent = shoutPhrases[randomIndex];
-                shout.style.color = getRandomColor();
-                const angle = (Math.random() * 60) - 30;
-                shout.style.setProperty('--rot', angle + 'deg');
-
-                shoutOverlay.appendChild(shout);
-
-                setTimeout(() => {
-                    if (shout.parentNode) shout.remove();
-                }, 2500);
-            }
-
-            centerMsg.addEventListener('click', showShout);
-            centerMsg.addEventListener('touchstart', showShout, { passive: false });
-        })();
+        });
     </script>
 </body>
 </html>
