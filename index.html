@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Совместное рисование</title>
+    <title>Совместное рисование — надёжная версия</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <style>
@@ -9,12 +9,12 @@
             margin: 0;
             overflow: hidden;
             background: #f0f0f0;
-            font-family: sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         canvas {
             display: block;
             background: white;
-            touch-action: none; /* отключает прокрутку/масштабирование при касании */
+            touch-action: none;
             width: 100vw;
             height: 100vh;
         }
@@ -22,37 +22,50 @@
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 12px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.96);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
             z-index: 100;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(8px);
             border: 1px solid rgba(0,0,0,0.1);
-            max-width: 300px;
+            max-width: 320px;
+            width: calc(100% - 40px);
+            box-sizing: border-box;
+            pointer-events: auto;
         }
         .control-group {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
+            gap: 8px;
         }
         input, button {
-            padding: 8px 12px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            padding: 10px 14px;
+            font-size: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
             outline: none;
+            font-family: inherit;
+        }
+        input {
+            flex: 1;
+            min-width: 150px;
         }
         button {
             background: #4CAF50;
             color: white;
             border: none;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.1s;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         button:hover {
             background: #45a049;
+        }
+        button:active {
+            transform: scale(0.98);
         }
         button#clearBtn {
             background: #f44336;
@@ -64,18 +77,30 @@
             font-weight: bold;
             word-break: break-all;
             background: #e3f2fd;
-            padding: 6px 10px;
-            border-radius: 4px;
+            padding: 8px 12px;
+            border-radius: 8px;
             display: inline-block;
             margin-top: 5px;
+            border: 1px solid #bbdefb;
+            font-size: 14px;
         }
         .note {
-            font-size: 12px;
-            color: #666;
+            font-size: 13px;
+            color: #555;
+            margin-top: 12px;
+            line-height: 1.5;
+            background: #f9f9f9;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border-left: 3px solid #4CAF50;
+        }
+        #status {
+            font-size: 13px;
+            color: #1976d2;
             margin-top: 8px;
+            font-weight: 500;
         }
     </style>
-    <!-- Подключаем PeerJS с публичного CDN -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
@@ -87,16 +112,19 @@
             <div id="peerIdDisplay">—</div>
         </div>
         <div class="control-group">
-            <input type="text" id="peerIdInput" placeholder="ID друга">
+            <input type="text" id="peerIdInput" placeholder="ID друга (скопируйте у него)">
             <button id="connectBtn">🔗 Подключиться</button>
         </div>
         <div class="control-group">
             <button id="clearBtn">🗑 Очистить холст</button>
         </div>
+        <div id="status">🟡 Инициализация...</div>
         <div class="note">
-            ↑ Ваш ID появляется после нажатия «Создать комнату».<br>
-            Передайте его другу. Друг вводит ваш ID и нажимает «Подключиться».<br>
-            Рисуйте мышью или пальцем — линии появятся у обоих.
+            <strong>Как пользоваться:</strong><br>
+            1. Нажмите «Создать комнату» — появится ваш ID.<br>
+            2. Отправьте этот ID другу (через мессенджер).<br>
+            3. Друг вводит ваш ID и нажимает «Подключиться».<br>
+            4. Рисуйте — линии появятся у обоих.
         </div>
     </div>
 
@@ -110,29 +138,28 @@
             const createBtn = document.getElementById('createBtn');
             const connectBtn = document.getElementById('connectBtn');
             const clearBtn = document.getElementById('clearBtn');
+            const statusEl = document.getElementById('status');
 
-            // ----- Состояние приложения -----
+            // ----- Состояние -----
             let drawing = false;
             let peer = null;          // экземпляр Peer
-            let conn = null;          // активное соединение (peer-to-peer)
+            let conn = null;          // активное соединение
             let myId = null;
+            let reconnectTimer = null;
 
-            // ----- Настройка холста на весь экран -----
+            // ----- Настройка холста -----
             function resizeCanvas() {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
-                // При изменении размера содержимое стирается, но для простоты не восстанавливаем
-                // При желании можно хранить историю линий и перерисовывать
             }
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
-            // ----- Вспомогательная функция для получения координат (мышь/тач) -----
+            // ----- Получение координат (мышь/тач) -----
             function getCoordinates(e) {
-                e.preventDefault(); // важно для touch, чтобы не скроллило
+                e.preventDefault();
                 let clientX, clientY;
                 if (e.touches) {
-                    // touch-событие
                     clientX = e.touches[0].clientX;
                     clientY = e.touches[0].clientY;
                 } else {
@@ -142,14 +169,13 @@
                 return { x: clientX, y: clientY };
             }
 
-            // ----- Функции рисования (локальные + отправка событий) -----
+            // ----- Функции рисования (локальные + отправка) -----
             function startDrawing(e) {
                 e.preventDefault();
                 drawing = true;
                 const pos = getCoordinates(e);
                 ctx.beginPath();
                 ctx.moveTo(pos.x, pos.y);
-                // Отправляем другу начало штриха
                 if (conn && conn.open) {
                     conn.send({ type: 'start', x: pos.x, y: pos.y });
                 }
@@ -166,7 +192,6 @@
                 ctx.stroke();
                 ctx.beginPath();
                 ctx.moveTo(pos.x, pos.y);
-                // Отправляем движение
                 if (conn && conn.open) {
                     conn.send({ type: 'draw', x: pos.x, y: pos.y });
                 }
@@ -175,13 +200,13 @@
             function stopDrawing(e) {
                 e.preventDefault();
                 drawing = false;
-                ctx.beginPath(); // готовим новый путь
+                ctx.beginPath();
                 if (conn && conn.open) {
                     conn.send({ type: 'stop' });
                 }
             }
 
-            // ----- Привязка событий рисования к холсту -----
+            // ----- Привязка событий к холсту -----
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
@@ -192,34 +217,14 @@
             canvas.addEventListener('touchend', stopDrawing, { passive: false });
             canvas.addEventListener('touchcancel', stopDrawing, { passive: false });
 
-            // ----- Инициализация Peer (подключение к публичному серверу) -----
-            peer = new Peer(); // можно указать опции: { debug: 2 } для логов
-
-            peer.on('open', function(id) {
-                myId = id;
-                peerIdDisplay.textContent = myId;
-            });
-
-            peer.on('error', function(err) {
-                console.error('PeerJS error:', err);
-                alert('Ошибка соединения: ' + err.type);
-            });
-
-            // ----- Обработка входящего соединения (кто-то подключается к нам) -----
-            peer.on('connection', function(connection) {
-                conn = connection;
-                setupConnection(conn);
-            });
-
-            // ----- Общая настройка соединения (для входящего и исходящего) -----
+            // ----- Настройка соединения (общая) -----
             function setupConnection(connection) {
                 conn = connection;
-                conn.on('open', function() {
-                    console.log('Соединение установлено с:', conn.peer);
-                    // Можно показать сообщение пользователю, но для простоты пропустим
+                conn.on('open', () => {
+                    statusEl.innerHTML = '🟢 Соединение установлено!';
                 });
-                conn.on('data', function(data) {
-                    // Получены данные от удалённого друга — рисуем на своём холсте
+                conn.on('data', (data) => {
+                    // Рисуем полученные данные
                     if (data.type === 'start') {
                         ctx.beginPath();
                         ctx.moveTo(data.x, data.y);
@@ -237,31 +242,76 @@
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                     }
                 });
-                conn.on('close', function() {
-                    console.log('Соединение закрыто');
+                conn.on('close', () => {
+                    statusEl.innerHTML = '🔴 Соединение разорвано';
                     conn = null;
                 });
-                conn.on('error', function(err) {
-                    console.error('Connection error:', err);
+                conn.on('error', (err) => {
+                    console.error('Ошибка соединения:', err);
+                    statusEl.innerHTML = '⚠️ Ошибка соединения';
                 });
             }
 
-            // ----- Кнопка "Создать комнату" (фактически просто показывает ID) -----
-            createBtn.addEventListener('click', function() {
+            // ----- Список сигнальных серверов (для обхода блокировок) -----
+            const servers = [
+                { host: '0.peerjs.com', port: 443, path: '/', secure: true },
+                { host: '1.peerjs.com', port: 443, path: '/', secure: true },
+                { host: 'peerjs.com', port: 443, path: '/peerjs', secure: true },
+                { host: 'cdn.peerjs.com', port: 443, path: '/', secure: true } // дополнительный
+            ];
+
+            let currentServerIndex = 0;
+
+            function tryConnectToServer(index) {
+                if (index >= servers.length) {
+                    statusEl.innerHTML = '❌ Не удалось подключиться ни к одному серверу. Проверьте интернет.';
+                    return;
+                }
+
+                const server = servers[index];
+                statusEl.innerHTML = `🟡 Подключение к ${server.host}...`;
+
+                // Создаём Peer с указанным сервером
+                peer = new Peer(server);
+
+                peer.on('open', (id) => {
+                    myId = id;
+                    peerIdDisplay.textContent = myId;
+                    statusEl.innerHTML = `🟢 Подключено (сервер: ${server.host})`;
+                    currentServerIndex = 0; // сбрасываем на будущее
+                });
+
+                peer.on('error', (err) => {
+                    console.warn(`Сервер ${server.host} не ответил:`, err.type);
+                    // Пробуем следующий сервер
+                    peer.destroy();
+                    tryConnectToServer(index + 1);
+                });
+            }
+
+            // Запускаем попытки подключения при загрузке
+            tryConnectToServer(0);
+
+            // ----- Обработка входящего соединения -----
+            peer.on('connection', (connection) => {
+                setupConnection(connection);
+            });
+
+            // ----- Кнопка "Создать комнату" (копирует ID) -----
+            createBtn.addEventListener('click', () => {
                 if (myId) {
-                    // Копируем ID в буфер обмена (удобно для отправки другу)
                     navigator.clipboard?.writeText(myId).then(() => {
-                        alert('Ваш ID скопирован в буфер обмена!');
+                        alert('✅ Ваш ID скопирован в буфер! Отправьте его другу.');
                     }).catch(() => {
-                        alert('Ваш ID: ' + myId);
+                        alert('📋 Ваш ID: ' + myId);
                     });
                 } else {
-                    alert('Инициализация ещё не завершена, подождите несколько секунд.');
+                    alert('⏳ Инициализация... Подождите несколько секунд.');
                 }
             });
 
-            // ----- Кнопка "Подключиться" (инициируем соединение с другом) -----
-            connectBtn.addEventListener('click', function() {
+            // ----- Кнопка "Подключиться" (инициируем соединение) -----
+            connectBtn.addEventListener('click', () => {
                 const friendId = peerIdInput.value.trim();
                 if (!friendId) {
                     alert('Введите ID друга');
@@ -271,23 +321,37 @@
                     alert('Peer не инициализирован');
                     return;
                 }
-                // Создаём исходящее соединение
+                // Если уже есть соединение, закрываем его
+                if (conn && conn.open) {
+                    conn.close();
+                }
                 const connection = peer.connect(friendId);
                 setupConnection(connection);
+                statusEl.innerHTML = '🟡 Устанавливаем соединение...';
             });
 
-            // ----- Кнопка "Очистить холст" -----
-            clearBtn.addEventListener('click', function() {
+            // ----- Кнопка очистки холста -----
+            clearBtn.addEventListener('click', () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 if (conn && conn.open) {
                     conn.send({ type: 'clear' });
                 }
             });
 
-            // ----- Для отладки: показываем при ошибках -----
-            window.addEventListener('error', function(e) {
-                console.error('Global error:', e.error);
+            // ----- Дополнительно: переподключение при потере Peer -----
+            peer.on('disconnected', () => {
+                statusEl.innerHTML = '🟠 Соединение с сервером потеряно. Пытаемся переподключиться...';
+                // Пытаемся переподключиться через 2 секунды
+                setTimeout(() => {
+                    if (peer && !peer.disconnected) {
+                        peer.reconnect();
+                    } else {
+                        // Если не удалось, перезапускаем цепочку серверов
+                        tryConnectToServer(0);
+                    }
+                }, 2000);
             });
+
         })();
     </script>
 </body>
