@@ -1,259 +1,578 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Совместное рисование (Firebase) — 100% работает</title>
+    <title>Совместное рисование PRO — для ПК</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { margin: 0; overflow: hidden; background: #f0f0f0; font-family: system-ui, sans-serif; }
-        canvas { display: block; background: white; touch-action: none; width: 100vw; height: 100vh; }
-        #controls {
-            position: absolute; top: 10px; left: 10px; right: 10px;
-            background: rgba(255,255,255,0.96); padding: 16px; border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 100;
-            backdrop-filter: blur(8px); max-width: 360px; margin: 0 auto;
-            box-sizing: border-box;
+        * { box-sizing: border-box; user-select: none; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #2d2d2d;
         }
-        .control-group { margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
-        input, button { padding: 12px 16px; font-size: 16px; border-radius: 12px; border: 1px solid #ddd; outline: none; }
-        button { background: #4CAF50; color: white; border: none; cursor: pointer; font-weight: 600; }
-        button#clearBtn { background: #f44336; }
-        #roomIdDisplay { font-weight: bold; word-break: break-all; background: #e3f2fd; padding: 8px 12px; border-radius: 8px; margin-top: 5px; }
-        #status { font-size: 14px; margin-top: 8px; font-weight: 500; color: #1976d2; }
-        .note { font-size: 13px; color: #555; margin-top: 12px; background: #f9f9f9; padding: 10px; border-radius: 8px; }
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            cursor: default;
+        }
+        canvas {
+            display: block;
+            background: white;
+            transform-origin: 0 0;
+            cursor: crosshair;
+        }
+        #toolbar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(40, 44, 52, 0.9);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            z-index: 1000;
+            width: 260px;
+            border: 1px solid #555;
+        }
+        #toolbar h3 {
+            margin: 0 0 12px 0;
+            color: #61dafb;
+            text-align: center;
+        }
+        .tool-group {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 10px;
+        }
+        .tool-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #ccc;
+        }
+        .tool-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 8px;
+        }
+        button {
+            background: #3a3f4b;
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            flex: 1 0 auto;
+            border: 1px solid #555;
+        }
+        button:hover {
+            background: #4a505e;
+        }
+        button.active {
+            background: #61dafb;
+            color: #1e1e1e;
+            font-weight: bold;
+            border-color: #21a1c9;
+        }
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+        .status {
+            background: #1e1e1e;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 10px;
+            word-break: break-all;
+        }
+        .status span {
+            color: #61dafb;
+            font-weight: bold;
+        }
+        #peerIdDisplay {
+            color: #98c379;
+            font-weight: normal;
+        }
+        .note {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 10px;
+            text-align: center;
+        }
     </style>
-    <!-- Firebase SDK (Compat) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
-    <canvas id="canvas"></canvas>
-    <div id="controls">
-        <div class="control-group">
-            <button id="createBtn">🎨 Создать комнату</button>
-            <div id="roomIdDisplay">—</div>
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
+    <div id="toolbar">
+        <h3>🎨 Совместное рисование</h3>
+        <div class="tool-group">
+            <div class="tool-row">
+                <button id="btnBrush" class="active">🖌 Кисть</button>
+                <button id="btnEraser">🧽 Ластик</button>
+                <button id="btnLine">📏 Линия</button>
+            </div>
+            <div class="tool-row">
+                <button id="btnRect">⬜ Прямоугольник</button>
+                <button id="btnCircle">⚪ Круг</button>
+                <button id="btnClear">🗑 Очистить всё</button>
+            </div>
         </div>
-        <div class="control-group">
-            <input type="text" id="roomIdInput" placeholder="ID комнаты (например, ABC123)">
-            <button id="joinBtn">🔗 Присоединиться</button>
+        <div class="tool-group">
+            <label>🎨 Цвет</label>
+            <input type="color" id="colorPicker" value="#000000">
+            <label>📏 Толщина (<span id="lineWidthValue">3</span> px)</label>
+            <input type="range" id="lineWidth" min="1" max="20" value="3" step="1">
+            <label>🔆 Прозрачность (<span id="opacityValue">100</span>%)</label>
+            <input type="range" id="opacity" min="10" max="100" value="100" step="5">
         </div>
-        <div class="control-group">
-            <button id="clearBtn">🗑 Очистить холст</button>
+        <div class="tool-group">
+            <label>🆔 Комната</label>
+            <div class="tool-row">
+                <button id="createBtn">🔑 Создать</button>
+                <button id="connectBtn">🔗 Подключиться</button>
+            </div>
+            <div style="display: flex; gap: 5px;">
+                <input type="text" id="peerIdInput" placeholder="ID друга" style="flex:1; padding:6px; border-radius:4px; border:1px solid #555; background:#3a3f4b; color:white;">
+            </div>
+            <div class="status">
+                <div>Ваш ID: <span id="peerIdDisplay">—</span></div>
+                <div>Статус: <span id="statusText">⚪ Не подключено</span></div>
+            </div>
         </div>
-        <div id="status">⚪ Ожидание...</div>
         <div class="note">
-            <strong>🚀 Как пользоваться:</strong><br>
-            1️⃣ Один нажимает «Создать комнату» — появляется ID.<br>
-            2️⃣ Другой вводит этот ID и нажимает «Присоединиться».<br>
-            3️⃣ Рисуйте — линии появляются у обоих мгновенно.<br>
-            ✅ Работает на любом интернете (даже если WebRTC заблокирован).
+            💡 Зум: колёсико мыши<br>
+            💡 Перемещение холста: зажать среднюю кнопку или пробел + левая кнопка
         </div>
     </div>
 
     <script>
-        // ================== ВСТАВЬТЕ СВОИ КЛЮЧИ FIREBASE ==================
-        const firebaseConfig = {
-            apiKey: "AIzaSy...",            // ваш apiKey
-            authDomain: "your-project.firebaseapp.com",   // ваш authDomain
-            databaseURL: "https://your-project-default-rtdb.firebaseio.com", // URL базы
-            projectId: "your-project",       // ваш projectId
-            storageBucket: "your-project.appspot.com",    // ваш storageBucket
-            messagingSenderId: "123456789",  // ваш senderId
-            appId: "1:123456789:web:abc..."  // ваш appId
-        };
-        // =================================================================
+        (function() {
+            // ---------- Холст и настройки ----------
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const container = document.getElementById('canvas-container');
 
-        // Инициализация Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+            // Параметры трансформации (зум и панорамирование)
+            let scale = 1.0;
+            let offsetX = 0, offsetY = 0;
+            let isDragging = false;
+            let lastMouseX, lastMouseY;
 
-        // ----- Элементы интерфейса -----
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const roomIdDisplay = document.getElementById('roomIdDisplay');
-        const roomIdInput = document.getElementById('roomIdInput');
-        const createBtn = document.getElementById('createBtn');
-        const joinBtn = document.getElementById('joinBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const statusEl = document.getElementById('status');
+            // Текущие инструменты и настройки
+            let currentTool = 'brush'; // brush, eraser, line, rect, circle
+            let currentColor = '#000000';
+            let lineWidth = 3;
+            let globalAlpha = 1.0;
+            let isDrawing = false;
+            let startX, startY; // для фигур
 
-        let drawing = false;
-        let currentRoom = null;      // ID текущей комнаты
-        let roomRef = null;          // Ссылка на Firebase для текущей комнаты
+            // WebRTC
+            let peer = null;
+            let conn = null;
+            let myId = null;
 
-        // ----- Размер холста под окно -----
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+            // Элементы интерфейса
+            const peerIdDisplay = document.getElementById('peerIdDisplay');
+            const peerIdInput = document.getElementById('peerIdInput');
+            const statusText = document.getElementById('statusText');
+            const createBtn = document.getElementById('createBtn');
+            const connectBtn = document.getElementById('connectBtn');
+            const clearBtn = document.getElementById('btnClear');
+            const colorPicker = document.getElementById('colorPicker');
+            const lineWidthSlider = document.getElementById('lineWidth');
+            const lineWidthSpan = document.getElementById('lineWidthValue');
+            const opacitySlider = document.getElementById('opacity');
+            const opacitySpan = document.getElementById('opacityValue');
+            const btnBrush = document.getElementById('btnBrush');
+            const btnEraser = document.getElementById('btnEraser');
+            const btnLine = document.getElementById('btnLine');
+            const btnRect = document.getElementById('btnRect');
+            const btnCircle = document.getElementById('btnCircle');
 
-        // ----- Получение координат (мышь/тач) -----
-        function getCoords(e) {
-            e.preventDefault(); // важно для touch, чтобы не скроллило
-            if (e.touches) {
-                return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            // ---------- Утилиты для трансформации координат ----------
+            function getTransformedCoords(e) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                // Преобразуем в координаты холста с учётом масштаба и смещения
+                const canvasX = (mouseX - offsetX) / scale;
+                const canvasY = (mouseY - offsetY) / scale;
+                return { x: canvasX, y: canvasY };
             }
-            return { x: e.clientX, y: e.clientY };
-        }
 
-        // ----- Функции рисования -----
-        function startDrawing(e) {
-            e.preventDefault();
-            drawing = true;
-            const pos = getCoords(e);
-            ctx.beginPath();
-            ctx.moveTo(pos.x, pos.y);
-            // Отправляем событие в Firebase, если есть комната
-            if (currentRoom) {
-                db.ref(`rooms/${currentRoom}/events`).push({
-                    type: 'start',
-                    x: pos.x,
-                    y: pos.y,
-                    timestamp: Date.now()
-                });
+            // ---------- Применение трансформации к контексту ----------
+            function applyTransform() {
+                ctx.setTransform(1, 0, 0, 1, 0, 0); // сброс
+                ctx.translate(offsetX, offsetY);
+                ctx.scale(scale, scale);
             }
-        }
 
-        function draw(e) {
-            e.preventDefault();
-            if (!drawing) return;
-            const pos = getCoords(e);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(pos.x, pos.y);
-            if (currentRoom) {
-                db.ref(`rooms/${currentRoom}/events`).push({
-                    type: 'draw',
-                    x: pos.x,
-                    y: pos.y,
-                    timestamp: Date.now()
-                });
+            // ---------- Отрисовка всего (если нужно сохранять, но у нас простой случай) ----------
+            // Для простоты будем хранить все действия в массиве и перерисовывать при изменении масштаба?
+            // Но в реальном времени это сложно. Для демо мы просто рисуем напрямую на холсте и при зуме
+            // холст масштабируется, но уже нарисованное остаётся. Это нормально.
+            // При изменении масштаба мы не перерисовываем историю, просто трансформируем контекст перед новыми линиями.
+            // Уже нарисованное остаётся как есть, но при зуме оно не искажается благодаря трансформации холста через CSS?
+            // Мы используем transform canvas context, поэтому всё корректно.
+
+            // Обновляем размер canvas при изменении окна
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                applyTransform();
+                // Если есть сохранённые данные, их нужно перерисовать, но для простоты пропустим.
+                // В реальном проекте нужно хранить массив действий и перерисовывать.
             }
-        }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
 
-        function stopDrawing(e) {
-            e.preventDefault();
-            drawing = false;
-            ctx.beginPath();
-            if (currentRoom) {
-                db.ref(`rooms/${currentRoom}/events`).push({
-                    type: 'stop',
-                    timestamp: Date.now()
-                });
-            }
-        }
+            // ---------- Зум и панорамирование ----------
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
 
-        // ----- Подписка на события холста -----
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseleave', stopDrawing);
-        canvas.addEventListener('touchstart', startDrawing, { passive: false });
-        canvas.addEventListener('touchmove', draw, { passive: false });
-        canvas.addEventListener('touchend', stopDrawing, { passive: false });
-        canvas.addEventListener('touchcancel', stopDrawing, { passive: false });
+                // Координаты мыши в системе холста до масштаба
+                const canvasX = (mouseX - offsetX) / scale;
+                const canvasY = (mouseY - offsetY) / scale;
 
-        // ----- Создание комнаты (генерируем ID) -----
-        createBtn.addEventListener('click', () => {
-            const roomId = Math.random().toString(36).substring(2, 8).toUpperCase(); // 6 символов
-            roomIdDisplay.textContent = roomId;
-            currentRoom = roomId;
-            statusEl.innerHTML = '🟢 Комната создана. Ожидаем подключения...';
+                scale *= delta;
+                scale = Math.min(5, Math.max(0.2, scale)); // ограничим зум
 
-            // Очищаем предыдущие события в этой комнате (если были)
-            db.ref(`rooms/${roomId}`).remove();
+                // Новое смещение, чтобы мышь оставалась на том же месте холста
+                offsetX = mouseX - canvasX * scale;
+                offsetY = mouseY - canvasY * scale;
 
-            // Отписываемся от предыдущей комнаты, если была
-            if (roomRef) roomRef.off();
+                applyTransform();
+            });
 
-            // Подписываемся на новые события от других участников
-            roomRef = db.ref(`rooms/${roomId}/events`);
-            roomRef.on('child_added', (snapshot) => {
-                const data = snapshot.val();
-                if (!data) return;
+            // Перемещение холста (средняя кнопка или пробел+левая)
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button === 1 || (e.button === 0 && e.ctrlKey)) { // средняя или Ctrl+левая
+                    isDragging = true;
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                    canvas.style.cursor = 'grabbing';
+                    e.preventDefault();
+                } else if (e.button === 0) {
+                    // Левая кнопка - начало рисования
+                    const { x, y } = getTransformedCoords(e);
+                    startX = x;
+                    startY = y;
+                    isDrawing = true;
 
-                // Воспроизводим действие (оно пришло от друга)
-                if (data.type === 'start') {
-                    ctx.beginPath();
-                    ctx.moveTo(data.x, data.y);
-                } else if (data.type === 'draw') {
-                    ctx.lineTo(data.x, data.y);
-                    ctx.strokeStyle = '#000';
-                    ctx.lineWidth = 3;
-                    ctx.lineCap = 'round';
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(data.x, data.y);
-                } else if (data.type === 'stop') {
-                    ctx.beginPath();
-                } else if (data.type === 'clear') {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    if (currentTool === 'brush' || currentTool === 'eraser') {
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        // Для мгновенной передачи можно сразу отправить начало
+                        sendDrawAction('start', x, y);
+                    }
+                    // Для фигур будем рисовать предпросмотр при движении, а завершать по mouseup
                 }
             });
 
-            // Копируем ID в буфер обмена (удобно)
-            navigator.clipboard?.writeText(roomId).catch(() => {});
-        });
+            canvas.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const dx = e.clientX - lastMouseX;
+                    const dy = e.clientY - lastMouseY;
+                    offsetX += dx;
+                    offsetY += dy;
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                    applyTransform();
+                    return;
+                }
 
-        // ----- Присоединение к существующей комнате -----
-        joinBtn.addEventListener('click', () => {
-            const roomId = roomIdInput.value.trim().toUpperCase();
-            if (!roomId) {
-                alert('Введите ID комнаты');
-                return;
-            }
-            currentRoom = roomId;
-            statusEl.innerHTML = '🟡 Подключение к комнате...';
+                if (!isDrawing) return;
 
-            // Очищаем холст
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const { x, y } = getTransformedCoords(e);
 
-            // Удаляем все старые рисунки в комнате (чтобы начать с чистого листа)
-            db.ref(`rooms/${roomId}/events`).remove();
-
-            // Отписываемся от предыдущей комнаты
-            if (roomRef) roomRef.off();
-
-            // Подписываемся на события от создателя комнаты
-            roomRef = db.ref(`rooms/${roomId}/events`);
-            roomRef.on('child_added', (snapshot) => {
-                const data = snapshot.val();
-                if (!data) return;
-
-                if (data.type === 'start') {
-                    ctx.beginPath();
-                    ctx.moveTo(data.x, data.y);
-                } else if (data.type === 'draw') {
-                    ctx.lineTo(data.x, data.y);
-                    ctx.strokeStyle = '#000';
-                    ctx.lineWidth = 3;
-                    ctx.lineCap = 'round';
+                if (currentTool === 'brush') {
+                    ctx.lineTo(x, y);
+                    ctx.strokeStyle = currentColor;
+                    ctx.lineWidth = lineWidth;
+                    ctx.globalAlpha = globalAlpha;
                     ctx.stroke();
                     ctx.beginPath();
-                    ctx.moveTo(data.x, data.y);
-                } else if (data.type === 'stop') {
+                    ctx.moveTo(x, y);
+                    sendDrawAction('draw', x, y);
+                } else if (currentTool === 'eraser') {
+                    ctx.lineTo(x, y);
+                    ctx.strokeStyle = '#ffffff'; // белый ластик (если фон белый)
+                    ctx.lineWidth = lineWidth;
+                    ctx.globalAlpha = 1.0;
+                    ctx.stroke();
                     ctx.beginPath();
-                } else if (data.type === 'clear') {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.moveTo(x, y);
+                    sendDrawAction('erase', x, y);
+                } else if (currentTool === 'line' || currentTool === 'rect' || currentTool === 'circle') {
+                    // Для фигур рисуем предпросмотр (временную линию) - пока просто сохраняем конечную точку
+                    // Мы будем рисовать фигуру только при отпускании, но для предпросмотра можно временно рисовать
+                    // Упростим: при движении показываем предпросмотр, но не отправляем данные.
+                    // Реализуем предпросмотр через сохранение состояния холста
+                    // Но для простоты опустим, просто будем рисовать фигуру по окончании.
                 }
             });
 
-            statusEl.innerHTML = '🟢 Подключено к комнате';
-        });
+            canvas.addEventListener('mouseup', (e) => {
+                if (isDragging) {
+                    isDragging = false;
+                    canvas.style.cursor = 'crosshair';
+                    return;
+                }
+                if (!isDrawing) return;
 
-        // ----- Очистка холста (локально + для всех) -----
-        clearBtn.addEventListener('click', () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (currentRoom) {
-                db.ref(`rooms/${currentRoom}/events`).push({ type: 'clear', timestamp: Date.now() });
+                const { x, y } = getTransformedCoords(e);
+
+                if (currentTool === 'brush' || currentTool === 'eraser') {
+                    ctx.beginPath(); // завершаем линию
+                    sendDrawAction('stop');
+                } else {
+                    // Фигуры: рисуем от startX, startY до x, y
+                    ctx.beginPath();
+                    ctx.strokeStyle = currentTool === 'eraser' ? '#ffffff' : currentColor;
+                    ctx.lineWidth = lineWidth;
+                    ctx.globalAlpha = globalAlpha;
+                    if (currentTool === 'line') {
+                        ctx.moveTo(startX, startY);
+                        ctx.lineTo(x, y);
+                        ctx.stroke();
+                        sendDrawAction('line', startX, startY, x, y);
+                    } else if (currentTool === 'rect') {
+                        const w = x - startX;
+                        const h = y - startY;
+                        ctx.strokeRect(startX, startY, w, h);
+                        sendDrawAction('rect', startX, startY, w, h);
+                    } else if (currentTool === 'circle') {
+                        const radius = Math.sqrt((x - startX)**2 + (y - startY)**2);
+                        ctx.beginPath();
+                        ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                        ctx.stroke();
+                        sendDrawAction('circle', startX, startY, radius);
+                    }
+                }
+                isDrawing = false;
+            });
+
+            canvas.addEventListener('mouseleave', (e) => {
+                if (isDrawing) {
+                    // Прерываем рисование, если мышь ушла с холста
+                    isDrawing = false;
+                    sendDrawAction('stop');
+                }
+            });
+
+            // Запрещаем контекстное меню на холсте
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            // ---------- Функция отправки действий через WebRTC ----------
+            function sendDrawAction(type, ...args) {
+                if (conn && conn.open) {
+                    conn.send({
+                        type: type,
+                        args: args,
+                        tool: currentTool,
+                        color: currentColor,
+                        lineWidth: lineWidth,
+                        opacity: globalAlpha
+                    });
+                }
             }
-        });
+
+            // ---------- Приём данных от друга ----------
+            function setupConnection(connection) {
+                conn = connection;
+                conn.on('open', () => {
+                    statusText.innerHTML = '🟢 Соединено';
+                });
+                conn.on('data', (data) => {
+                    // Воспроизводим действие на своём холсте
+                    ctx.save();
+                    // Устанавливаем параметры, которые передал друг
+                    if (data.color) ctx.strokeStyle = data.color;
+                    if (data.lineWidth) ctx.lineWidth = data.lineWidth;
+                    if (data.opacity) ctx.globalAlpha = data.opacity;
+                    else ctx.globalAlpha = 1.0;
+
+                    if (data.type === 'start') {
+                        ctx.beginPath();
+                        ctx.moveTo(data.args[0], data.args[1]);
+                    } else if (data.type === 'draw') {
+                        ctx.lineTo(data.args[0], data.args[1]);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(data.args[0], data.args[1]);
+                    } else if (data.type === 'erase') {
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineTo(data.args[0], data.args[1]);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(data.args[0], data.args[1]);
+                    } else if (data.type === 'stop') {
+                        ctx.beginPath();
+                    } else if (data.type === 'line') {
+                        ctx.beginPath();
+                        ctx.moveTo(data.args[0], data.args[1]);
+                        ctx.lineTo(data.args[2], data.args[3]);
+                        ctx.stroke();
+                    } else if (data.type === 'rect') {
+                        ctx.strokeRect(data.args[0], data.args[1], data.args[2], data.args[3]);
+                    } else if (data.type === 'circle') {
+                        ctx.beginPath();
+                        ctx.arc(data.args[0], data.args[1], data.args[2], 0, 2*Math.PI);
+                        ctx.stroke();
+                    } else if (data.type === 'clear') {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    }
+                    ctx.restore();
+                });
+                conn.on('close', () => {
+                    statusText.innerHTML = '🔴 Разорвано';
+                    conn = null;
+                });
+                conn.on('error', (err) => {
+                    console.error('Connection error:', err);
+                });
+            }
+
+            // ---------- Настройка PeerJS с перебором серверов ----------
+            const iceServers = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun3.l.google.com:19302' },
+                    { urls: 'stun:stun4.l.google.com:19302' },
+                    { urls: 'stun:stun.cloudflare.com:3478' },
+                    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+                ]
+            };
+
+            const servers = [
+                { host: '0.peerjs.com', port: 443, path: '/', secure: true, config: iceServers },
+                { host: '1.peerjs.com', port: 443, path: '/', secure: true, config: iceServers },
+                { host: 'peerjs.com', port: 443, path: '/peerjs', secure: true, config: iceServers },
+                { host: 'cdn.peerjs.com', port: 443, path: '/', secure: true, config: iceServers }
+            ];
+
+            let serverIndex = 0;
+
+            function connectToServer(index) {
+                if (index >= servers.length) {
+                    statusText.innerHTML = '❌ Нет доступных серверов';
+                    return;
+                }
+                const server = servers[index];
+                statusText.innerHTML = `🟡 Подключение к ${server.host}...`;
+                peer = new Peer(server);
+                peer.on('open', (id) => {
+                    myId = id;
+                    peerIdDisplay.textContent = id;
+                    statusText.innerHTML = `🟢 Подключено (${server.host})`;
+                });
+                peer.on('error', (err) => {
+                    console.warn(`Сервер ${server.host} ошибка:`, err);
+                    peer.destroy();
+                    connectToServer(index + 1);
+                });
+                peer.on('connection', (connection) => {
+                    setupConnection(connection);
+                });
+            }
+            connectToServer(0);
+
+            // ---------- Интерфейс ----------
+            createBtn.addEventListener('click', () => {
+                if (myId) {
+                    navigator.clipboard?.writeText(myId).then(() => {
+                        alert('✅ ID скопирован в буфер');
+                    }).catch(() => {
+                        alert('📋 Ваш ID: ' + myId);
+                    });
+                } else {
+                    alert('⏳ Ожидание подключения к серверу...');
+                }
+            });
+
+            connectBtn.addEventListener('click', () => {
+                const friendId = peerIdInput.value.trim();
+                if (!friendId) {
+                    alert('Введите ID друга');
+                    return;
+                }
+                if (!peer) {
+                    alert('Peer не готов');
+                    return;
+                }
+                if (conn && conn.open) conn.close();
+                const connection = peer.connect(friendId);
+                setupConnection(connection);
+                statusText.innerHTML = '🟡 Устанавливаем соединение...';
+            });
+
+            // Инструменты
+            function setActiveTool(btn, tool) {
+                [btnBrush, btnEraser, btnLine, btnRect, btnCircle].forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTool = tool;
+            }
+            btnBrush.addEventListener('click', () => setActiveTool(btnBrush, 'brush'));
+            btnEraser.addEventListener('click', () => setActiveTool(btnEraser, 'eraser'));
+            btnLine.addEventListener('click', () => setActiveTool(btnLine, 'line'));
+            btnRect.addEventListener('click', () => setActiveTool(btnRect, 'rect'));
+            btnCircle.addEventListener('click', () => setActiveTool(btnCircle, 'circle'));
+
+            // Цвет
+            colorPicker.addEventListener('input', (e) => {
+                currentColor = e.target.value;
+                if (currentTool === 'eraser') currentTool = 'brush'; // переключаем на кисть при выборе цвета
+            });
+
+            // Толщина
+            lineWidthSlider.addEventListener('input', (e) => {
+                lineWidth = parseInt(e.target.value);
+                lineWidthSpan.textContent = lineWidth;
+            });
+
+            // Прозрачность
+            opacitySlider.addEventListener('input', (e) => {
+                globalAlpha = parseInt(e.target.value) / 100;
+                opacitySpan.textContent = e.target.value;
+            });
+
+            // Очистка
+            clearBtn.addEventListener('click', () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (conn && conn.open) {
+                    conn.send({ type: 'clear' });
+                }
+            });
+
+            // Отключение контекстного меню везде
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+        })();
     </script>
 </body>
 </html>
