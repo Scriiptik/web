@@ -1681,6 +1681,7 @@
                 // Подписка на изменения статуса онлайн
                 if (state.listeners.presence) state.listeners.presence();
                 state.listeners.presence = db.collection('users').doc(otherUid).onSnapshot(doc => {
+                    console.log('Presence snapshot received', doc.data());
                     if (doc.exists) {
                         state.currentChatParticipant = { uid: otherUid, ...doc.data() };
                         updateChatHeader();
@@ -1691,6 +1692,7 @@
                 if (state.listeners.typing) state.listeners.typing();
                 state.listeners.typing = db.collection('chats').doc(chat.id).collection('typing')
                     .onSnapshot(snapshot => {
+                        console.log('Typing snapshot, docs:', snapshot.docs.map(d => d.id));
                         let typingUser = null;
                         snapshot.forEach(doc => {
                             if (doc.id !== state.currentUser.uid) {
@@ -1698,8 +1700,10 @@
                             }
                         });
                         if (typingUser) {
+                            console.log('Typing user detected:', typingUser);
                             chatHeader.innerHTML = `${state.currentChatParticipant.displayName || state.currentChatParticipant.email} <span style="font-size:0.9rem; color:var(--text-secondary);">печатает<span class="dots"></span></span>`;
                         } else {
+                            console.log('No typing user, restoring header');
                             updateChatHeader();
                         }
                     });
@@ -1753,7 +1757,7 @@
                         state.currentChatId = chatId;
                         db.collection('users').doc(otherUid).get().then(doc => {
                             state.currentChatParticipant = { uid: otherUid, ...doc.data() };
-                            updateChatHeader(); // ← исправлено: обновляем заголовок после загрузки данных
+                            updateChatHeader(); // обновляем заголовок после загрузки данных
                         });
                         if (window.innerWidth <= 768) chatsSidebar.classList.add('hide-mobile');
                         chatWindowContainer.classList.remove('hidden');
@@ -1779,8 +1783,9 @@
                 });
             }
 
-            // Функция для установки статуса печатает
+            // Функция для установки статуса печатает (с логами)
             function setTypingStatus(chatId, userId, isTyping) {
+                console.log('setTypingStatus', {chatId, userId, isTyping});
                 const typingRef = db.collection('chats').doc(chatId).collection('typing').doc(userId);
                 if (isTyping) {
                     typingRef.set({ timestamp: firebase.firestore.FieldValue.serverTimestamp() });
@@ -1790,10 +1795,12 @@
             }
 
             function handleTyping() {
+                console.log('handleTyping called, currentChatId =', state.currentChatId);
                 if (!state.currentChatId) return;
                 setTypingStatus(state.currentChatId, state.currentUser.uid, true);
                 if (typingTimeout) clearTimeout(typingTimeout);
                 typingTimeout = setTimeout(() => {
+                    console.log('typing timeout, setting false');
                     setTypingStatus(state.currentChatId, state.currentUser.uid, false);
                 }, TYPING_TIMEOUT);
             }
@@ -2247,6 +2254,21 @@
             window.addEventListener('resize', () => {
                 document.body.style.height = window.innerHeight + 'px';
                 document.getElementById('app').style.height = window.innerHeight + 'px';
+            });
+
+            // Обработчик beforeunload для отправки offline статуса при закрытии вкладки
+            window.addEventListener('beforeunload', function() {
+                if (state.currentUser) {
+                    // Используем sendBeacon для гарантированной отправки
+                    const url = `https://firestore.googleapis.com/v1/projects/${firebase.app().options.projectId}/databases/(default)/documents/users/${state.currentUser.uid}?updateMask.fieldPaths=online&updateMask.fieldPaths=lastSeen`;
+                    const payload = {
+                        fields: {
+                            online: { booleanValue: false },
+                            lastSeen: { timestampValue: new Date().toISOString() }
+                        }
+                    };
+                    navigator.sendBeacon(url, JSON.stringify(payload));
+                }
             });
 
             // Инициализация
