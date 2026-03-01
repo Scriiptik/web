@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Telegram‑like Messenger</title>
+    <title>SCRIPTMessenger</title>
     <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
@@ -735,7 +735,7 @@
     <div id="app">
         <!-- БЛОК АУТЕНТИФИКАЦИИ -->
         <div id="authContainer" class="auth-container">
-            <div class="auth-logo">Messenger</div>
+            <div class="auth-logo">SCRIPTMessenger</div>
             <div class="auth-tabs">
                 <button id="loginTab" class="auth-tab active">Вход</button>
                 <button id="registerTab" class="auth-tab">Регистрация</button>
@@ -757,7 +757,7 @@
             <div class="app-header">
                 <div class="header-left">
                     <button id="burgerMenu" class="burger-menu">☰</button>
-                    <span class="logo">Messenger</span>
+                    <span class="logo">SCRIPTMessenger</span>
                 </div>
                 <div class="user-info">
                     <span class="email-badge" id="headerEmail"></span>
@@ -770,7 +770,7 @@
             <div id="navDrawer" class="nav-drawer">
                 <div class="drawer-header">
                     <span class="logo">Меню</span>
-                    <button id="closeDrawer" class="close-drawer">✕</button>
+                    <button id="closeDrawerBtn" class="close-drawer">✕</button>
                 </div>
                 <div class="nav-items">
                     <div class="nav-item" id="drawerFeed">Лента</div>
@@ -878,7 +878,7 @@
             const db = firebase.firestore();
             const storage = firebase.storage();
 
-            // ---------- Глобальное состояние (упрощённое) ----------
+            // ---------- Глобальное состояние ----------
             let state = {
                 currentUser: null,
                 profile: null,
@@ -910,7 +910,7 @@
             const burgerMenu = document.getElementById('burgerMenu');
             const navDrawer = document.getElementById('navDrawer');
             const overlay = document.getElementById('overlay');
-            const closeDrawer = document.getElementById('closeDrawer');
+            const closeDrawerBtn = document.getElementById('closeDrawerBtn');  // переименовано
             const drawerFeed = document.getElementById('drawerFeed');
             const drawerProfile = document.getElementById('drawerProfile');
             const drawerSearch = document.getElementById('drawerSearch');
@@ -968,7 +968,7 @@
             function openDrawer() { navDrawer.classList.add('open'); overlay.classList.add('show'); }
             function closeDrawer() { navDrawer.classList.remove('open'); overlay.classList.remove('show'); }
             burgerMenu.addEventListener('click', openDrawer);
-            closeDrawer.addEventListener('click', closeDrawer);
+            closeDrawerBtn.addEventListener('click', closeDrawer);  // исправлено
             overlay.addEventListener('click', closeDrawer);
 
             // ---------- Управление секциями ----------
@@ -980,9 +980,7 @@
                 document.getElementById(sectionId).classList.add('active');
                 closeDrawer();
 
-                // При переходе в чаты: показываем список, скрываем окно чата
                 if (sectionId === 'chatsSection') {
-                    // На мобильных гарантируем, что список виден
                     if (window.innerWidth <= 768) {
                         chatsSidebar.classList.remove('hide-mobile');
                     }
@@ -1154,7 +1152,6 @@
             }
 
             function showEditForm() {
-                // упрощённо: можно сделать модалку, но для краткости оставим как есть
                 alert('Редактирование профиля (можно расширить)');
             }
 
@@ -1220,7 +1217,6 @@
                 const userDoc = await db.collection('users').doc(otherUid).get();
                 state.currentChatParticipant = { uid: otherUid, ...userDoc.data() };
                 showSection('chatsSection');
-                // на мобильных скрываем список, показываем окно чата
                 if (window.innerWidth <= 768) {
                     chatsSidebar.classList.add('hide-mobile');
                 }
@@ -1228,7 +1224,7 @@
                 noChatSelected.classList.add('hidden');
                 chatHeader.textContent = `Чат с ${state.currentChatParticipant.displayName || state.currentChatParticipant.email}`;
                 loadMessages(chat.id);
-                loadChats(); // обновить список и подсветить активный
+                loadChats();
             }
 
             function loadChats() {
@@ -1346,7 +1342,7 @@
                 fileInput.value = '';
             });
 
-            // Голос (упрощённо)
+            // Голос
             let mediaRecorder, audioChunks, isRecording = false;
             recordBtn.addEventListener('click', async () => {
                 if (!state.currentChatId) return;
@@ -1385,7 +1381,7 @@
                 })
                 .catch(console.error);
 
-            // Назад из чата на мобильных
+            // Назад из чата
             backFromChatBtn.addEventListener('click', () => {
                 chatsSidebar.classList.remove('hide-mobile');
                 chatWindowContainer.classList.add('hidden');
@@ -1403,7 +1399,7 @@
                 });
             });
 
-            // ---------- Модалка друга ----------
+            // Модалка друга
             modalMessageBtn.addEventListener('click', () => { if (selectedFriendUid) openChatWithUser(selectedFriendUid); friendModal.classList.remove('show'); });
             modalProfileBtn.addEventListener('click', () => { if (selectedFriendUid) goToUserProfile(selectedFriendUid); friendModal.classList.remove('show'); });
             modalCloseBtn.addEventListener('click', () => friendModal.classList.remove('show'));
@@ -1416,12 +1412,16 @@
             function handleLogin() {
                 const email = document.getElementById('loginEmail').value;
                 const pass = document.getElementById('loginPassword').value;
-                auth.signInWithEmailAndPassword(email, pass).catch(e => alert(e.message));
+                auth.signInWithEmailAndPassword(email, pass).catch(e => alert('Ошибка входа: ' + e.message));
             }
             function handleRegister() {
                 const email = document.getElementById('registerEmail').value;
                 const pass = document.getElementById('registerPassword').value;
-                auth.createUserWithEmailAndPassword(email, pass).catch(e => alert(e.message));
+                auth.createUserWithEmailAndPassword(email, pass)
+                    .then(() => {
+                        // После успешной регистрации onAuthStateChanged покажет приложение
+                    })
+                    .catch(e => alert('Ошибка регистрации: ' + e.message));
             }
             loginBtn.addEventListener('click', handleLogin);
             registerBtn.addEventListener('click', handleRegister);
@@ -1443,7 +1443,7 @@
                     authContainer.classList.add('hidden');
                     appContainer.classList.remove('hidden');
                     await ensureUserProfile(user);
-                    // очистить подписки
+                    // Очистить подписки
                     Object.values(state.listeners).forEach(fn => fn && fn());
                     showSection('chatsSection');
                 } else {
