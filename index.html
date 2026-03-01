@@ -10,8 +10,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
+    <!-- Эмодзи-пикер (глобальная переменная EmojiPicker) -->
+    <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.0/index.js"></script>
     <style>
-        /* ----- СБРОС И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (стиль Telegram) ----- */
+        /* ----- СБРОС И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (улучшенная контрастность) ----- */
         * {
             margin: 0;
             padding: 0;
@@ -21,17 +23,19 @@
 
         :root {
             --bg-primary: #ffffff;
-            --bg-secondary: #f7f8fa;
+            --bg-secondary: #f0f2f5;
             --bg-sidebar: #ffffff;
             --text-primary: #0d0e12;
-            --text-secondary: #707579;
-            --accent: #3390ec;
-            --accent-hover: #2a7ac9;
-            --border-light: #e9ecef;
-            --message-out: #eafff0;
-            --message-in: #ffffff;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.03);
-            --shadow-md: 0 2px 6px rgba(0,0,0,0.05);
+            --text-secondary: #5e6f7d;
+            --accent: #2a7bde;
+            --accent-hover: #1f63b5;
+            --border-light: #dce1e6;
+            --message-out-bg: #e3f2fd;
+            --message-in-bg: #ffffff;
+            --message-out-text: #0d0e12;
+            --message-in-text: #0d0e12;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 2px 8px rgba(0,0,0,0.1);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
 
@@ -39,15 +43,17 @@
             --bg-primary: #1f2128;
             --bg-secondary: #181a20;
             --bg-sidebar: #1f2128;
-            --text-primary: #e7e7e7;
-            --text-secondary: #9b9fa8;
-            --accent: #5e94ff;
-            --accent-hover: #4a7ad9;
+            --text-primary: #f0f2f5;
+            --text-secondary: #a0a8b4;
+            --accent: #5f9eff;
+            --accent-hover: #4782e0;
             --border-light: #2f3139;
-            --message-out: #2b5278;
-            --message-in: #2f3139;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
-            --shadow-md: 0 2px 6px rgba(0,0,0,0.4);
+            --message-out-bg: #2b4b6e;
+            --message-in-bg: #2f3139;
+            --message-out-text: #f0f2f5;
+            --message-in-text: #f0f2f5;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+            --shadow-md: 0 2px 8px rgba(0,0,0,0.7);
         }
 
         body {
@@ -56,7 +62,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s;
+            transition: background 0.2s, color 0.2s;
             overflow: hidden;
         }
 
@@ -70,7 +76,7 @@
             box-shadow: var(--shadow-md);
         }
 
-        /* ----- СКРОЛЛБАРЫ (аккуратные) ----- */
+        /* ----- СКРОЛЛБАРЫ ----- */
         .scrollable {
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
@@ -88,7 +94,7 @@
             background: transparent;
         }
 
-        /* ----- АУТЕНТИФИКАЦИЯ (минимализм) ----- */
+        /* ----- АУТЕНТИФИКАЦИЯ ----- */
         .auth-container {
             max-width: 380px;
             margin: auto;
@@ -157,7 +163,7 @@
             background: var(--accent-hover);
         }
 
-        /* ----- ШАПКА ПРИЛОЖЕНИЯ ----- */
+        /* ----- ШАПКА ----- */
         .app-header {
             padding: 0.5rem 1rem;
             background: var(--bg-sidebar);
@@ -217,6 +223,7 @@
             align-items: center;
             justify-content: center;
             color: var(--text-secondary);
+            transition: background 0.2s;
         }
         .theme-toggle:hover {
             background: var(--bg-secondary);
@@ -235,7 +242,7 @@
             background: var(--bg-secondary);
         }
 
-        /* ----- БОКОВОЕ МЕНЮ (бургер) ----- */
+        /* ----- БОКОВОЕ МЕНЮ ----- */
         .nav-drawer {
             position: fixed;
             top: 0;
@@ -294,7 +301,7 @@
             display: block;
         }
 
-        /* ----- ОСНОВНОЙ КОНТЕНТ (секции) ----- */
+        /* ----- ОСНОВНОЙ КОНТЕНТ ----- */
         .main-content {
             flex: 1;
             overflow: hidden;
@@ -311,13 +318,59 @@
             flex-direction: column;
         }
 
-        /* ----- КАРТОЧКИ (минимализм) ----- */
+        /* ----- КАРТОЧКИ И ПОСТЫ ----- */
         .card {
             background: var(--bg-primary);
             border-radius: 1rem;
             padding: 1.5rem;
             border: 1px solid var(--border-light);
             margin-bottom: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .post {
+            border-bottom: 1px solid var(--border-light);
+            padding: 1rem 0;
+        }
+        .post:last-child {
+            border-bottom: none;
+        }
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        .post-author {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .post-time {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .post-text {
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+        .post-actions button {
+            background: none;
+            border: 1px solid var(--border-light);
+            border-radius: 2rem;
+            padding: 0.3rem 1rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: 0.2s;
+        }
+        .post-actions button:hover {
+            background: var(--bg-secondary);
+        }
+        .post-actions button.liked {
+            background: #ff4d4d20;
+            border-color: #ff4d4d;
+            color: #ff4d4d;
         }
 
         /* ----- ПРОФИЛЬ ----- */
@@ -424,13 +477,13 @@
             color: white;
             font-weight: 500;
             font-size: 1.2rem;
+            object-fit: cover;
         }
 
-        /* ----- ЧАТЫ (основной интерфейс как в Telegram) ----- */
+        /* ----- ЧАТЫ (исправлена панель ввода) ----- */
         #chatsSection {
             flex-direction: row;
         }
-        /* Левая панель (список чатов) */
         .chats-sidebar {
             width: 320px;
             background: var(--bg-sidebar);
@@ -518,7 +571,7 @@
             align-self: flex-start;
         }
 
-        /* Правая область (окно чата) */
+        /* Правая область чата */
         .chat-main {
             flex: 1;
             background: var(--bg-primary);
@@ -534,6 +587,7 @@
             align-items: center;
             gap: 0.75rem;
             background: var(--bg-sidebar);
+            flex-shrink: 0;
         }
         .back-button {
             display: none;
@@ -551,7 +605,9 @@
         .back-button:hover {
             background: var(--bg-secondary);
         }
-        .messages-container {
+
+        /* Контейнер сообщений занимает всё свободное место */
+        #messagesContainer {
             flex: 1;
             overflow-y: auto;
             padding: 1rem;
@@ -559,19 +615,22 @@
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
+            min-height: 0; /* необходимо для flex */
         }
+
         .message {
             max-width: 75%;
             padding: 0.6rem 1rem;
             border-radius: 1.2rem;
-            background: var(--message-in);
-            color: var(--text-primary);
+            background: var(--message-in-bg);
+            color: var(--message-in-text);
             align-self: flex-start;
             word-wrap: break-word;
             box-shadow: var(--shadow-sm);
         }
         .message.own {
-            background: var(--message-out);
+            background: var(--message-out-bg);
+            color: var(--message-out-text);
             align-self: flex-end;
         }
         .message-sender {
@@ -595,6 +654,8 @@
         .message-audio {
             width: 200px;
         }
+
+        /* Панель ввода всегда видна снизу */
         .chat-input-area {
             display: flex;
             gap: 0.5rem;
@@ -603,6 +664,7 @@
             border-top: 1px solid var(--border-light);
             align-items: center;
             flex-wrap: wrap;
+            flex-shrink: 0;
             padding-bottom: max(0.75rem, var(--safe-bottom));
         }
         .chat-input-area input[type="text"] {
@@ -644,12 +706,14 @@
             background: var(--bg-sidebar);
             border-radius: 1rem;
             box-shadow: var(--shadow-md);
+            max-height: 300px;
+            overflow-y: auto;
         }
         .emoji-picker.show {
             display: block;
         }
 
-        /* ----- МОДАЛКА ДРУГА ----- */
+        /* ----- МОДАЛКА ----- */
         .modal {
             display: none;
             position: fixed;
@@ -686,6 +750,10 @@
             background: var(--accent);
             color: white;
             cursor: pointer;
+            transition: 0.2s;
+        }
+        .modal-buttons button:hover {
+            background: var(--accent-hover);
         }
         .modal-buttons button.secondary {
             background: transparent;
@@ -693,7 +761,7 @@
             border: 1px solid var(--border-light);
         }
 
-        /* ----- АДАПТАЦИЯ ПОД МОБИЛЬНЫЕ (как в Telegram) ----- */
+        /* ----- АДАПТАЦИЯ ПОД МОБИЛЬНЫЕ ----- */
         @media (max-width: 768px) {
             .chats-sidebar {
                 position: absolute;
@@ -728,6 +796,33 @@
             display: flex;
             gap: 0.5rem;
             align-items: center;
+        }
+        /* Кнопки "Подписаться" и т.п. */
+        button.secondary {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--border-light);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button.secondary:hover {
+            background: var(--bg-secondary);
+        }
+        .follow-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .follow-btn.secondary {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--border-light);
         }
     </style>
 </head>
@@ -766,7 +861,7 @@
                 </div>
             </div>
 
-            <!-- Боковое меню (бургер) -->
+            <!-- Боковое меню -->
             <div id="navDrawer" class="nav-drawer">
                 <div class="drawer-header">
                     <span class="logo">Меню</span>
@@ -810,9 +905,9 @@
                     </div>
                 </div>
 
-                <!-- Чаты (Telegram-стиль) -->
+                <!-- Чаты -->
                 <div id="chatsSection" class="section">
-                    <!-- Левая панель списка чатов -->
+                    <!-- Левая панель -->
                     <div class="chats-sidebar" id="chatsSidebar">
                         <div class="sidebar-header">
                             <h3>Чаты</h3>
@@ -822,7 +917,7 @@
                         </div>
                         <div class="chats-list scrollable" id="chatsList"></div>
                     </div>
-                    <!-- Правая область сообщений -->
+                    <!-- Правая область -->
                     <div class="chat-main" id="chatMain">
                         <div id="noChatSelected" class="info-message" style="display: flex; align-items: center; justify-content: center; height:100%;">
                             Выберите чат
@@ -832,7 +927,7 @@
                                 <button id="backFromChatBtn" class="back-button">←</button>
                                 <span id="chatHeader"></span>
                             </div>
-                            <div id="messagesContainer" class="messages-container scrollable"></div>
+                            <div id="messagesContainer" class="scrollable"></div>
                             <div class="chat-input-area">
                                 <button id="emojiBtn">😊</button>
                                 <input type="text" id="messageInput" placeholder="Сообщение...">
@@ -910,7 +1005,7 @@
             const burgerMenu = document.getElementById('burgerMenu');
             const navDrawer = document.getElementById('navDrawer');
             const overlay = document.getElementById('overlay');
-            const closeDrawerBtn = document.getElementById('closeDrawerBtn');  // переименовано
+            const closeDrawerBtn = document.getElementById('closeDrawerBtn');
             const drawerFeed = document.getElementById('drawerFeed');
             const drawerProfile = document.getElementById('drawerProfile');
             const drawerSearch = document.getElementById('drawerSearch');
@@ -968,7 +1063,7 @@
             function openDrawer() { navDrawer.classList.add('open'); overlay.classList.add('show'); }
             function closeDrawer() { navDrawer.classList.remove('open'); overlay.classList.remove('show'); }
             burgerMenu.addEventListener('click', openDrawer);
-            closeDrawerBtn.addEventListener('click', closeDrawer);  // исправлено
+            closeDrawerBtn.addEventListener('click', closeDrawer);
             overlay.addEventListener('click', closeDrawer);
 
             // ---------- Управление секциями ----------
@@ -999,7 +1094,7 @@
             drawerSearch.addEventListener('click', () => { showSection('searchSection'); searchResults.innerHTML = ''; });
             drawerChats.addEventListener('click', () => { showSection('chatsSection'); });
 
-            // ---------- Работа с профилем ----------
+            // ---------- Профиль ----------
             async function ensureUserProfile(user) {
                 if (!user) return;
                 const userRef = db.collection('users').doc(user.uid);
@@ -1371,15 +1466,19 @@
                 }
             });
 
-            // Эмодзи
+            // Эмодзи (используем глобальный EmojiPicker)
             emojiBtn.addEventListener('click', () => emojiPicker.classList.toggle('show'));
-            import('https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.0/index.js')
-                .then(module => {
-                    const picker = new module.default();
-                    emojiPicker.appendChild(picker);
-                    picker.addEventListener('emoji-click', e => { messageInput.value += e.detail.unicode; emojiPicker.classList.remove('show'); });
-                })
-                .catch(console.error);
+            // Глобальный конструктор доступен благодаря тегу script
+            if (window.EmojiPicker) {
+                const picker = new window.EmojiPicker();
+                emojiPicker.appendChild(picker);
+                picker.addEventListener('emoji-click', e => {
+                    messageInput.value += e.detail.unicode;
+                    emojiPicker.classList.remove('show');
+                });
+            } else {
+                console.warn('EmojiPicker не загрузился');
+            }
 
             // Назад из чата
             backFromChatBtn.addEventListener('click', () => {
@@ -1418,9 +1517,7 @@
                 const email = document.getElementById('registerEmail').value;
                 const pass = document.getElementById('registerPassword').value;
                 auth.createUserWithEmailAndPassword(email, pass)
-                    .then(() => {
-                        // После успешной регистрации onAuthStateChanged покажет приложение
-                    })
+                    .then(() => {})
                     .catch(e => alert('Ошибка регистрации: ' + e.message));
             }
             loginBtn.addEventListener('click', handleLogin);
@@ -1443,7 +1540,6 @@
                     authContainer.classList.add('hidden');
                     appContainer.classList.remove('hidden');
                     await ensureUserProfile(user);
-                    // Очистить подписки
                     Object.values(state.listeners).forEach(fn => fn && fn());
                     showSection('chatsSection');
                 } else {
