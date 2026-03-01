@@ -1171,7 +1171,7 @@
                     if (state.currentChatId) {
                         if (state.listeners.messages) state.listeners.messages();
                         if (state.listeners.presence) state.listeners.presence();
-                        if (state.listeners.typing) state.listeners.typing();
+                        // подписка на typing не удаляется, так как мы её убрали
                         state.currentChatId = null;
                     }
                     loadChats();
@@ -1668,8 +1668,8 @@
             function updateChatHeader() {
                 if (!state.currentChatParticipant) return;
                 const name = state.currentChatParticipant.displayName || state.currentChatParticipant.email;
-                const isOnline = state.currentChatParticipant.online;
-                chatHeader.innerHTML = `${name} ${isOnline ? '<span style="color: #4caf50; font-size: 1.2rem;">●</span>' : ''}`;
+                // Убран индикатор онлайн
+                chatHeader.textContent = name;
             }
 
             async function openChatWithUser(otherUid) {
@@ -1684,29 +1684,11 @@
                     console.log('Presence snapshot received', doc.data());
                     if (doc.exists) {
                         state.currentChatParticipant = { uid: otherUid, ...doc.data() };
-                        updateChatHeader();
+                        updateChatHeader(); // обновляем заголовок (без онлайн)
                     }
                 });
 
-                // Подписка на статус печатания собеседника
-                if (state.listeners.typing) state.listeners.typing();
-                state.listeners.typing = db.collection('chats').doc(chat.id).collection('typing')
-                    .onSnapshot(snapshot => {
-                        console.log('Typing snapshot, docs:', snapshot.docs.map(d => d.id));
-                        let typingUser = null;
-                        snapshot.forEach(doc => {
-                            if (doc.id !== state.currentUser.uid) {
-                                typingUser = doc.id;
-                            }
-                        });
-                        if (typingUser) {
-                            console.log('Typing user detected:', typingUser);
-                            chatHeader.innerHTML = `${state.currentChatParticipant.displayName || state.currentChatParticipant.email} <span style="font-size:0.9rem; color:var(--text-secondary);">печатает<span class="dots"></span></span>`;
-                        } else {
-                            console.log('No typing user, restoring header');
-                            updateChatHeader();
-                        }
-                    });
+                // Подписка на статус печатания собеседника полностью удалена (индикатор не нужен)
 
                 showSection('chatsSection');
                 if (window.innerWidth <= 768) chatsSidebar.classList.add('hide-mobile');
@@ -1762,7 +1744,6 @@
                         if (window.innerWidth <= 768) chatsSidebar.classList.add('hide-mobile');
                         chatWindowContainer.classList.remove('hidden');
                         noChatSelected.classList.add('hidden');
-                        // Убрано chatHeader.textContent = ... чтобы не сбрасывать
                         chatHeader.onclick = () => {
                             showSection('profileSection');
                             loadProfile(otherUid);
@@ -1783,7 +1764,7 @@
                 });
             }
 
-            // Функция для установки статуса печатает (с логами)
+            // Функция для установки статуса печатает (оставлена, но не используется для отображения)
             function setTypingStatus(chatId, userId, isTyping) {
                 console.log('setTypingStatus', {chatId, userId, isTyping});
                 const typingRef = db.collection('chats').doc(chatId).collection('typing').doc(userId);
@@ -2192,7 +2173,7 @@
                 noChatSelected.classList.remove('hidden');
                 if (state.listeners.messages) state.listeners.messages();
                 if (state.listeners.presence) state.listeners.presence();
-                if (state.listeners.typing) state.listeners.typing();
+                // подписка на typing не нужна
                 state.currentChatId = null;
             });
 
