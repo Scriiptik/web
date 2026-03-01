@@ -13,7 +13,7 @@
     <!-- Эмодзи-пикер (глобальная переменная EmojiPicker) -->
     <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.0/index.js"></script>
     <style>
-        /* ----- СБРОС И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (улучшенная контрастность) ----- */
+        /* ----- СБРОС И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ----- */
         * {
             margin: 0;
             padding: 0;
@@ -467,7 +467,7 @@
             font-size: 1.2rem;
             object-fit: cover;
         }
-        /* ----- ЧАТЫ (исправлена панель ввода) ----- */
+        /* ----- ЧАТЫ ----- */
         #chatsSection {
             flex-direction: row;
         }
@@ -591,7 +591,23 @@
         .back-button:hover {
             background: var(--bg-secondary);
         }
-        /* Контейнер сообщений занимает всё свободное место */
+        /* Имя собеседника кликабельно */
+        .chat-header .contact-name {
+            cursor: pointer;
+            color: var(--accent);
+            text-decoration: underline dotted;
+        }
+        /* Контейнер окна чата с рамкой (нововведение) */
+        #chatWindowContainer {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid var(--accent);
+            border-radius: 1rem;
+            margin: 0.5rem;
+            background: var(--bg-primary);
+            overflow: hidden; /* чтобы рамка не обрезалась */
+        }
         #messagesContainer {
             flex: 1;
             overflow-y: auto;
@@ -600,8 +616,7 @@
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
-            min-height: 0; /* необходимо для flex */
-            justify-content: flex-end; /* Добавлено для фиксации сообщений снизу */
+            min-height: 0;
         }
         .message {
             max-width: 75%;
@@ -612,6 +627,7 @@
             align-self: flex-start;
             word-wrap: break-word;
             box-shadow: var(--shadow-sm);
+            position: relative;
         }
         .message.own {
             background: var(--message-out-bg);
@@ -639,7 +655,32 @@
         .message-audio {
             width: 200px;
         }
-        /* Панель ввода всегда видна снизу */
+        /* Кнопка удаления сообщения (только для своих) */
+        .delete-msg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: #ff4d4d;
+            display: none;
+            padding: 0.2rem;
+            border-radius: 50%;
+        }
+        .message.own:hover .delete-msg {
+            display: block;
+        }
+        .delete-msg:hover {
+            background: rgba(255,0,0,0.1);
+        }
+        /* Для мобильных — всегда показывать кнопку удаления */
+        @media (max-width: 768px) {
+            .delete-msg {
+                display: block;
+            }
+        }
         .chat-input-area {
             display: flex;
             gap: 0.5rem;
@@ -696,7 +737,7 @@
         .emoji-picker.show {
             display: block;
         }
-        /* ----- МОДАЛКА ----- */
+        /* ----- МОДАЛКА РЕДАКТИРОВАНИЯ ПРОФИЛЯ ----- */
         .modal {
             display: none;
             position: fixed;
@@ -716,8 +757,18 @@
             background: var(--bg-primary);
             border-radius: 1.5rem;
             padding: 2rem;
-            max-width: 300px;
+            max-width: 350px;
+            width: 90%;
             text-align: center;
+        }
+        .modal-content input, .modal-content textarea {
+            width: 100%;
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            border: 1px solid var(--border-light);
+            border-radius: 1rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
         }
         .modal-buttons {
             display: flex;
@@ -778,7 +829,6 @@
             gap: 0.5rem;
             align-items: center;
         }
-        /* Кнопки "Подписаться" и т.п. */
         button.secondary {
             background: transparent;
             color: var(--accent);
@@ -897,10 +947,10 @@
                         <div id="noChatSelected" class="info-message" style="display: flex; align-items: center; justify-content: center; height:100%;">
                             Выберите чат
                         </div>
-                        <div id="chatWindowContainer" class="hidden" style="height:100%; display: flex; flex-direction: column;">
+                        <div id="chatWindowContainer" class="hidden">
                             <div class="chat-header">
                                 <button id="backFromChatBtn" class="back-button">←</button>
-                                <span id="chatHeader"></span>
+                                <span id="chatHeader" class="contact-name"></span>
                             </div>
                             <div id="messagesContainer" class="scrollable"></div>
                             <div class="chat-input-area">
@@ -918,7 +968,30 @@
             </div>
         </div>
     </div>
-    <!-- Модалка друга -->
+    <!-- Модалка для редактирования профиля -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content">
+            <h3>Редактировать профиль</h3>
+            <input type="text" id="editName" placeholder="Имя">
+            <textarea id="editBio" rows="3" placeholder="О себе"></textarea>
+            <input type="file" id="editAvatar" accept="image/*">
+            <div class="modal-buttons">
+                <button id="saveProfileBtn">Сохранить</button>
+                <button class="secondary" id="cancelEditBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+    <!-- Модалка для подтверждения удаления сообщения (можно использовать встроенный confirm, но для красоты оставим) -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <p>Удалить сообщение?</p>
+            <div class="modal-buttons">
+                <button id="confirmYes">Да</button>
+                <button class="secondary" id="confirmNo">Нет</button>
+            </div>
+        </div>
+    </div>
+    <!-- Модалка друга (осталась) -->
     <div id="friendModal" class="modal">
         <div class="modal-content">
             <h3 id="friendModalName">Друг</h3>
@@ -959,7 +1032,9 @@
                     follows: null,
                     chats: null,
                     messages: null
-                }
+                },
+                // для удаления сообщений
+                pendingDeleteMsgId: null
             };
             // ---------- DOM элементы ----------
             const authContainer = document.getElementById('authContainer');
@@ -1011,6 +1086,15 @@
             const modalMessageBtn = document.getElementById('modalMessageBtn');
             const modalProfileBtn = document.getElementById('modalProfileBtn');
             const modalCloseBtn = document.getElementById('modalCloseBtn');
+            const editProfileModal = document.getElementById('editProfileModal');
+            const editName = document.getElementById('editName');
+            const editBio = document.getElementById('editBio');
+            const editAvatar = document.getElementById('editAvatar');
+            const saveProfileBtn = document.getElementById('saveProfileBtn');
+            const cancelEditBtn = document.getElementById('cancelEditBtn');
+            const confirmModal = document.getElementById('confirmModal');
+            const confirmYes = document.getElementById('confirmYes');
+            const confirmNo = document.getElementById('confirmNo');
             let selectedFriendUid = null;
             // ---------- Тема ----------
             function applyTheme() {
@@ -1203,9 +1287,32 @@
                 if (currently) await db.collection('follows').doc(id).delete();
                 else await db.collection('follows').doc(id).set({ followerId: state.currentUser.uid, followeeId: targetUid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             }
+            // ---------- Редактирование профиля (реализация) ----------
             function showEditForm() {
-                alert('Редактирование профиля (можно расширить)');
+                // Заполняем поля текущими данными
+                editName.value = state.profile?.displayName || '';
+                editBio.value = state.profile?.bio || '';
+                editAvatar.value = ''; // сброс
+                editProfileModal.classList.add('show');
             }
+            cancelEditBtn.addEventListener('click', () => editProfileModal.classList.remove('show'));
+            saveProfileBtn.addEventListener('click', async () => {
+                const newName = editName.value.trim();
+                const newBio = editBio.value.trim();
+                if (!newName) { alert('Имя не может быть пустым'); return; }
+                const updates = { displayName: newName, bio: newBio };
+                // Если выбрана новая аватарка
+                if (editAvatar.files.length > 0) {
+                    const file = editAvatar.files[0];
+                    const storageRef = storage.ref(`avatars/${state.currentUser.uid}`);
+                    await storageRef.put(file);
+                    const url = await storageRef.getDownloadURL();
+                    updates.avatar = url;
+                }
+                await db.collection('users').doc(state.currentUser.uid).update(updates);
+                editProfileModal.classList.remove('show');
+                loadProfile(state.currentUser.uid); // обновить отображение
+            });
             // ---------- Поиск ----------
             searchBtn.addEventListener('click', () => searchUsers(searchInput.value));
             searchInput.addEventListener('keyup', e => e.key === 'Enter' && searchUsers(searchInput.value));
@@ -1270,7 +1377,9 @@
                 }
                 chatWindowContainer.classList.remove('hidden');
                 noChatSelected.classList.add('hidden');
-                chatHeader.textContent = `Чат с ${state.currentChatParticipant.displayName || state.currentChatParticipant.email}`;
+                // Отображаем имя и делаем его кликабельным
+                chatHeader.textContent = state.currentChatParticipant.displayName || state.currentChatParticipant.email;
+                chatHeader.onclick = () => goToUserProfile(otherUid);
                 loadMessages(chat.id);
                 loadChats();
             }
@@ -1313,7 +1422,8 @@
                         if (window.innerWidth <= 768) chatsSidebar.classList.add('hide-mobile');
                         chatWindowContainer.classList.remove('hidden');
                         noChatSelected.classList.add('hidden');
-                        chatHeader.textContent = `Чат с ${state.currentChatParticipant?.displayName || ''}`;
+                        chatHeader.textContent = state.currentChatParticipant?.displayName || '';
+                        chatHeader.onclick = () => goToUserProfile(otherUid);
                         loadMessages(chatId);
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         item.classList.add('active');
@@ -1341,10 +1451,65 @@
                         else if (m.mediaType === 'audio') media = `<audio controls src="${m.mediaURL}" class="message-audio"></audio>`;
                         else if (m.mediaType === 'video') media = `<video controls src="${m.mediaURL}" class="message-media"></video>`;
                     }
-                    html += `<div class="message ${isOwn ? 'own' : ''}"><div class="message-sender">${sender}</div><div>${m.text || ''}</div>${media}<div class="message-time">${time}</div></div>`;
+                    // Добавляем кнопку удаления только для своих сообщений
+                    const deleteBtn = isOwn ? `<button class="delete-msg" data-msg-id="${m.id}">🗑️</button>` : '';
+                    html += `<div class="message ${isOwn ? 'own' : ''}" data-msg-id="${m.id}">
+                        <div class="message-sender">${sender}</div>
+                        <div>${m.text || ''}</div>
+                        ${media}
+                        <div class="message-time">${time}</div>
+                        ${deleteBtn}
+                    </div>`;
                 });
                 messagesContainer.innerHTML = html;
+                // Добавляем обработчики удаления
+                document.querySelectorAll('.delete-msg').forEach(btn => {
+                    btn.addEventListener('click', async e => {
+                        e.stopPropagation();
+                        const msgId = btn.dataset.msgId;
+                        if (confirm('Удалить сообщение?')) {
+                            await deleteMessage(msgId);
+                        }
+                    });
+                });
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            // Функция удаления сообщения и обновления последнего сообщения в чате
+            async function deleteMessage(msgId) {
+                if (!state.currentChatId) return;
+                const msgRef = db.collection('messages').doc(msgId);
+                const msg = await msgRef.get();
+                if (!msg.exists) return;
+                // Удаляем только свои сообщения
+                if (msg.data().senderId !== state.currentUser.uid) {
+                    alert('Нельзя удалить чужое сообщение');
+                    return;
+                }
+                await msgRef.delete();
+                // После удаления обновляем lastMessage в чате
+                const chatRef = db.collection('chats').doc(state.currentChatId);
+                const messagesQuery = await db.collection('messages')
+                    .where('chatId', '==', state.currentChatId)
+                    .orderBy('timestamp', 'desc')
+                    .limit(1)
+                    .get();
+                if (!messagesQuery.empty) {
+                    const last = messagesQuery.docs[0].data();
+                    await chatRef.update({
+                        lastMessage: last.text || (last.mediaType === 'image' ? '📷' : '🎤'),
+                        lastMessageTimestamp: last.timestamp,
+                        lastMessageSender: last.senderId,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } else {
+                    // Сообщений не осталось
+                    await chatRef.update({
+                        lastMessage: '',
+                        lastMessageTimestamp: null,
+                        lastMessageSender: null,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
             }
             async function sendMessage(text, mediaURL, mediaType) {
                 const msgText = text !== undefined ? text : messageInput.value.trim();
@@ -1410,9 +1575,8 @@
                     recordBtn.style.color = '';
                 }
             });
-            // Эмодзи (используем глобальный EmojiPicker)
+            // Эмодзи (глобальный EmojiPicker)
             emojiBtn.addEventListener('click', () => emojiPicker.classList.toggle('show'));
-            // Глобальный конструктор доступен благодаря тегу script
             if (window.EmojiPicker) {
                 const picker = new window.EmojiPicker();
                 emojiPicker.appendChild(picker);
