@@ -10,8 +10,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
-    <!-- Эмодзи-пикер (глобальная переменная EmojiPicker) без import -->
-    <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.0/index.js"></script>
     <style>
         /* ----- СБРОС И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ----- */
         * {
@@ -36,7 +34,7 @@
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
             --shadow-md: 0 2px 8px rgba(0,0,0,0.1);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
-            --footer-height: 30px;
+            --footer-height: 40px;
         }
         body.dark-theme {
             --bg-primary: #1f2128;
@@ -312,7 +310,12 @@
             display: flex;
             flex-direction: column;
         }
-        /* Нижний футер с копирайтом (для всех секций) */
+        .section-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        /* ----- НИЖНИЙ ФУТЕР (теперь вне main-content, но внутри app) ----- */
         .app-footer {
             height: var(--footer-height);
             background: var(--bg-sidebar);
@@ -323,12 +326,6 @@
             color: var(--text-secondary);
             font-size: 0.8rem;
             flex-shrink: 0;
-        }
-        /* Контейнер для контента секции, который занимает оставшееся место */
-        .section-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
         }
         /* ----- КАРТОЧКИ И ПОСТЫ ----- */
         .card {
@@ -741,6 +738,7 @@
         .chat-input-area button.record-btn {
             color: #ff4d4d;
         }
+        /* Самодельный эмодзи-пикер (простая сетка) */
         .emoji-picker {
             position: absolute;
             bottom: 80px;
@@ -750,11 +748,26 @@
             background: var(--bg-sidebar);
             border-radius: 1rem;
             box-shadow: var(--shadow-md);
+            padding: 0.5rem;
             max-height: 300px;
             overflow-y: auto;
+            width: 250px;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.25rem;
         }
         .emoji-picker.show {
-            display: block;
+            display: grid;
+        }
+        .emoji-item {
+            font-size: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.5rem;
+            transition: background 0.2s;
+        }
+        .emoji-item:hover {
+            background: var(--bg-secondary);
         }
         /* ----- МОДАЛКИ ----- */
         .modal {
@@ -923,6 +936,7 @@
                 </div>
             </div>
             <div id="overlay" class="overlay"></div>
+            <!-- Основной контент -->
             <div class="main-content">
                 <!-- Лента -->
                 <div id="feedSection" class="section">
@@ -980,13 +994,14 @@
                                 <button id="recordBtn" class="record-btn">🎤</button>
                                 <button id="sendMessageBtn" style="background:var(--accent); color:white; border-radius:50%;">➤</button>
                             </div>
+                            <div id="emojiPicker" class="emoji-picker"></div>
                         </div>
                     </div>
                 </div>
-                <!-- Нижний футер с копирайтом (виден всегда) -->
-                <div class="app-footer">
-                    © 2026 SCRIPT Studio. All rights reserved.
-                </div>
+            </div>
+            <!-- Нижний футер (теперь после main-content) -->
+            <div class="app-footer">
+                © 2026 SCRIPT Studio. All rights reserved.
             </div>
         </div>
     </div>
@@ -1003,7 +1018,6 @@
             </div>
         </div>
     </div>
-    <!-- Модалка для подтверждения удаления сообщения (не используется, оставлен confirm) -->
     <!-- Модалка друга -->
     <div id="friendModal" class="modal">
         <div class="modal-content">
@@ -1104,6 +1118,25 @@
             const saveProfileBtn = document.getElementById('saveProfileBtn');
             const cancelEditBtn = document.getElementById('cancelEditBtn');
             let selectedFriendUid = null;
+
+            // ---------- Самодельный эмодзи-пикер ----------
+            const emojiList = ['😊', '😂', '😍', '🥰', '😭', '😅', '😘', '😎', '🤔', '😏', '😴', '👍', '👎', '❤️', '🔥', '🎉', '🙏', '💀', '👀', '💯', '✨', '⭐', '🌟', '💔', '💖', '💙', '💚', '💛', '💜', '🖤', '🤍', '🤎', '💕', '💞', '💓', '💗', '💝', '💘', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⚛️', '🕉️', '🙏', '🕊️', '🌟', '⭐', '🌠', '🌌', '🌃', '🏙️', '🌄', '🌅', '🌆', '🌇', '🌉', '🌁', '🌃', '🌌', '🌠', '⭐', '🌟', '💫', '✨', '⚡', '🔥', '💥', '💢', '💦', '💨', '🕳️', '💣', '💤', '💩'];
+            function initEmojiPicker() {
+                emojiPicker.innerHTML = '';
+                emojiList.forEach(emoji => {
+                    const span = document.createElement('span');
+                    span.className = 'emoji-item';
+                    span.textContent = emoji;
+                    span.onclick = () => {
+                        messageInput.value += emoji;
+                        emojiPicker.classList.remove('show');
+                    };
+                    emojiPicker.appendChild(span);
+                });
+            }
+            initEmojiPicker();
+            emojiBtn.addEventListener('click', () => emojiPicker.classList.toggle('show'));
+
             // ---------- Тема ----------
             function applyTheme() {
                 if (state.darkTheme) {
@@ -1572,18 +1605,6 @@
                     recordBtn.style.color = '';
                 }
             });
-            // Эмодзи-пикер (глобальный)
-            emojiBtn.addEventListener('click', () => emojiPicker.classList.toggle('show'));
-            if (window.EmojiPicker) {
-                const picker = new window.EmojiPicker();
-                emojiPicker.appendChild(picker);
-                picker.addEventListener('emoji-click', e => {
-                    messageInput.value += e.detail.unicode;
-                    emojiPicker.classList.remove('show');
-                });
-            } else {
-                console.warn('EmojiPicker не загрузился');
-            }
             backFromChatBtn.addEventListener('click', () => {
                 chatsSidebar.classList.remove('hide-mobile');
                 chatWindowContainer.classList.add('hidden');
