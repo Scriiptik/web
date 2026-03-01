@@ -276,25 +276,13 @@
         .main-content {
             flex: 1;
             overflow: hidden;
-            position: relative; /* добавлено для анимации секций */
         }
-        /* Исправленные стили для секций с плавной анимацией */
         .section {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
+            display: none;
             height: 100%;
-            opacity: 0;
-            transition: opacity 0.25s ease;
-            pointer-events: none;
-            display: block;
-            overflow-y: auto;
+            width: 100%;
         }
-        .section.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
+        .section.active { display: flex; flex-direction: column; }
         .section-content {
             flex: 1;
             overflow-y: auto;
@@ -907,13 +895,6 @@
             text-align: center;
             font-size: 0.75rem;
             padding: 0 4px;
-        }
-
-        /* Скрываем кнопку эмодзи на мобильных */
-        @media (max-width: 768px) {
-            #emojiBtn {
-                display: none;
-            }
         }
 
         @media (max-width: 768px) {
@@ -2192,26 +2173,17 @@
             // Обработчик кнопки отмены ответа
             document.getElementById('cancelReplyBtn').addEventListener('click', clearReply);
 
-            // Улучшенная функция удаления сообщения
             async function deleteMessage(msgId) {
                 if (!state.currentChatId) return;
                 try {
                     const msgRef = db.collection('messages').doc(msgId);
-                    const msgDoc = await msgRef.get();
-                    if (!msgDoc.exists) {
-                        console.warn('Сообщение не найдено');
-                        return;
-                    }
                     await msgRef.delete();
-
-                    // Обновляем информацию о последнем сообщении в чате
                     const chatRef = db.collection('chats').doc(state.currentChatId);
                     const messagesQuery = await db.collection('messages')
                         .where('chatId', '==', state.currentChatId)
                         .orderBy('timestamp', 'desc')
                         .limit(1)
                         .get();
-
                     if (!messagesQuery.empty) {
                         const last = messagesQuery.docs[0].data();
                         await chatRef.update({
@@ -2229,8 +2201,8 @@
                         });
                     }
                 } catch (error) {
-                    console.error('Ошибка удаления сообщения:', error);
-                    alert('Не удалось удалить сообщение. Проверьте подключение к интернету и попробуйте снова.');
+                    console.error('Ошибка удаления:', error);
+                    alert('Не удалось удалить сообщение. Попробуйте снова.');
                 }
             }
 
