@@ -1,578 +1,1049 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Совместное рисование PRO — для ПК</title>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Social Network · Firebase SPA</title>
+    <!-- Firebase SDK (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
     <style>
-        * { box-sizing: border-box; user-select: none; }
-        body {
+        * {
             margin: 0;
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #2d2d2d;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
         }
-        #canvas-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            cursor: default;
-        }
-        canvas {
-            display: block;
-            background: white;
-            transform-origin: 0 0;
-            cursor: crosshair;
-        }
-        #toolbar {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(40, 44, 52, 0.9);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-            z-index: 1000;
-            width: 260px;
-            border: 1px solid #555;
-        }
-        #toolbar h3 {
-            margin: 0 0 12px 0;
-            color: #61dafb;
-            text-align: center;
-        }
-        .tool-group {
-            margin-bottom: 15px;
-            border-bottom: 1px solid #555;
-            padding-bottom: 10px;
-        }
-        .tool-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 13px;
-            color: #ccc;
-        }
-        .tool-row {
+        body {
+            background: #f5f7fa;
+            min-height: 100vh;
             display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-bottom: 8px;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        #app {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        /* Аутентификация */
+        .auth-container {
+            padding: 2rem;
+        }
+        .auth-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #eef2f6;
+        }
+        .auth-tab {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+        .auth-tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+        .auth-form.hidden {
+            display: none;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .input-group label {
+            font-weight: 500;
+            color: #334155;
+            font-size: 0.9rem;
+        }
+        .input-group input,
+        .input-group textarea {
+            padding: 0.9rem 1.2rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 1rem;
+            font-size: 1rem;
+            transition: 0.2s;
+            background: #fafbfc;
+        }
+        .input-group input:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+            background: white;
         }
         button {
-            background: #3a3f4b;
-            border: none;
+            background: #2563eb;
             color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
+            border: none;
+            padding: 0.9rem 1.5rem;
+            border-radius: 3rem;
+            font-weight: 600;
+            font-size: 1rem;
             cursor: pointer;
-            font-size: 14px;
-            transition: background 0.2s;
-            flex: 1 0 auto;
-            border: 1px solid #555;
+            transition: 0.2s;
+            border: 1.5px solid transparent;
         }
         button:hover {
-            background: #4a505e;
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37,99,235,0.2);
         }
-        button.active {
-            background: #61dafb;
-            color: #1e1e1e;
+        button.secondary {
+            background: white;
+            color: #2563eb;
+            border-color: #2563eb;
+        }
+        button.secondary:hover {
+            background: #eef2ff;
+            transform: none;
+            box-shadow: none;
+        }
+        button.danger {
+            background: #ef4444;
+        }
+        button.danger:hover {
+            background: #dc2626;
+        }
+        /* Шапка приложения */
+        .app-header {
+            background: white;
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #eef2f6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .nav {
+            display: flex;
+            gap: 1rem;
+        }
+        .nav button {
+            background: none;
+            color: #64748b;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-weight: 500;
+        }
+        .nav button:hover,
+        .nav button.active {
+            background: #eef2ff;
+            color: #2563eb;
+            transform: none;
+            box-shadow: none;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .email-badge {
+            color: #334155;
+            font-weight: 500;
+        }
+        /* Основной контент */
+        .main-content {
+            padding: 2rem;
+            min-height: 60vh;
+        }
+        .section {
+            display: none;
+        }
+        .section.active {
+            display: block;
+        }
+        /* Карточки */
+        .card {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+            border: 1px solid #f0f4f9;
+            margin-bottom: 1.5rem;
+        }
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .avatar {
+            width: 80px;
+            height: 80px;
+            background: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
             font-weight: bold;
-            border-color: #21a1c9;
+            text-transform: uppercase;
+            flex-shrink: 0;
         }
-        input[type="color"] {
-            width: 100%;
-            height: 40px;
+        .profile-info {
+            flex: 1;
+        }
+        .profile-info h2 {
+            font-size: 1.8rem;
+            color: #0f172a;
+        }
+        .profile-info p {
+            color: #475569;
+            margin: 0.5rem 0 1rem;
+        }
+        .stats {
+            display: flex;
+            gap: 2rem;
+            color: #64748b;
+        }
+        .stats span {
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .post {
+            border-bottom: 1px solid #eef2f6;
+            padding: 1.5rem 0;
+        }
+        .post:last-child {
+            border-bottom: none;
+        }
+        .post-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .post-author {
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .post-time {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        .post-text {
+            color: #1e293b;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        .post-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .like-btn {
+            background: none;
             border: none;
-            background: transparent;
+            color: #ef4444;
+            font-size: 1.25rem;
             cursor: pointer;
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid #fee2e2;
         }
-        input[type="range"] {
-            width: 100%;
-            margin: 5px 0;
+        .like-btn:hover {
+            background: #fee2e2;
+            transform: none;
+            box-shadow: none;
         }
-        .status {
-            background: #1e1e1e;
-            padding: 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            margin-top: 10px;
-            word-break: break-all;
+        .like-btn.liked {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
         }
-        .status span {
-            color: #61dafb;
+        /* Поиск */
+        .search-box {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 0.9rem 1.2rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 3rem;
+            font-size: 1rem;
+        }
+        .user-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid #eef2f6;
+        }
+        .user-card:last-child {
+            border-bottom: none;
+        }
+        .user-card .info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .user-card .mini-avatar {
+            width: 48px;
+            height: 48px;
+            background: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
             font-weight: bold;
+            font-size: 1.2rem;
         }
-        #peerIdDisplay {
-            color: #98c379;
-            font-weight: normal;
+        .user-card h4 {
+            cursor: pointer;
+            color: #2563eb;
         }
-        .note {
-            font-size: 12px;
-            color: #aaa;
-            margin-top: 10px;
+        .user-card h4:hover {
+            text-decoration: underline;
+        }
+        .follow-btn {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.9rem;
+        }
+        /* Формы */
+        .edit-form {
+            margin-top: 2rem;
+        }
+        .flex-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .text-center {
             text-align: center;
         }
+        .info-message {
+            background: #f8fafc;
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            color: #64748b;
+        }
     </style>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
-    <div id="canvas-container">
-        <canvas id="canvas"></canvas>
-    </div>
-    <div id="toolbar">
-        <h3>🎨 Совместное рисование</h3>
-        <div class="tool-group">
-            <div class="tool-row">
-                <button id="btnBrush" class="active">🖌 Кисть</button>
-                <button id="btnEraser">🧽 Ластик</button>
-                <button id="btnLine">📏 Линия</button>
+    <div id="app">
+        <!-- БЛОК АУТЕНТИФИКАЦИИ -->
+        <div id="authContainer" class="auth-container">
+            <div class="auth-tabs">
+                <button id="loginTab" class="auth-tab active">Вход</button>
+                <button id="registerTab" class="auth-tab">Регистрация</button>
             </div>
-            <div class="tool-row">
-                <button id="btnRect">⬜ Прямоугольник</button>
-                <button id="btnCircle">⚪ Круг</button>
-                <button id="btnClear">🗑 Очистить всё</button>
+            <!-- Форма входа -->
+            <div id="loginForm" class="auth-form">
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="you@example.com">
+                </div>
+                <div class="input-group">
+                    <label>Пароль</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••">
+                </div>
+                <button id="loginBtn">Войти</button>
             </div>
-        </div>
-        <div class="tool-group">
-            <label>🎨 Цвет</label>
-            <input type="color" id="colorPicker" value="#000000">
-            <label>📏 Толщина (<span id="lineWidthValue">3</span> px)</label>
-            <input type="range" id="lineWidth" min="1" max="20" value="3" step="1">
-            <label>🔆 Прозрачность (<span id="opacityValue">100</span>%)</label>
-            <input type="range" id="opacity" min="10" max="100" value="100" step="5">
-        </div>
-        <div class="tool-group">
-            <label>🆔 Комната</label>
-            <div class="tool-row">
-                <button id="createBtn">🔑 Создать</button>
-                <button id="connectBtn">🔗 Подключиться</button>
-            </div>
-            <div style="display: flex; gap: 5px;">
-                <input type="text" id="peerIdInput" placeholder="ID друга" style="flex:1; padding:6px; border-radius:4px; border:1px solid #555; background:#3a3f4b; color:white;">
-            </div>
-            <div class="status">
-                <div>Ваш ID: <span id="peerIdDisplay">—</span></div>
-                <div>Статус: <span id="statusText">⚪ Не подключено</span></div>
+            <!-- Форма регистрации -->
+            <div id="registerForm" class="auth-form hidden">
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="registerEmail" placeholder="you@example.com">
+                </div>
+                <div class="input-group">
+                    <label>Пароль</label>
+                    <input type="password" id="registerPassword" placeholder="••••••••">
+                </div>
+                <button id="registerBtn">Зарегистрироваться</button>
             </div>
         </div>
-        <div class="note">
-            💡 Зум: колёсико мыши<br>
-            💡 Перемещение холста: зажать среднюю кнопку или пробел + левая кнопка
+
+        <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ (скрыто до входа) -->
+        <div id="appContainer" class="hidden">
+            <div class="app-header">
+                <div class="nav">
+                    <button id="navFeed" class="active">Лента</button>
+                    <button id="navProfile">Профиль</button>
+                    <button id="navSearch">Поиск</button>
+                </div>
+                <div class="user-info">
+                    <span class="email-badge" id="headerEmail"></span>
+                    <button id="logoutBtn" class="secondary">Выйти</button>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <!-- Секция Лента -->
+                <div id="feedSection" class="section active">
+                    <div class="card">
+                        <h3 style="margin-bottom:1rem;">Новый пост</h3>
+                        <div class="input-group">
+                            <textarea id="postText" rows="3" placeholder="Что у вас нового?"></textarea>
+                        </div>
+                        <button id="createPostBtn" style="margin-top:1rem;">Опубликовать</button>
+                    </div>
+                    <div id="feedPosts"></div>
+                </div>
+
+                <!-- Секция Профиль (и свой, и чужой) -->
+                <div id="profileSection" class="section">
+                    <div id="profileContainer"></div>
+                </div>
+
+                <!-- Секция Поиск -->
+                <div id="searchSection" class="section">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Имя или email...">
+                        <button id="searchBtn">Найти</button>
+                    </div>
+                    <div id="searchResults"></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         (function() {
-            // ---------- Холст и настройки ----------
-            const canvas = document.getElementById('canvas');
-            const ctx = canvas.getContext('2d');
-            const container = document.getElementById('canvas-container');
-
-            // Параметры трансформации (зум и панорамирование)
-            let scale = 1.0;
-            let offsetX = 0, offsetY = 0;
-            let isDragging = false;
-            let lastMouseX, lastMouseY;
-
-            // Текущие инструменты и настройки
-            let currentTool = 'brush'; // brush, eraser, line, rect, circle
-            let currentColor = '#000000';
-            let lineWidth = 3;
-            let globalAlpha = 1.0;
-            let isDrawing = false;
-            let startX, startY; // для фигур
-
-            // WebRTC
-            let peer = null;
-            let conn = null;
-            let myId = null;
-
-            // Элементы интерфейса
-            const peerIdDisplay = document.getElementById('peerIdDisplay');
-            const peerIdInput = document.getElementById('peerIdInput');
-            const statusText = document.getElementById('statusText');
-            const createBtn = document.getElementById('createBtn');
-            const connectBtn = document.getElementById('connectBtn');
-            const clearBtn = document.getElementById('btnClear');
-            const colorPicker = document.getElementById('colorPicker');
-            const lineWidthSlider = document.getElementById('lineWidth');
-            const lineWidthSpan = document.getElementById('lineWidthValue');
-            const opacitySlider = document.getElementById('opacity');
-            const opacitySpan = document.getElementById('opacityValue');
-            const btnBrush = document.getElementById('btnBrush');
-            const btnEraser = document.getElementById('btnEraser');
-            const btnLine = document.getElementById('btnLine');
-            const btnRect = document.getElementById('btnRect');
-            const btnCircle = document.getElementById('btnCircle');
-
-            // ---------- Утилиты для трансформации координат ----------
-            function getTransformedCoords(e) {
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-                // Преобразуем в координаты холста с учётом масштаба и смещения
-                const canvasX = (mouseX - offsetX) / scale;
-                const canvasY = (mouseY - offsetY) / scale;
-                return { x: canvasX, y: canvasY };
-            }
-
-            // ---------- Применение трансформации к контексту ----------
-            function applyTransform() {
-                ctx.setTransform(1, 0, 0, 1, 0, 0); // сброс
-                ctx.translate(offsetX, offsetY);
-                ctx.scale(scale, scale);
-            }
-
-            // ---------- Отрисовка всего (если нужно сохранять, но у нас простой случай) ----------
-            // Для простоты будем хранить все действия в массиве и перерисовывать при изменении масштаба?
-            // Но в реальном времени это сложно. Для демо мы просто рисуем напрямую на холсте и при зуме
-            // холст масштабируется, но уже нарисованное остаётся. Это нормально.
-            // При изменении масштаба мы не перерисовываем историю, просто трансформируем контекст перед новыми линиями.
-            // Уже нарисованное остаётся как есть, но при зуме оно не искажается благодаря трансформации холста через CSS?
-            // Мы используем transform canvas context, поэтому всё корректно.
-
-            // Обновляем размер canvas при изменении окна
-            function resizeCanvas() {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                applyTransform();
-                // Если есть сохранённые данные, их нужно перерисовать, но для простоты пропустим.
-                // В реальном проекте нужно хранить массив действий и перерисовывать.
-            }
-            window.addEventListener('resize', resizeCanvas);
-            resizeCanvas();
-
-            // ---------- Зум и панорамирование ----------
-            canvas.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const delta = e.deltaY > 0 ? 0.9 : 1.1;
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-
-                // Координаты мыши в системе холста до масштаба
-                const canvasX = (mouseX - offsetX) / scale;
-                const canvasY = (mouseY - offsetY) / scale;
-
-                scale *= delta;
-                scale = Math.min(5, Math.max(0.2, scale)); // ограничим зум
-
-                // Новое смещение, чтобы мышь оставалась на том же месте холста
-                offsetX = mouseX - canvasX * scale;
-                offsetY = mouseY - canvasY * scale;
-
-                applyTransform();
-            });
-
-            // Перемещение холста (средняя кнопка или пробел+левая)
-            canvas.addEventListener('mousedown', (e) => {
-                if (e.button === 1 || (e.button === 0 && e.ctrlKey)) { // средняя или Ctrl+левая
-                    isDragging = true;
-                    lastMouseX = e.clientX;
-                    lastMouseY = e.clientY;
-                    canvas.style.cursor = 'grabbing';
-                    e.preventDefault();
-                } else if (e.button === 0) {
-                    // Левая кнопка - начало рисования
-                    const { x, y } = getTransformedCoords(e);
-                    startX = x;
-                    startY = y;
-                    isDrawing = true;
-
-                    if (currentTool === 'brush' || currentTool === 'eraser') {
-                        ctx.beginPath();
-                        ctx.moveTo(x, y);
-                        // Для мгновенной передачи можно сразу отправить начало
-                        sendDrawAction('start', x, y);
-                    }
-                    // Для фигур будем рисовать предпросмотр при движении, а завершать по mouseup
-                }
-            });
-
-            canvas.addEventListener('mousemove', (e) => {
-                if (isDragging) {
-                    const dx = e.clientX - lastMouseX;
-                    const dy = e.clientY - lastMouseY;
-                    offsetX += dx;
-                    offsetY += dy;
-                    lastMouseX = e.clientX;
-                    lastMouseY = e.clientY;
-                    applyTransform();
-                    return;
-                }
-
-                if (!isDrawing) return;
-
-                const { x, y } = getTransformedCoords(e);
-
-                if (currentTool === 'brush') {
-                    ctx.lineTo(x, y);
-                    ctx.strokeStyle = currentColor;
-                    ctx.lineWidth = lineWidth;
-                    ctx.globalAlpha = globalAlpha;
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(x, y);
-                    sendDrawAction('draw', x, y);
-                } else if (currentTool === 'eraser') {
-                    ctx.lineTo(x, y);
-                    ctx.strokeStyle = '#ffffff'; // белый ластик (если фон белый)
-                    ctx.lineWidth = lineWidth;
-                    ctx.globalAlpha = 1.0;
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(x, y);
-                    sendDrawAction('erase', x, y);
-                } else if (currentTool === 'line' || currentTool === 'rect' || currentTool === 'circle') {
-                    // Для фигур рисуем предпросмотр (временную линию) - пока просто сохраняем конечную точку
-                    // Мы будем рисовать фигуру только при отпускании, но для предпросмотра можно временно рисовать
-                    // Упростим: при движении показываем предпросмотр, но не отправляем данные.
-                    // Реализуем предпросмотр через сохранение состояния холста
-                    // Но для простоты опустим, просто будем рисовать фигуру по окончании.
-                }
-            });
-
-            canvas.addEventListener('mouseup', (e) => {
-                if (isDragging) {
-                    isDragging = false;
-                    canvas.style.cursor = 'crosshair';
-                    return;
-                }
-                if (!isDrawing) return;
-
-                const { x, y } = getTransformedCoords(e);
-
-                if (currentTool === 'brush' || currentTool === 'eraser') {
-                    ctx.beginPath(); // завершаем линию
-                    sendDrawAction('stop');
-                } else {
-                    // Фигуры: рисуем от startX, startY до x, y
-                    ctx.beginPath();
-                    ctx.strokeStyle = currentTool === 'eraser' ? '#ffffff' : currentColor;
-                    ctx.lineWidth = lineWidth;
-                    ctx.globalAlpha = globalAlpha;
-                    if (currentTool === 'line') {
-                        ctx.moveTo(startX, startY);
-                        ctx.lineTo(x, y);
-                        ctx.stroke();
-                        sendDrawAction('line', startX, startY, x, y);
-                    } else if (currentTool === 'rect') {
-                        const w = x - startX;
-                        const h = y - startY;
-                        ctx.strokeRect(startX, startY, w, h);
-                        sendDrawAction('rect', startX, startY, w, h);
-                    } else if (currentTool === 'circle') {
-                        const radius = Math.sqrt((x - startX)**2 + (y - startY)**2);
-                        ctx.beginPath();
-                        ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
-                        ctx.stroke();
-                        sendDrawAction('circle', startX, startY, radius);
-                    }
-                }
-                isDrawing = false;
-            });
-
-            canvas.addEventListener('mouseleave', (e) => {
-                if (isDrawing) {
-                    // Прерываем рисование, если мышь ушла с холста
-                    isDrawing = false;
-                    sendDrawAction('stop');
-                }
-            });
-
-            // Запрещаем контекстное меню на холсте
-            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-
-            // ---------- Функция отправки действий через WebRTC ----------
-            function sendDrawAction(type, ...args) {
-                if (conn && conn.open) {
-                    conn.send({
-                        type: type,
-                        args: args,
-                        tool: currentTool,
-                        color: currentColor,
-                        lineWidth: lineWidth,
-                        opacity: globalAlpha
-                    });
-                }
-            }
-
-            // ---------- Приём данных от друга ----------
-            function setupConnection(connection) {
-                conn = connection;
-                conn.on('open', () => {
-                    statusText.innerHTML = '🟢 Соединено';
-                });
-                conn.on('data', (data) => {
-                    // Воспроизводим действие на своём холсте
-                    ctx.save();
-                    // Устанавливаем параметры, которые передал друг
-                    if (data.color) ctx.strokeStyle = data.color;
-                    if (data.lineWidth) ctx.lineWidth = data.lineWidth;
-                    if (data.opacity) ctx.globalAlpha = data.opacity;
-                    else ctx.globalAlpha = 1.0;
-
-                    if (data.type === 'start') {
-                        ctx.beginPath();
-                        ctx.moveTo(data.args[0], data.args[1]);
-                    } else if (data.type === 'draw') {
-                        ctx.lineTo(data.args[0], data.args[1]);
-                        ctx.stroke();
-                        ctx.beginPath();
-                        ctx.moveTo(data.args[0], data.args[1]);
-                    } else if (data.type === 'erase') {
-                        ctx.strokeStyle = '#ffffff';
-                        ctx.lineTo(data.args[0], data.args[1]);
-                        ctx.stroke();
-                        ctx.beginPath();
-                        ctx.moveTo(data.args[0], data.args[1]);
-                    } else if (data.type === 'stop') {
-                        ctx.beginPath();
-                    } else if (data.type === 'line') {
-                        ctx.beginPath();
-                        ctx.moveTo(data.args[0], data.args[1]);
-                        ctx.lineTo(data.args[2], data.args[3]);
-                        ctx.stroke();
-                    } else if (data.type === 'rect') {
-                        ctx.strokeRect(data.args[0], data.args[1], data.args[2], data.args[3]);
-                    } else if (data.type === 'circle') {
-                        ctx.beginPath();
-                        ctx.arc(data.args[0], data.args[1], data.args[2], 0, 2*Math.PI);
-                        ctx.stroke();
-                    } else if (data.type === 'clear') {
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    }
-                    ctx.restore();
-                });
-                conn.on('close', () => {
-                    statusText.innerHTML = '🔴 Разорвано';
-                    conn = null;
-                });
-                conn.on('error', (err) => {
-                    console.error('Connection error:', err);
-                });
-            }
-
-            // ---------- Настройка PeerJS с перебором серверов ----------
-            const iceServers = {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:stun3.l.google.com:19302' },
-                    { urls: 'stun:stun4.l.google.com:19302' },
-                    { urls: 'stun:stun.cloudflare.com:3478' },
-                    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
-                ]
+            // -------------------------------------------------------------
+            // 1. Конфигурация Firebase (ваши данные)
+            // -------------------------------------------------------------
+            const firebaseConfig = {
+                apiKey: "AIzaSyBw-Jv_Kp6UijGT4giu1DCO-kAXtlU-y5w",
+                authDomain: "webs-a50d2.firebaseapp.com",
+                projectId: "webs-a50d2",
+                storageBucket: "webs-a50d2.firebasestorage.app",
+                messagingSenderId: "615777470967",
+                appId: "1:615777470967:web:9b35c8edd98f6925bc06f2",
+                measurementId: "G-P1FY1HJDTK"
             };
 
-            const servers = [
-                { host: '0.peerjs.com', port: 443, path: '/', secure: true, config: iceServers },
-                { host: '1.peerjs.com', port: 443, path: '/', secure: true, config: iceServers },
-                { host: 'peerjs.com', port: 443, path: '/peerjs', secure: true, config: iceServers },
-                { host: 'cdn.peerjs.com', port: 443, path: '/', secure: true, config: iceServers }
-            ];
+            // Инициализация Firebase
+            firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+            const analytics = firebase.analytics(); // инициализация Analytics
 
-            let serverIndex = 0;
+            // -------------------------------------------------------------
+            // 2. Глобальные переменные состояния
+            // -------------------------------------------------------------
+            let currentUser = null;                    // из Firebase Auth
+            let currentUserProfile = null;              // документ из Firestore (users)
+            let currentFollowees = [];                  // массив ID (на кого подписан)
+            let unsubscribeFeed = null;                  // для отписки от ленты
+            let unsubscribeProfilePosts = null;          // для отписки от постов профиля
+            let unsubscribeFollows = null;                // для слежения за подписками
+            let viewingProfileUid = null;                 // чей профиль сейчас показываем (null = свой)
 
-            function connectToServer(index) {
-                if (index >= servers.length) {
-                    statusText.innerHTML = '❌ Нет доступных серверов';
-                    return;
+            // -------------------------------------------------------------
+            // 3. DOM-элементы
+            // -------------------------------------------------------------
+            const authContainer = document.getElementById('authContainer');
+            const appContainer = document.getElementById('appContainer');
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const headerEmail = document.getElementById('headerEmail');
+
+            // Навигация
+            const navFeed = document.getElementById('navFeed');
+            const navProfile = document.getElementById('navProfile');
+            const navSearch = document.getElementById('navSearch');
+            const feedSection = document.getElementById('feedSection');
+            const profileSection = document.getElementById('profileSection');
+            const searchSection = document.getElementById('searchSection');
+
+            // Элементы ленты
+            const postText = document.getElementById('postText');
+            const createPostBtn = document.getElementById('createPostBtn');
+            const feedPosts = document.getElementById('feedPosts');
+
+            // Элементы поиска
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const searchResults = document.getElementById('searchResults');
+
+            // -------------------------------------------------------------
+            // 4. Вспомогательные функции (UI, навигация)
+            // -------------------------------------------------------------
+            function showAuth() {
+                authContainer.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+            }
+
+            function showApp() {
+                authContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+            }
+
+            function setActiveNav(section) {
+                [navFeed, navProfile, navSearch].forEach(btn => btn.classList.remove('active'));
+                if (section === 'feed') navFeed.classList.add('active');
+                if (section === 'profile') navProfile.classList.add('active');
+                if (section === 'search') navSearch.classList.add('active');
+            }
+
+            function showSection(section) {
+                feedSection.classList.remove('active');
+                profileSection.classList.remove('active');
+                searchSection.classList.remove('active');
+                if (section === 'feed') feedSection.classList.add('active');
+                if (section === 'profile') profileSection.classList.add('active');
+                if (section === 'search') searchSection.classList.add('active');
+            }
+
+            // Очистка подписок при смене секций
+            function cleanupSubscriptions() {
+                if (unsubscribeFeed) { unsubscribeFeed(); unsubscribeFeed = null; }
+                if (unsubscribeProfilePosts) { unsubscribeProfilePosts(); unsubscribeProfilePosts = null; }
+            }
+
+            // Переключение на ленту
+            function goToFeed() {
+                setActiveNav('feed');
+                showSection('feed');
+                cleanupSubscriptions();
+                loadFeed();
+            }
+
+            // Переключение на свой профиль
+            function goToMyProfile() {
+                viewingProfileUid = currentUser.uid; // свой uid
+                setActiveNav('profile');
+                showSection('profile');
+                cleanupSubscriptions();
+                loadProfile(viewingProfileUid);
+            }
+
+            // Переключение на профиль другого пользователя
+            function goToUserProfile(uid) {
+                viewingProfileUid = uid;
+                setActiveNav('profile'); // подсветка профиля
+                showSection('profile');
+                cleanupSubscriptions();
+                loadProfile(uid);
+            }
+
+            // Переключение на поиск
+            function goToSearch() {
+                setActiveNav('search');
+                showSection('search');
+                cleanupSubscriptions();
+                // очищаем старые результаты
+                searchResults.innerHTML = '';
+            }
+
+            // -------------------------------------------------------------
+            // 5. Работа с Firestore (профили, подписки, посты, лайки)
+            // -------------------------------------------------------------
+            // Создать/обновить профиль пользователя
+            async function ensureUserProfile(user) {
+                if (!user) return;
+                const userRef = db.collection('users').doc(user.uid);
+                const doc = await userRef.get();
+                if (!doc.exists) {
+                    // первый вход — создаём базовый профиль
+                    await userRef.set({
+                        email: user.email,
+                        displayName: user.email.split('@')[0], // временное имя
+                        bio: '',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
                 }
-                const server = servers[index];
-                statusText.innerHTML = `🟡 Подключение к ${server.host}...`;
-                peer = new Peer(server);
-                peer.on('open', (id) => {
-                    myId = id;
-                    peerIdDisplay.textContent = id;
-                    statusText.innerHTML = `🟢 Подключено (${server.host})`;
-                });
-                peer.on('error', (err) => {
-                    console.warn(`Сервер ${server.host} ошибка:`, err);
-                    peer.destroy();
-                    connectToServer(index + 1);
-                });
-                peer.on('connection', (connection) => {
-                    setupConnection(connection);
+                // подписываемся на реальные обновления профиля (для шапки и т.д.)
+                userRef.onSnapshot((snap) => {
+                    if (snap.exists) {
+                        currentUserProfile = snap.data();
+                        headerEmail.textContent = currentUserProfile.displayName || currentUser.email;
+                    }
                 });
             }
-            connectToServer(0);
 
-            // ---------- Интерфейс ----------
-            createBtn.addEventListener('click', () => {
-                if (myId) {
-                    navigator.clipboard?.writeText(myId).then(() => {
-                        alert('✅ ID скопирован в буфер');
-                    }).catch(() => {
-                        alert('📋 Ваш ID: ' + myId);
+            // Загрузить ленту (посты от тех, на кого подписан)
+            function loadFeed() {
+                if (!currentUser) return;
+                // Сначала получаем список подписок (followees)
+                const followsQuery = db.collection('follows').where('followerId', '==', currentUser.uid);
+                unsubscribeFollows = followsQuery.onSnapshot(async (snapshot) => {
+                    const followees = snapshot.docs.map(doc => doc.data().followeeId);
+                    currentFollowees = followees;
+                    if (followees.length === 0) {
+                        feedPosts.innerHTML = '<div class="info-message">Вы ещё ни на кого не подписались. Найдите интересных авторов в поиске!</div>';
+                        return;
+                    }
+
+                    // Ограничение Firestore: in поддерживает до 10 значений. Для демо ок, в реальном проекте нужен fan-out.
+                    // Разобьем на чанки по 10 (но для простоты ограничимся первыми 10)
+                    const chunk = followees.slice(0, 10);
+                    const postsQuery = db.collection('posts')
+                        .where('userId', 'in', chunk)
+                        .orderBy('timestamp', 'desc');
+                    
+                    if (unsubscribeFeed) unsubscribeFeed();
+                    unsubscribeFeed = postsQuery.onSnapshot((postsSnap) => {
+                        renderFeed(postsSnap.docs);
+                    });
+                });
+            }
+
+            // Отрисовать ленту
+            async function renderFeed(postsDocs) {
+                if (postsDocs.length === 0) {
+                    feedPosts.innerHTML = '<div class="info-message">В ленте пока нет постов.</div>';
+                    return;
+                }
+                // соберём данные авторов
+                const authorIds = [...new Set(postsDocs.map(d => d.data().userId))];
+                const authorPromises = authorIds.map(uid => db.collection('users').doc(uid).get());
+                const authorSnaps = await Promise.all(authorPromises);
+                const authors = {};
+                authorSnaps.forEach(snap => {
+                    if (snap.exists) authors[snap.id] = snap.data();
+                });
+
+                let html = '';
+                postsDocs.forEach(doc => {
+                    const post = doc.data();
+                    const author = authors[post.userId] || { displayName: 'Неизвестный', email: '' };
+                    const time = post.timestamp ? new Date(post.timestamp.toDate()).toLocaleString() : 'только что';
+                    const likesCount = post.likes ? post.likes.length : 0;
+                    const userLiked = post.likes && post.likes.includes(currentUser.uid);
+                    html += `
+                        <div class="post card" data-post-id="${doc.id}">
+                            <div class="post-header">
+                                <div class="post-author">${author.displayName || author.email}</div>
+                                <div class="post-time">${time}</div>
+                            </div>
+                            <div class="post-text">${post.text.replace(/</g, '&lt;')}</div>
+                            <div class="post-actions">
+                                <button class="like-btn ${userLiked ? 'liked' : ''}" data-post-id="${doc.id}">
+                                    ❤️ <span class="likes-count">${likesCount}</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                feedPosts.innerHTML = html;
+
+                // добавим обработчики лайков
+                feedPosts.querySelectorAll('.like-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const postId = btn.dataset.postId;
+                        toggleLike(postId);
+                    });
+                });
+            }
+
+            // Лайк / дизлайк
+            async function toggleLike(postId) {
+                if (!currentUser) return;
+                const postRef = db.collection('posts').doc(postId);
+                const post = await postRef.get();
+                if (!post.exists) return;
+                const likes = post.data().likes || [];
+                if (likes.includes(currentUser.uid)) {
+                    // убрать лайк
+                    await postRef.update({
+                        likes: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
                     });
                 } else {
-                    alert('⏳ Ожидание подключения к серверу...');
+                    // поставить лайк
+                    await postRef.update({
+                        likes: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+                    });
                 }
-            });
-
-            connectBtn.addEventListener('click', () => {
-                const friendId = peerIdInput.value.trim();
-                if (!friendId) {
-                    alert('Введите ID друга');
-                    return;
-                }
-                if (!peer) {
-                    alert('Peer не готов');
-                    return;
-                }
-                if (conn && conn.open) conn.close();
-                const connection = peer.connect(friendId);
-                setupConnection(connection);
-                statusText.innerHTML = '🟡 Устанавливаем соединение...';
-            });
-
-            // Инструменты
-            function setActiveTool(btn, tool) {
-                [btnBrush, btnEraser, btnLine, btnRect, btnCircle].forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentTool = tool;
             }
-            btnBrush.addEventListener('click', () => setActiveTool(btnBrush, 'brush'));
-            btnEraser.addEventListener('click', () => setActiveTool(btnEraser, 'eraser'));
-            btnLine.addEventListener('click', () => setActiveTool(btnLine, 'line'));
-            btnRect.addEventListener('click', () => setActiveTool(btnRect, 'rect'));
-            btnCircle.addEventListener('click', () => setActiveTool(btnCircle, 'circle'));
 
-            // Цвет
-            colorPicker.addEventListener('input', (e) => {
-                currentColor = e.target.value;
-                if (currentTool === 'eraser') currentTool = 'brush'; // переключаем на кисть при выборе цвета
+            // Загрузить профиль (свой или чужой)
+            async function loadProfile(uid) {
+                if (!uid) return;
+                const profileContainer = document.getElementById('profileContainer');
+                profileContainer.innerHTML = '<div class="info-message">Загрузка...</div>';
+
+                // Получаем данные пользователя
+                const userDoc = await db.collection('users').doc(uid).get();
+                if (!userDoc.exists) {
+                    profileContainer.innerHTML = '<div class="info-message">Пользователь не найден</div>';
+                    return;
+                }
+                const userData = userDoc.data();
+
+                // Получаем посты пользователя
+                if (unsubscribeProfilePosts) unsubscribeProfilePosts();
+                const postsQuery = db.collection('posts')
+                    .where('userId', '==', uid)
+                    .orderBy('timestamp', 'desc');
+                unsubscribeProfilePosts = postsQuery.onSnapshot(async (postsSnap) => {
+                    // Получаем количество подписчиков и подписок
+                    const followersCount = (await db.collection('follows').where('followeeId', '==', uid).get()).size;
+                    const followingCount = (await db.collection('follows').where('followerId', '==', uid).get()).size;
+
+                    // Проверяем, подписан ли текущий пользователь на этого (если uid не свой)
+                    let isFollowing = false;
+                    if (currentUser && uid !== currentUser.uid) {
+                        const followDoc = await db.collection('follows').doc(`${currentUser.uid}_${uid}`).get();
+                        isFollowing = followDoc.exists;
+                    }
+
+                    renderProfile(uid, userData, postsSnap.docs, followersCount, followingCount, isFollowing);
+                });
+            }
+
+            // Отрисовка профиля
+            function renderProfile(uid, userData, postsDocs, followersCount, followingCount, isFollowing) {
+                const profileContainer = document.getElementById('profileContainer');
+                const isOwnProfile = (currentUser && uid === currentUser.uid);
+                const avatarLetter = (userData.displayName || userData.email || '?')[0].toUpperCase();
+
+                let postsHtml = '';
+                postsDocs.forEach(doc => {
+                    const post = doc.data();
+                    const time = post.timestamp ? new Date(post.timestamp.toDate()).toLocaleString() : 'только что';
+                    const likesCount = post.likes ? post.likes.length : 0;
+                    const userLiked = post.likes && post.likes.includes(currentUser.uid);
+                    postsHtml += `
+                        <div class="post" data-post-id="${doc.id}">
+                            <div class="post-header">
+                                <div class="post-time">${time}</div>
+                            </div>
+                            <div class="post-text">${post.text.replace(/</g, '&lt;')}</div>
+                            <div class="post-actions">
+                                <button class="like-btn ${userLiked ? 'liked' : ''}" data-post-id="${doc.id}">
+                                    ❤️ <span class="likes-count">${likesCount}</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                const followButton = !isOwnProfile ? `
+                    <button class="follow-btn ${isFollowing ? 'secondary' : ''}" data-follow-uid="${uid}">
+                        ${isFollowing ? '✓ Отписаться' : '+ Подписаться'}
+                    </button>
+                ` : '';
+
+                const editButton = isOwnProfile ? '<button id="editProfileBtn" class="secondary">✎ Редактировать профиль</button>' : '';
+
+                profileContainer.innerHTML = `
+                    <div class="card">
+                        <div class="profile-header">
+                            <div class="avatar">${avatarLetter}</div>
+                            <div class="profile-info">
+                                <h2>${userData.displayName || 'Без имени'}</h2>
+                                <p>${userData.bio || 'Пока ничего не рассказано о себе.'}</p>
+                                <div class="stats">
+                                    <div><span>${followersCount}</span> подписчиков</div>
+                                    <div><span>${followingCount}</span> подписок</div>
+                                </div>
+                                <div class="flex-row" style="margin-top:1rem;">
+                                    ${followButton}
+                                    ${editButton}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3 style="margin-bottom:1rem;">Посты пользователя</h3>
+                        ${postsHtml || '<p class="info-message">Пока нет постов.</p>'}
+                    </div>
+                `;
+
+                // Обработчики
+                if (!isOwnProfile) {
+                    const followBtn = profileContainer.querySelector('.follow-btn');
+                    if (followBtn) {
+                        followBtn.addEventListener('click', () => toggleFollow(uid, isFollowing));
+                    }
+                } else {
+                    const editBtn = document.getElementById('editProfileBtn');
+                    if (editBtn) editBtn.addEventListener('click', showEditProfileForm);
+                }
+
+                // лайки внутри постов профиля
+                profileContainer.querySelectorAll('.like-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleLike(btn.dataset.postId);
+                    });
+                });
+            }
+
+            // Подписка / отписка
+            async function toggleFollow(targetUid, currentlyFollowing) {
+                if (!currentUser) return;
+                const followId = `${currentUser.uid}_${targetUid}`;
+                const followRef = db.collection('follows').doc(followId);
+                if (currentlyFollowing) {
+                    await followRef.delete();
+                } else {
+                    await followRef.set({
+                        followerId: currentUser.uid,
+                        followeeId: targetUid,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                // обновим профиль (снимок сам обновится через loadProfile)
+            }
+
+            // Показать форму редактирования профиля
+            function showEditProfileForm() {
+                if (!currentUserProfile) return;
+                const profileContainer = document.getElementById('profileContainer');
+                profileContainer.innerHTML = `
+                    <div class="card edit-form">
+                        <h3>Редактировать профиль</h3>
+                        <div class="input-group">
+                            <label>Имя</label>
+                            <input type="text" id="editName" value="${currentUserProfile.displayName || ''}">
+                        </div>
+                        <div class="input-group">
+                            <label>О себе</label>
+                            <textarea id="editBio" rows="3">${currentUserProfile.bio || ''}</textarea>
+                        </div>
+                        <div class="flex-row">
+                            <button id="saveProfileBtn">Сохранить</button>
+                            <button id="cancelEditBtn" class="secondary">Отмена</button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+                document.getElementById('cancelEditBtn').addEventListener('click', () => loadProfile(currentUser.uid));
+            }
+
+            // Сохранить профиль
+            async function saveProfile() {
+                const newName = document.getElementById('editName').value.trim();
+                const newBio = document.getElementById('editBio').value.trim();
+                if (!newName) return alert('Имя не может быть пустым');
+                await db.collection('users').doc(currentUser.uid).update({
+                    displayName: newName,
+                    bio: newBio
+                });
+                loadProfile(currentUser.uid); // обновим отображение
+            }
+
+            // -------------------------------------------------------------
+            // 6. Поиск пользователей
+            // -------------------------------------------------------------
+            async function searchUsers(query) {
+                if (!query.trim()) {
+                    searchResults.innerHTML = '<div class="info-message">Введите имя или email</div>';
+                    return;
+                }
+                searchResults.innerHTML = '<div class="info-message">Поиск...</div>';
+                // Поиск по displayName или email (начинается с query)
+                // В реальном проекте нужен индекс, для демо просто ищем по двум полям
+                const nameQuery = db.collection('users')
+                    .orderBy('displayName')
+                    .startAt(query)
+                    .endAt(query + '\uf8ff');
+                const emailQuery = db.collection('users')
+                    .orderBy('email')
+                    .startAt(query)
+                    .endAt(query + '\uf8ff');
+                
+                const [nameSnap, emailSnap] = await Promise.all([nameQuery.get(), emailQuery.get()]);
+                const usersMap = new Map();
+                nameSnap.docs.forEach(doc => usersMap.set(doc.id, doc.data()));
+                emailSnap.docs.forEach(doc => usersMap.set(doc.id, doc.data()));
+
+                if (usersMap.size === 0) {
+                    searchResults.innerHTML = '<div class="info-message">Ничего не найдено</div>';
+                    return;
+                }
+
+                // Узнаём, на кого уже подписан текущий пользователь
+                const followees = currentFollowees || [];
+                let html = '';
+                for (let [uid, data] of usersMap.entries()) {
+                    if (uid === currentUser.uid) continue; // не показываем себя
+                    const isFollowing = followees.includes(uid);
+                    const avatarLetter = (data.displayName || data.email || '?')[0].toUpperCase();
+                    html += `
+                        <div class="user-card">
+                            <div class="info">
+                                <div class="mini-avatar">${avatarLetter}</div>
+                                <div>
+                                    <h4 class="user-name-link" data-uid="${uid}">${data.displayName || 'Без имени'}</h4>
+                                    <small>${data.email}</small>
+                                    <p>${data.bio ? data.bio.substring(0,60) : ''}</p>
+                                </div>
+                            </div>
+                            <button class="follow-btn ${isFollowing ? 'secondary' : ''}" data-follow-uid="${uid}">
+                                ${isFollowing ? 'Отписаться' : 'Подписаться'}
+                            </button>
+                        </div>
+                    `;
+                }
+                searchResults.innerHTML = html;
+
+                // обработчики подписки и перехода в профиль
+                searchResults.querySelectorAll('.follow-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const targetUid = btn.dataset.followUid;
+                        const isFollowing = btn.classList.contains('secondary');
+                        await toggleFollow(targetUid, isFollowing);
+                        // обновим кнопку (тут можно через обновление всего поиска, но для простоты просто перезапустим поиск)
+                        searchUsers(searchInput.value);
+                    });
+                });
+                searchResults.querySelectorAll('.user-name-link').forEach(span => {
+                    span.addEventListener('click', () => {
+                        const uid = span.dataset.uid;
+                        goToUserProfile(uid);
+                    });
+                });
+            }
+
+            // -------------------------------------------------------------
+            // 7. Создание поста
+            // -------------------------------------------------------------
+            async function createPost() {
+                const text = postText.value.trim();
+                if (!text) return alert('Напишите что-нибудь');
+                await db.collection('posts').add({
+                    userId: currentUser.uid,
+                    text: text,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    likes: []
+                });
+                postText.value = '';
+            }
+
+            // -------------------------------------------------------------
+            // 8. Аутентификация (вход/регистрация/выход)
+            // -------------------------------------------------------------
+            function handleLogin() {
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                auth.signInWithEmailAndPassword(email, password).catch(err => alert(err.message));
+            }
+
+            function handleRegister() {
+                const email = document.getElementById('registerEmail').value;
+                const password = document.getElementById('registerPassword').value;
+                auth.createUserWithEmailAndPassword(email, password).catch(err => alert(err.message));
+            }
+
+            function handleLogout() {
+                auth.signOut();
+            }
+
+            // Переключение вкладок аутентификации
+            loginTab.addEventListener('click', () => {
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+            });
+            registerTab.addEventListener('click', () => {
+                registerTab.classList.add('active');
+                loginTab.classList.remove('active');
+                registerForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
             });
 
-            // Толщина
-            lineWidthSlider.addEventListener('input', (e) => {
-                lineWidth = parseInt(e.target.value);
-                lineWidthSpan.textContent = lineWidth;
-            });
+            loginBtn.addEventListener('click', handleLogin);
+            registerBtn.addEventListener('click', handleRegister);
+            logoutBtn.addEventListener('click', handleLogout);
 
-            // Прозрачность
-            opacitySlider.addEventListener('input', (e) => {
-                globalAlpha = parseInt(e.target.value) / 100;
-                opacitySpan.textContent = e.target.value;
-            });
+            // Навигация по вкладкам приложения
+            navFeed.addEventListener('click', goToFeed);
+            navProfile.addEventListener('click', goToMyProfile);
+            navSearch.addEventListener('click', goToSearch);
 
-            // Очистка
-            clearBtn.addEventListener('click', () => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                if (conn && conn.open) {
-                    conn.send({ type: 'clear' });
+            // Поиск
+            searchBtn.addEventListener('click', () => searchUsers(searchInput.value));
+            searchInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') searchUsers(searchInput.value); });
+
+            // Создание поста
+            createPostBtn.addEventListener('click', createPost);
+
+            // -------------------------------------------------------------
+            // 9. Слушатель состояния аутентификации (главный)
+            // -------------------------------------------------------------
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    currentUser = user;
+                    showApp();
+                    await ensureUserProfile(user);
+                    // По умолчанию открываем ленту
+                    goToFeed();
+                } else {
+                    currentUser = null;
+                    currentUserProfile = null;
+                    currentFollowees = [];
+                    showAuth();
+                    cleanupSubscriptions();
+                    if (unsubscribeFollows) { unsubscribeFollows(); unsubscribeFollows = null; }
                 }
             });
 
-            // Отключение контекстного меню везде
-            document.addEventListener('contextmenu', (e) => e.preventDefault());
         })();
     </script>
+    <!-- Комментарии с инструкцией и правилами безопасности в начале файла (для краткости вынесены сюда) -->
+    <!--
+        Инструкция по настройке Firebase:
+        1. Перейдите на https://console.firebase.google.com/
+        2. Создайте новый проект.
+        3. В разделе Authentication включите вход по Email/Password.
+        4. Создайте Cloud Firestore базу в тестовом режиме (start in test mode).
+        5. Зарегистрируйте веб-приложение в настройках проекта, скопируйте объект firebaseConfig.
+        6. Замените firebaseConfig в коде выше своими данными.
+
+        Пример правил безопасности Firestore (рекомендуется установить после разработки):
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            match /users/{userId} {
+              allow read: if request.auth != null;
+              allow write: if request.auth != null && request.auth.uid == userId;
+            }
+            match /posts/{postId} {
+              allow read: if request.auth != null;
+              allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+              allow update: if request.auth != null && 
+                request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
+            }
+            match /follows/{followId} {
+              allow read: if request.auth != null;
+              allow write: if request.auth != null && request.auth.uid == request.resource.data.followerId;
+            }
+          }
+        }
+    -->
 </body>
 </html>
