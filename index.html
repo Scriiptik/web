@@ -566,7 +566,6 @@
             align-self: flex-start;
             position: relative;
             color: var(--text-primary);
-            transition: transform 0.2s ease, opacity 0.2s;
         }
         .message.own {
             background: var(--message-out-bg);
@@ -591,15 +590,7 @@
         }
         .message:hover .delete-msg { display: block; }
 
-        /* Анимация свайпа */
-        .message.swiping {
-            transition: transform 0s;
-            opacity: 0.8;
-            z-index: 10;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-
-        /* Панель ответа */
+        /* НОВЫЕ СТИЛИ ДЛЯ ПАНЕЛИ ОТВЕТА И ОТОБРАЖЕНИЯ ОТВЕТОВ */
         .reply-panel {
             background: var(--bg-secondary);
             border-top: 1px solid var(--border-light);
@@ -637,7 +628,6 @@
             color: var(--accent);
         }
 
-        /* Отображение ответа внутри сообщения */
         .message-reply {
             background: rgba(0,0,0,0.05);
             border-left: 3px solid var(--accent);
@@ -743,28 +733,6 @@
         .info-message { padding: 2rem; text-align: center; color: var(--text-secondary); }
         .flex-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 
-        /* Анимация печатает */
-        .dots::after {
-            content: '...';
-            animation: dots 1.5s steps(3, end) infinite;
-            width: 1.5em;
-            display: inline-block;
-        }
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60% { content: '...'; }
-            80%, 100% { content: ''; }
-        }
-
-        /* Центрирование постов на ПК */
-        #feedSection .section-content {
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            width: 100%;
-        }
-
         @media (max-width: 768px) {
             .chats-sidebar {
                 position: absolute;
@@ -775,13 +743,9 @@
             .chats-sidebar.hide-mobile { transform: translateX(-100%); }
             .back-button { display: inline-block; }
             .chat-input-area button { width: 36px; height: 36px; }
-            /* Скрыть кнопку эмодзи на мобильных */
-            #emojiBtn {
-                display: none;
-            }
         }
 
-        /* Стили для модалки редактирования профиля */
+        /* Стили для модалки редактирования профиля (добавлено) */
         #editProfileModal .modal-content {
             max-width: 400px;
             padding: 2rem;
@@ -911,7 +875,7 @@
                                 <span id="chatHeader" class="contact-name" style="cursor:pointer; color:var(--accent);"></span>
                             </div>
                             <div id="messagesContainer"></div>
-                            <!-- Панель ответа -->
+                            <!-- НОВАЯ ПАНЕЛЬ ОТВЕТА -->
                             <div id="replyPanel" class="reply-panel hidden">
                                 <div class="reply-info">
                                     <span class="reply-sender"></span>
@@ -1123,14 +1087,10 @@
             let currentDrawingTarget = 'avatar';
             let postImage = null;
 
-            // Переменные для ответа
+            // НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ОТВЕТА
             let replyToMessageId = null;
             let replyToSender = '';
             let replyToText = '';
-
-            // Переменные для печатает
-            let typingTimeout = null;
-            const TYPING_TIMEOUT = 2000;
 
             // Тема
             function applyTheme() {
@@ -1170,8 +1130,6 @@
                     noChatSelected.classList.remove('hidden');
                     if (state.currentChatId) {
                         if (state.listeners.messages) state.listeners.messages();
-                        if (state.listeners.presence) state.listeners.presence();
-                        // подписка на typing не удаляется, так как мы её убрали
                         state.currentChatId = null;
                     }
                     loadChats();
@@ -1182,7 +1140,7 @@
             drawerSearch.addEventListener('click', () => { showSection('searchSection'); searchResults.innerHTML = ''; });
             drawerChats.addEventListener('click', () => showSection('chatsSection'));
 
-            // Профиль с добавлением полей online и lastSeen
+            // Профиль
             async function ensureUserProfile(user) {
                 if (!user) return;
                 const userRef = db.collection('users').doc(user.uid);
@@ -1193,9 +1151,7 @@
                         displayName: user.email.split('@')[0],
                         bio: '',
                         avatar: '',
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        online: false,
-                        lastSeen: null
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
                 userRef.onSnapshot((snap) => {
@@ -1204,16 +1160,6 @@
                         headerEmail.textContent = state.profile.displayName || state.currentUser.email;
                     }
                 });
-            }
-
-            // Функция для установки офлайн статуса
-            async function setUserOffline() {
-                if (state.currentUser) {
-                    await db.collection('users').doc(state.currentUser.uid).update({
-                        online: false,
-                        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                }
             }
 
             // Лента
@@ -1338,6 +1284,7 @@
                 }
             }
 
+            // Исправленная функция initFreeCanvas для корректной работы на телефонах
             function initFreeCanvas() {
                 freeCanvasCtx = freeCanvas.getContext('2d');
                 freeCanvasCtx.fillStyle = '#ffffff';
@@ -1347,8 +1294,8 @@
                 freeCanvasCtx.lineCap = 'round';
 
                 const startDrawing = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                    e.preventDefault();      // обязательно для touch
+                    e.stopPropagation();     // предотвращаем прокрутку модалки
                     isDrawing = true;
                     const rect = freeCanvas.getBoundingClientRect();
                     const scaleX = freeCanvas.width / rect.width;
@@ -1384,14 +1331,17 @@
                     isDrawing = false;
                 };
 
+                // Мышь
                 freeCanvas.addEventListener('mousedown', startDrawing);
                 freeCanvas.addEventListener('mousemove', draw);
                 freeCanvas.addEventListener('mouseup', stopDrawing);
                 freeCanvas.addEventListener('mouseleave', stopDrawing);
+
+                // Тач
                 freeCanvas.addEventListener('touchstart', startDrawing, { passive: false });
                 freeCanvas.addEventListener('touchmove', draw, { passive: false });
                 freeCanvas.addEventListener('touchend', stopDrawing);
-                freeCanvas.addEventListener('touchcancel', stopDrawing);
+                freeCanvas.addEventListener('touchcancel', stopDrawing); // добавили
             }
 
             modePixel.addEventListener('click', () => {
@@ -1463,6 +1413,7 @@
                 editName.value = state.profile?.displayName || '';
                 editBio.value = state.profile?.bio || '';
                 editAvatar.value = '';
+                // window.tempAvatar = null;   // ← удалено, чтобы сохранить рисунок
                 editProfileModal.classList.add('show');
             }
 
@@ -1476,7 +1427,7 @@
             });
 
             cancelEditBtn.addEventListener('click', () => {
-                window.tempAvatar = null;
+                window.tempAvatar = null;   // ← добавили очистку при отмене
                 editProfileModal.classList.remove('show');
             });
 
@@ -1499,7 +1450,7 @@
                 } else {
                     await db.collection('users').doc(state.currentUser.uid).update(updates);
                 }
-                window.tempAvatar = null;
+                window.tempAvatar = null;   // ← добавили очистку после сохранения
                 editProfileModal.classList.remove('show');
                 loadProfile(state.currentUser.uid);
             });
@@ -1665,36 +1616,16 @@
                 return chat;
             }
 
-            function updateChatHeader() {
-                if (!state.currentChatParticipant) return;
-                const name = state.currentChatParticipant.displayName || state.currentChatParticipant.email;
-                // Убран индикатор онлайн
-                chatHeader.textContent = name;
-            }
-
             async function openChatWithUser(otherUid) {
                 const chat = await getOrCreateChat(otherUid);
                 state.currentChatId = chat.id;
                 const userDoc = await db.collection('users').doc(otherUid).get();
                 state.currentChatParticipant = { uid: otherUid, ...userDoc.data() };
-
-                // Подписка на изменения статуса онлайн
-                if (state.listeners.presence) state.listeners.presence();
-                state.listeners.presence = db.collection('users').doc(otherUid).onSnapshot(doc => {
-                    console.log('Presence snapshot received', doc.data());
-                    if (doc.exists) {
-                        state.currentChatParticipant = { uid: otherUid, ...doc.data() };
-                        updateChatHeader(); // обновляем заголовок (без онлайн)
-                    }
-                });
-
-                // Подписка на статус печатания собеседника полностью удалена (индикатор не нужен)
-
                 showSection('chatsSection');
                 if (window.innerWidth <= 768) chatsSidebar.classList.add('hide-mobile');
                 chatWindowContainer.classList.remove('hidden');
                 noChatSelected.classList.add('hidden');
-                updateChatHeader();
+                chatHeader.textContent = state.currentChatParticipant.displayName || state.currentChatParticipant.email;
                 chatHeader.onclick = () => {
                     showSection('profileSection');
                     loadProfile(otherUid);
@@ -1739,11 +1670,11 @@
                         state.currentChatId = chatId;
                         db.collection('users').doc(otherUid).get().then(doc => {
                             state.currentChatParticipant = { uid: otherUid, ...doc.data() };
-                            updateChatHeader(); // обновляем заголовок после загрузки данных
                         });
                         if (window.innerWidth <= 768) chatsSidebar.classList.add('hide-mobile');
                         chatWindowContainer.classList.remove('hidden');
                         noChatSelected.classList.add('hidden');
+                        chatHeader.textContent = state.currentChatParticipant?.displayName || '';
                         chatHeader.onclick = () => {
                             showSection('profileSection');
                             loadProfile(otherUid);
@@ -1764,29 +1695,7 @@
                 });
             }
 
-            // Функция для установки статуса печатает (оставлена, но не используется для отображения)
-            function setTypingStatus(chatId, userId, isTyping) {
-                console.log('setTypingStatus', {chatId, userId, isTyping});
-                const typingRef = db.collection('chats').doc(chatId).collection('typing').doc(userId);
-                if (isTyping) {
-                    typingRef.set({ timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-                } else {
-                    typingRef.delete();
-                }
-            }
-
-            function handleTyping() {
-                console.log('handleTyping called, currentChatId =', state.currentChatId);
-                if (!state.currentChatId) return;
-                setTypingStatus(state.currentChatId, state.currentUser.uid, true);
-                if (typingTimeout) clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => {
-                    console.log('typing timeout, setting false');
-                    setTypingStatus(state.currentChatId, state.currentUser.uid, false);
-                }, TYPING_TIMEOUT);
-            }
-
-            // Функция renderMessages с улучшенным свайпом
+            // НОВАЯ ФУНКЦИЯ ОТОБРАЖЕНИЯ СООБЩЕНИЙ С ПОДДЕРЖКОЙ ОТВЕТОВ
             function renderMessages(msgs) {
                 if (!msgs.length) { messagesContainer.innerHTML = '<div class="info-message">Нет сообщений</div>'; return; }
                 let html = '';
@@ -1795,6 +1704,7 @@
                     const sender = isOwn ? 'Вы' : (state.currentChatParticipant?.displayName || '');
                     const time = m.timestamp ? new Date(m.timestamp.toDate()).toLocaleTimeString() : '';
 
+                    // Блок ответа, если есть
                     let replyHtml = '';
                     if (m.replyTo) {
                         replyHtml = `<div class="message-reply" data-reply-to="${m.replyTo.messageId}">
@@ -1823,6 +1733,7 @@
                 });
                 messagesContainer.innerHTML = html;
 
+                // Обработчики удаления
                 document.querySelectorAll('.delete-msg').forEach(btn => {
                     btn.addEventListener('click', async e => {
                         e.stopPropagation();
@@ -1833,7 +1744,7 @@
                     });
                 });
 
-                // Обработчики для ответа: свайп влево (с визуальным сдвигом) и двойной клик
+                // Обработчики для ответа: свайп влево на мобильных, двойной клик на ПК
                 document.querySelectorAll('.message').forEach(msgEl => {
                     const msgId = msgEl.dataset.msgId;
                     const senderEl = msgEl.querySelector('.message-sender');
@@ -1847,57 +1758,22 @@
                         setReply(msgId, sender, text);
                     });
 
-                    // Переменные для свайпа
+                    // Свайп влево (мобильные)
                     let touchStartX = 0;
-                    let touchCurrentX = 0;
-                    let isSwiping = false;
-                    const SWIPE_THRESHOLD = 80;
-
-                    const onTouchStart = (e) => {
+                    msgEl.addEventListener('touchstart', (e) => {
                         touchStartX = e.touches[0].clientX;
-                        isSwiping = false;
-                        msgEl.classList.remove('swiping');
-                    };
-
-                    const onTouchMove = (e) => {
-                        if (!touchStartX) return;
-                        const currentX = e.touches[0].clientX;
-                        const deltaX = currentX - touchStartX;
-                        if (deltaX < 0) {
+                    }, { passive: true });
+                    msgEl.addEventListener('touchend', (e) => {
+                        const touchEndX = e.changedTouches[0].clientX;
+                        const deltaX = touchStartX - touchEndX;
+                        if (deltaX > 50) { // свайп влево более 50px
                             e.preventDefault();
-                            isSwiping = true;
-                            msgEl.classList.add('swiping');
-                            const translateX = Math.max(deltaX, -100);
-                            msgEl.style.transform = `translateX(${translateX}px)`;
-                            touchCurrentX = currentX;
-                        }
-                    };
-
-                    const onTouchEnd = (e) => {
-                        if (!isSwiping) {
-                            msgEl.style.transform = '';
-                            msgEl.classList.remove('swiping');
-                            return;
-                        }
-                        const deltaX = touchCurrentX - touchStartX;
-                        if (deltaX < -SWIPE_THRESHOLD) {
                             setReply(msgId, sender, text);
                         }
-                        msgEl.style.transform = '';
-                        msgEl.classList.remove('swiping');
-                        touchStartX = 0;
-                        isSwiping = false;
-                    };
-
-                    msgEl.addEventListener('touchstart', onTouchStart, { passive: true });
-                    msgEl.addEventListener('touchmove', onTouchMove, { passive: false });
-                    msgEl.addEventListener('touchend', onTouchEnd);
-                    msgEl.addEventListener('touchcancel', () => {
-                        msgEl.style.transform = '';
-                        msgEl.classList.remove('swiping');
                     });
                 });
 
+                // Клик на блоке ответа для перехода к исходному сообщению
                 document.querySelectorAll('.message-reply').forEach(replyEl => {
                     replyEl.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -1905,6 +1781,7 @@
                         const targetMsgEl = document.querySelector(`.message[data-msg-id="${targetMsgId}"]`);
                         if (targetMsgEl) {
                             targetMsgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // подсветка
                             targetMsgEl.style.transition = 'background 0.3s';
                             targetMsgEl.style.background = 'var(--accent)';
                             setTimeout(() => targetMsgEl.style.background = '', 1000);
@@ -1915,7 +1792,7 @@
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
 
-            // Функции для управления ответом
+            // НОВЫЕ ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ОТВЕТОМ
             function setReply(messageId, sender, text) {
                 replyToMessageId = messageId;
                 replyToSender = sender;
@@ -1934,6 +1811,7 @@
                 document.getElementById('replyPanel').classList.add('hidden');
             }
 
+            // Обработчик кнопки отмены ответа
             document.getElementById('cancelReplyBtn').addEventListener('click', clearReply);
 
             async function deleteMessage(msgId) {
@@ -1969,7 +1847,7 @@
                 }
             }
 
-            // Изменённая функция sendMessage с поддержкой replyTo
+            // ИЗМЕНЁННАЯ ФУНКЦИЯ sendMessage С ПОДДЕРЖКОЙ replyTo
             async function sendMessage(text, media, mediaType) {
                 const msgText = text !== undefined ? text : messageInput.value.trim();
                 if (!msgText && !media) return;
@@ -1981,6 +1859,7 @@
                 };
                 if (msgText) msg.text = msgText;
                 if (media) { msg.media = media; msg.mediaType = mediaType; }
+                // Добавляем replyTo, если есть
                 if (replyToMessageId) {
                     msg.replyTo = {
                         messageId: replyToMessageId,
@@ -1996,15 +1875,11 @@
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 if (!media) messageInput.value = '';
-                clearReply();
-                // Сбрасываем статус печатает после отправки
-                if (typingTimeout) clearTimeout(typingTimeout);
-                setTypingStatus(state.currentChatId, state.currentUser.uid, false);
+                clearReply(); // очищаем ответ после отправки
             }
 
             sendMessageBtn.addEventListener('click', () => sendMessage());
             messageInput.addEventListener('keyup', e => e.key === 'Enter' && sendMessage());
-            messageInput.addEventListener('input', handleTyping);
 
             // Медиа
             attachBtn.addEventListener('click', () => fileInput.click());
@@ -2030,11 +1905,13 @@
             recordBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
             recordBtn.addEventListener('touchcancel', stopRecording);
 
+            // Исправленная функция startRecording с поддержкой iOS
             async function startRecording() {
                 if (!state.currentChatId || isRecording) return;
                 try {
                     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
+                    // Определение поддерживаемого MIME-типа для iOS
                     const mimeTypes = [
                         'audio/mp4',
                         'audio/aac',
@@ -2108,7 +1985,7 @@
                 }, 100);
             }
 
-            // Эмодзи-пикер
+            // Эмодзи-пикер (большой список)
             const emojiList = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
             emojiBtn.addEventListener('click', () => {
                 if (emojiPicker.classList.contains('hidden')) {
@@ -2172,8 +2049,6 @@
                 chatWindowContainer.classList.add('hidden');
                 noChatSelected.classList.remove('hidden');
                 if (state.listeners.messages) state.listeners.messages();
-                if (state.listeners.presence) state.listeners.presence();
-                // подписка на typing не нужна
                 state.currentChatId = null;
             });
 
@@ -2198,10 +2073,7 @@
             }
             loginBtn.addEventListener('click', handleLogin);
             registerBtn.addEventListener('click', handleRegister);
-            logoutBtn.addEventListener('click', async () => {
-                await setUserOffline();
-                auth.signOut();
-            });
+            logoutBtn.addEventListener('click', () => auth.signOut());
 
             loginTab.addEventListener('click', () => {
                 loginTab.classList.add('active'); registerTab.classList.remove('active');
@@ -2218,11 +2090,6 @@
                     authContainer.classList.add('hidden');
                     appContainer.classList.remove('hidden');
                     await ensureUserProfile(user);
-                    // Устанавливаем онлайн
-                    await db.collection('users').doc(user.uid).update({
-                        online: true,
-                        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                    });
                     Object.values(state.listeners).forEach(fn => fn && fn());
                     showSection('chatsSection');
                 } else {
@@ -2235,21 +2102,6 @@
             window.addEventListener('resize', () => {
                 document.body.style.height = window.innerHeight + 'px';
                 document.getElementById('app').style.height = window.innerHeight + 'px';
-            });
-
-            // Обработчик beforeunload для отправки offline статуса при закрытии вкладки
-            window.addEventListener('beforeunload', function() {
-                if (state.currentUser) {
-                    // Используем sendBeacon для гарантированной отправки
-                    const url = `https://firestore.googleapis.com/v1/projects/${firebase.app().options.projectId}/databases/(default)/documents/users/${state.currentUser.uid}?updateMask.fieldPaths=online&updateMask.fieldPaths=lastSeen`;
-                    const payload = {
-                        fields: {
-                            online: { booleanValue: false },
-                            lastSeen: { timestampValue: new Date().toISOString() }
-                        }
-                    };
-                    navigator.sendBeacon(url, JSON.stringify(payload));
-                }
             });
 
             // Инициализация
