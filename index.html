@@ -589,6 +589,19 @@
             display: none;
         }
         .message:hover .delete-msg { display: block; }
+        /* Кнопка ответа (добавлено) */
+        .reply-msg {
+            position: absolute;
+            bottom: 0;
+            right: 30px;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: var(--accent);
+            display: none;
+        }
+        .message:hover .reply-msg { display: block; }
 
         .chat-input-area {
             display: flex;
@@ -1210,6 +1223,7 @@
                 }
             }
 
+            // Исправленная функция initFreeCanvas для корректной работы на телефонах
             function initFreeCanvas() {
                 freeCanvasCtx = freeCanvas.getContext('2d');
                 freeCanvasCtx.fillStyle = '#ffffff';
@@ -1219,22 +1233,30 @@
                 freeCanvasCtx.lineCap = 'round';
 
                 const startDrawing = (e) => {
+                    e.preventDefault();      // обязательно для touch
+                    e.stopPropagation();     // предотвращаем прокрутку модалки
                     isDrawing = true;
                     const rect = freeCanvas.getBoundingClientRect();
                     const scaleX = freeCanvas.width / rect.width;
                     const scaleY = freeCanvas.height / rect.height;
-                    const x = (e.clientX - rect.left) * scaleX;
-                    const y = (e.clientY - rect.top) * scaleY;
+                    const clientX = e.clientX ?? e.touches[0].clientX;
+                    const clientY = e.clientY ?? e.touches[0].clientY;
+                    const x = (clientX - rect.left) * scaleX;
+                    const y = (clientY - rect.top) * scaleY;
                     lastX = x; lastY = y;
                 };
+
                 const draw = (e) => {
                     if (!isDrawing) return;
                     e.preventDefault();
+                    e.stopPropagation();
                     const rect = freeCanvas.getBoundingClientRect();
                     const scaleX = freeCanvas.width / rect.width;
                     const scaleY = freeCanvas.height / rect.height;
-                    const x = (e.clientX - rect.left) * scaleX;
-                    const y = (e.clientY - rect.top) * scaleY;
+                    const clientX = e.clientX ?? e.touches[0].clientX;
+                    const clientY = e.clientY ?? e.touches[0].clientY;
+                    const x = (clientX - rect.left) * scaleX;
+                    const y = (clientY - rect.top) * scaleY;
                     freeCanvasCtx.beginPath();
                     freeCanvasCtx.moveTo(lastX, lastY);
                     freeCanvasCtx.lineTo(x, y);
@@ -1242,15 +1264,23 @@
                     freeCanvasCtx.stroke();
                     lastX = x; lastY = y;
                 };
-                const stopDrawing = () => isDrawing = false;
 
+                const stopDrawing = (e) => {
+                    e?.preventDefault();
+                    isDrawing = false;
+                };
+
+                // Мышь
                 freeCanvas.addEventListener('mousedown', startDrawing);
                 freeCanvas.addEventListener('mousemove', draw);
                 freeCanvas.addEventListener('mouseup', stopDrawing);
                 freeCanvas.addEventListener('mouseleave', stopDrawing);
-                freeCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e.touches[0]); });
-                freeCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+
+                // Тач
+                freeCanvas.addEventListener('touchstart', startDrawing, { passive: false });
+                freeCanvas.addEventListener('touchmove', draw, { passive: false });
                 freeCanvas.addEventListener('touchend', stopDrawing);
+                freeCanvas.addEventListener('touchcancel', stopDrawing); // добавили
             }
 
             modePixel.addEventListener('click', () => {
@@ -1604,6 +1634,7 @@
                 });
             }
 
+            // Исправленная renderMessages с кнопкой ответа
             function renderMessages(msgs) {
                 if (!msgs.length) { messagesContainer.innerHTML = '<div class="info-message">Нет сообщений</div>'; return; }
                 let html = '';
@@ -1619,12 +1650,14 @@
                     const isSingleEmoji = m.text && /^[\p{Emoji}]+$/u.test(m.text) && m.text.length <= 2;
                     const msgClass = `message ${isOwn ? 'own' : ''} ${isSingleEmoji ? 'single-emoji' : ''}`;
                     const deleteBtn = `<button class="delete-msg" data-msg-id="${m.id}">🗑️</button>`;
+                    const replyBtn = `<button class="reply-msg" data-msg-id="${m.id}" data-sender="${sender}" data-text="${m.text ? m.text.replace(/"/g, '&quot;') : ''}">↩️</button>`;
                     html += `<div class="${msgClass}" data-msg-id="${m.id}">
                         <div class="message-sender">${sender}</div>
                         <div>${m.text || ''}</div>
                         ${media}
                         <div class="message-time">${time}</div>
                         ${deleteBtn}
+                        ${replyBtn}
                     </div>`;
                 });
                 messagesContainer.innerHTML = html;
@@ -1635,6 +1668,16 @@
                         if (confirm('Удалить сообщение?')) {
                             await deleteMessage(msgId);
                         }
+                    });
+                });
+                // Обработчики для кнопок ответа
+                document.querySelectorAll('.reply-msg').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        e.stopPropagation();
+                        const sender = btn.dataset.sender;
+                        const text = btn.dataset.text;
+                        messageInput.value = `Ответ @${sender}: «${text}»\n`;
+                        messageInput.focus();
                     });
                 });
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
