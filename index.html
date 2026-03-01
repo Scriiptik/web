@@ -366,6 +366,19 @@
             border-color: #ff4d4d;
             color: #ff4d4d;
         }
+        /* Кнопка удаления поста */
+        .delete-post-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            margin-left: auto;
+            transition: color 0.2s;
+        }
+        .delete-post-btn:hover {
+            color: #ff4d4d;
+        }
 
         /* Профиль */
         .profile-header {
@@ -469,6 +482,26 @@
         }
         .color:hover { transform: scale(1.1); }
         .color.selected { border-color: var(--accent); }
+        /* Кастомный выбор цвета */
+        .color-picker-custom {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .color-picker-custom input {
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--border-light);
+            border-radius: 50%;
+            cursor: pointer;
+            background: transparent;
+        }
+        .color-picker-custom label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
 
         /* Модальные окна */
         .modal {
@@ -566,6 +599,7 @@
             align-self: flex-start;
             position: relative;
             color: var(--text-primary);
+            transition: transform 0.1s, opacity 0.1s;
         }
         .message.own {
             background: var(--message-out-bg);
@@ -729,6 +763,58 @@
         }
         .emoji-item:hover { background: var(--bg-secondary); }
 
+        /* Стили для комментариев (обновлённые) */
+        .comment-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .comment-item:last-child { border-bottom: none; }
+        .comment-avatar, .comment-avatar-placeholder {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+        .comment-content {
+            flex: 1;
+        }
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .comment-author {
+            font-weight: 600;
+            color: var(--accent);
+            cursor: pointer;
+        }
+        .comment-author:hover {
+            text-decoration: underline;
+        }
+        .comment-time {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+        .comment-text {
+            color: var(--text-primary);
+            line-height: 1.4;
+            word-break: break-word;
+        }
+        .no-comments {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 2rem;
+        }
+
         .hidden { display: none !important; }
         .info-message { padding: 2rem; text-align: center; color: var(--text-secondary); }
         .flex-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
@@ -873,6 +959,8 @@
                             <div class="chat-header">
                                 <button id="backFromChatBtn" class="back-button btn-icon">←</button>
                                 <span id="chatHeader" class="contact-name" style="cursor:pointer; color:var(--accent);"></span>
+                                <!-- Кнопка удаления чата -->
+                                <button id="deleteChatBtn" class="btn-icon" style="margin-left:auto;">🗑️</button>
                             </div>
                             <div id="messagesContainer"></div>
                             <!-- НОВАЯ ПАНЕЛЬ ОТВЕТА -->
@@ -940,6 +1028,11 @@
                     <canvas id="freeCanvas" class="free-canvas" width="300" height="300"></canvas>
                 </div>
                 <div class="color-palette" id="colorPalette"></div>
+                <!-- Кастомный выбор цвета -->
+                <div class="color-picker-custom">
+                    <input type="color" id="customColorPicker" value="#000000">
+                    <label for="customColorPicker">Выбрать цвет</label>
+                </div>
                 <div class="flex-row" style="justify-content: center;">
                     <button id="saveDrawingBtn" class="btn-primary">Сохранить</button>
                     <button id="cancelDrawingBtn" class="btn-secondary">Отмена</button>
@@ -1040,6 +1133,7 @@
             const emojiPicker = document.getElementById('emojiPicker');
             const chatHeader = document.getElementById('chatHeader');
             const backFromChatBtn = document.getElementById('backFromChatBtn');
+            const deleteChatBtn = document.getElementById('deleteChatBtn'); // новая кнопка
             const voicePanel = document.getElementById('voicePanel');
             const voiceTimer = document.getElementById('voiceTimer');
             const voiceLevel = document.getElementById('voiceLevel');
@@ -1060,6 +1154,7 @@
             const pixelCanvas = document.getElementById('pixelCanvas');
             const freeCanvas = document.getElementById('freeCanvas');
             const colorPalette = document.getElementById('colorPalette');
+            const customColorPicker = document.getElementById('customColorPicker');
             const saveDrawingBtn = document.getElementById('saveDrawingBtn');
             const cancelDrawingBtn = document.getElementById('cancelDrawingBtn');
             const userListModal = document.getElementById('userListModal');
@@ -1196,6 +1291,7 @@
                             <div class="post-actions">
                                 <button class="like-btn ${userLiked ? 'liked' : ''}" data-post-id="${post.id}">❤️ <span class="likes-count">${likes}</span></button>
                                 <button class="comment-btn" data-post-id="${post.id}">💬 ${commentsCount}</button>
+                                <button class="delete-post-btn" data-post-id="${post.id}">🗑️</button>
                             </div>
                         </div>
                     `;
@@ -1208,6 +1304,26 @@
                     showSection('profileSection');
                     loadProfile(uid);
                 }));
+                // Обработчики удаления поста
+                document.querySelectorAll('.delete-post-btn').forEach(btn => {
+                    btn.addEventListener('click', async e => {
+                        e.stopPropagation();
+                        const postId = btn.dataset.postId;
+                        if (!confirm('Удалить пост? Это действие нельзя отменить.')) return;
+                        try {
+                            // Удаляем комментарии к посту
+                            const commentsQuery = await db.collection('comments').where('postId', '==', postId).get();
+                            const batch = db.batch();
+                            commentsQuery.docs.forEach(doc => batch.delete(doc.ref));
+                            // Удаляем сам пост
+                            batch.delete(db.collection('posts').doc(postId));
+                            await batch.commit();
+                        } catch (error) {
+                            console.error('Ошибка удаления поста:', error);
+                            alert('Не удалось удалить пост.');
+                        }
+                    });
+                });
             }
 
             async function toggleLike(postId) {
@@ -1227,10 +1343,44 @@
             async function openComments(postId) {
                 currentPostIdForComment = postId;
                 const commentsSnap = await db.collection('comments').where('postId', '==', postId).orderBy('timestamp').get();
-                commentsList.innerHTML = commentsSnap.docs.map(doc => {
+                
+                // Получаем данные комментаторов (для аватарок)
+                const commentDocs = commentsSnap.docs;
+                const authorIds = [...new Set(commentDocs.map(d => d.data().authorId))];
+                const authorSnaps = await Promise.all(authorIds.map(id => db.collection('users').doc(id).get()));
+                const authors = Object.fromEntries(authorSnaps.map(snap => [snap.id, snap.data()]));
+
+                commentsList.innerHTML = commentDocs.map(doc => {
                     const c = doc.data();
-                    return `<div><b>${c.authorName}</b>: ${c.text} <small>${new Date(c.timestamp?.toDate()).toLocaleString()}</small></div>`;
-                }).join('') || '<p>Нет комментариев</p>';
+                    const author = authors[c.authorId] || { displayName: c.authorName, avatar: '' };
+                    const time = c.timestamp ? new Date(c.timestamp.toDate()).toLocaleString() : '';
+                    const avatarHtml = author.avatar 
+                        ? `<img src="${author.avatar}" class="comment-avatar">` 
+                        : `<div class="comment-avatar-placeholder">${(author.displayName?.[0] || '?').toUpperCase()}</div>`;
+                    
+                    return `
+                        <div class="comment-item">
+                            ${avatarHtml}
+                            <div class="comment-content">
+                                <div class="comment-header">
+                                    <span class="comment-author" data-author-id="${c.authorId}">${author.displayName || 'Неизвестно'}</span>
+                                    <span class="comment-time">${time}</span>
+                                </div>
+                                <div class="comment-text">${c.text.replace(/</g, '&lt;')}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('') || '<p class="no-comments">Нет комментариев</p>';
+
+                // Добавляем возможность перехода в профиль комментатора
+                commentsList.querySelectorAll('.comment-author').forEach(el => {
+                    el.addEventListener('click', () => {
+                        commentModal.classList.remove('show');
+                        showSection('profileSection');
+                        loadProfile(el.dataset.authorId);
+                    });
+                });
+
                 commentModal.classList.add('show');
             }
 
@@ -1261,6 +1411,7 @@
                         document.querySelectorAll('.color').forEach(c => c.classList.remove('selected'));
                         div.classList.add('selected');
                         selectedColor = color;
+                        if (customColorPicker) customColorPicker.value = color;
                     });
                     colorPalette.appendChild(div);
                 });
@@ -1284,7 +1435,6 @@
                 }
             }
 
-            // Исправленная функция initFreeCanvas для корректной работы на телефонах
             function initFreeCanvas() {
                 freeCanvasCtx = freeCanvas.getContext('2d');
                 freeCanvasCtx.fillStyle = '#ffffff';
@@ -1294,8 +1444,8 @@
                 freeCanvasCtx.lineCap = 'round';
 
                 const startDrawing = (e) => {
-                    e.preventDefault();      // обязательно для touch
-                    e.stopPropagation();     // предотвращаем прокрутку модалки
+                    e.preventDefault();
+                    e.stopPropagation();
                     isDrawing = true;
                     const rect = freeCanvas.getBoundingClientRect();
                     const scaleX = freeCanvas.width / rect.width;
@@ -1331,17 +1481,14 @@
                     isDrawing = false;
                 };
 
-                // Мышь
                 freeCanvas.addEventListener('mousedown', startDrawing);
                 freeCanvas.addEventListener('mousemove', draw);
                 freeCanvas.addEventListener('mouseup', stopDrawing);
                 freeCanvas.addEventListener('mouseleave', stopDrawing);
-
-                // Тач
                 freeCanvas.addEventListener('touchstart', startDrawing, { passive: false });
                 freeCanvas.addEventListener('touchmove', draw, { passive: false });
                 freeCanvas.addEventListener('touchend', stopDrawing);
-                freeCanvas.addEventListener('touchcancel', stopDrawing); // добавили
+                freeCanvas.addEventListener('touchcancel', stopDrawing);
             }
 
             modePixel.addEventListener('click', () => {
@@ -1375,6 +1522,14 @@
                 freeCanvasContainer.style.display = 'none';
                 currentDrawingMode = 'pixel';
                 drawingModal.classList.add('show');
+            }
+
+            // Обработчик кастомного выбора цвета
+            if (customColorPicker) {
+                customColorPicker.addEventListener('input', (e) => {
+                    selectedColor = e.target.value;
+                    document.querySelectorAll('.color').forEach(c => c.classList.remove('selected'));
+                });
             }
 
             saveDrawingBtn.addEventListener('click', () => {
@@ -1413,7 +1568,6 @@
                 editName.value = state.profile?.displayName || '';
                 editBio.value = state.profile?.bio || '';
                 editAvatar.value = '';
-                // window.tempAvatar = null;   // ← удалено, чтобы сохранить рисунок
                 editProfileModal.classList.add('show');
             }
 
@@ -1427,7 +1581,7 @@
             });
 
             cancelEditBtn.addEventListener('click', () => {
-                window.tempAvatar = null;   // ← добавили очистку при отмене
+                window.tempAvatar = null;
                 editProfileModal.classList.remove('show');
             });
 
@@ -1450,7 +1604,7 @@
                 } else {
                     await db.collection('users').doc(state.currentUser.uid).update(updates);
                 }
-                window.tempAvatar = null;   // ← добавили очистку после сохранения
+                window.tempAvatar = null;
                 editProfileModal.classList.remove('show');
                 loadProfile(state.currentUser.uid);
             });
@@ -1632,6 +1786,30 @@
                 };
                 loadMessages(chat.id);
                 loadChats();
+
+                // Назначаем обработчик удаления чата
+                deleteChatBtn.onclick = async () => {
+                    if (!state.currentChatId) return;
+                    if (!confirm('Удалить этот чат? Все сообщения будут безвозвратно удалены.')) return;
+                    try {
+                        // Удаляем все сообщения чата
+                        const messagesQuery = await db.collection('messages')
+                            .where('chatId', '==', state.currentChatId)
+                            .get();
+                        const batch = db.batch();
+                        messagesQuery.docs.forEach(doc => batch.delete(doc.ref));
+                        await batch.commit();
+
+                        // Удаляем сам документ чата
+                        await db.collection('chats').doc(state.currentChatId).delete();
+
+                        // Закрываем окно чата
+                        backFromChatBtn.click();
+                    } catch (error) {
+                        console.error('Ошибка удаления чата:', error);
+                        alert('Не удалось удалить чат. Попробуйте снова.');
+                    }
+                };
             }
 
             function loadChats() {
@@ -1682,6 +1860,25 @@
                         loadMessages(chatId);
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         item.classList.add('active');
+
+                        // Переназначаем обработчик удаления чата
+                        deleteChatBtn.onclick = async () => {
+                            if (!state.currentChatId) return;
+                            if (!confirm('Удалить этот чат? Все сообщения будут безвозвратно удалены.')) return;
+                            try {
+                                const messagesQuery = await db.collection('messages')
+                                    .where('chatId', '==', state.currentChatId)
+                                    .get();
+                                const batch = db.batch();
+                                messagesQuery.docs.forEach(doc => batch.delete(doc.ref));
+                                await batch.commit();
+                                await db.collection('chats').doc(state.currentChatId).delete();
+                                backFromChatBtn.click();
+                            } catch (error) {
+                                console.error('Ошибка удаления чата:', error);
+                                alert('Не удалось удалить чат.');
+                            }
+                        };
                     });
                 });
             }
@@ -1695,7 +1892,7 @@
                 });
             }
 
-            // НОВАЯ ФУНКЦИЯ ОТОБРАЖЕНИЯ СООБЩЕНИЙ С ПОДДЕРЖКОЙ ОТВЕТОВ
+            // НОВАЯ ФУНКЦИЯ ОТОБРАЖЕНИЯ СООБЩЕНИЙ С ПОДДЕРЖКОЙ ОТВЕТОВ И УЛУЧШЕННЫМ СВАЙПОМ
             function renderMessages(msgs) {
                 if (!msgs.length) { messagesContainer.innerHTML = '<div class="info-message">Нет сообщений</div>'; return; }
                 let html = '';
@@ -1704,7 +1901,6 @@
                     const sender = isOwn ? 'Вы' : (state.currentChatParticipant?.displayName || '');
                     const time = m.timestamp ? new Date(m.timestamp.toDate()).toLocaleTimeString() : '';
 
-                    // Блок ответа, если есть
                     let replyHtml = '';
                     if (m.replyTo) {
                         replyHtml = `<div class="message-reply" data-reply-to="${m.replyTo.messageId}">
@@ -1744,7 +1940,7 @@
                     });
                 });
 
-                // Обработчики для ответа: свайп влево на мобильных, двойной клик на ПК
+                // Обработчики для ответа: улучшенный свайп + двойной клик
                 document.querySelectorAll('.message').forEach(msgEl => {
                     const msgId = msgEl.dataset.msgId;
                     const senderEl = msgEl.querySelector('.message-sender');
@@ -1758,18 +1954,57 @@
                         setReply(msgId, sender, text);
                     });
 
-                    // Свайп влево (мобильные)
+                    // Свайп влево с анимацией
                     let touchStartX = 0;
+                    let touchStartY = 0;
+                    let swiping = false;
+
                     msgEl.addEventListener('touchstart', (e) => {
                         touchStartX = e.touches[0].clientX;
+                        touchStartY = e.touches[0].clientY;
+                        swiping = false;
                     }, { passive: true });
+
+                    msgEl.addEventListener('touchmove', (e) => {
+                        if (!touchStartX) return;
+                        const touchX = e.touches[0].clientX;
+                        const touchY = e.touches[0].clientY;
+                        const deltaX = touchStartX - touchX;
+                        const deltaY = Math.abs(touchStartY - touchY);
+
+                        if (deltaX > 10 && deltaY < 20) {
+                            e.preventDefault();
+                            swiping = true;
+                            const shift = Math.min(deltaX, 50);
+                            msgEl.style.transform = `translateX(-${shift}px)`;
+                            msgEl.style.transition = 'transform 0.1s';
+                            msgEl.style.opacity = 0.8;
+                        }
+                    }, { passive: false });
+
                     msgEl.addEventListener('touchend', (e) => {
+                        if (!touchStartX) return;
                         const touchEndX = e.changedTouches[0].clientX;
                         const deltaX = touchStartX - touchEndX;
-                        if (deltaX > 50) { // свайп влево более 50px
+                        const deltaY = Math.abs(touchStartY - e.changedTouches[0].clientY);
+
+                        msgEl.style.transform = '';
+                        msgEl.style.opacity = '';
+
+                        if (deltaX > 30 && deltaY < 30 && swiping) {
                             e.preventDefault();
                             setReply(msgId, sender, text);
+                            if (navigator.vibrate) navigator.vibrate(50);
                         }
+                        touchStartX = 0;
+                        swiping = false;
+                    });
+
+                    msgEl.addEventListener('touchcancel', () => {
+                        msgEl.style.transform = '';
+                        msgEl.style.opacity = '';
+                        touchStartX = 0;
+                        swiping = false;
                     });
                 });
 
@@ -1781,7 +2016,6 @@
                         const targetMsgEl = document.querySelector(`.message[data-msg-id="${targetMsgId}"]`);
                         if (targetMsgEl) {
                             targetMsgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            // подсветка
                             targetMsgEl.style.transition = 'background 0.3s';
                             targetMsgEl.style.background = 'var(--accent)';
                             setTimeout(() => targetMsgEl.style.background = '', 1000);
@@ -1859,7 +2093,6 @@
                 };
                 if (msgText) msg.text = msgText;
                 if (media) { msg.media = media; msg.mediaType = mediaType; }
-                // Добавляем replyTo, если есть
                 if (replyToMessageId) {
                     msg.replyTo = {
                         messageId: replyToMessageId,
@@ -1875,7 +2108,7 @@
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 if (!media) messageInput.value = '';
-                clearReply(); // очищаем ответ после отправки
+                clearReply();
             }
 
             sendMessageBtn.addEventListener('click', () => sendMessage());
@@ -1905,13 +2138,11 @@
             recordBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
             recordBtn.addEventListener('touchcancel', stopRecording);
 
-            // Исправленная функция startRecording с поддержкой iOS
             async function startRecording() {
                 if (!state.currentChatId || isRecording) return;
                 try {
                     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-                    // Определение поддерживаемого MIME-типа для iOS
                     const mimeTypes = [
                         'audio/mp4',
                         'audio/aac',
