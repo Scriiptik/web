@@ -526,9 +526,13 @@
             background: #f1f5f9;
             border-radius: 3rem;
             cursor: pointer;
+            transition: 0.2s;
         }
         body.dark-theme .friend-item {
             background: #2f3139;
+        }
+        .friend-item:hover {
+            background: #e2e8f0;
         }
         .friend-avatar {
             width: 32px;
@@ -545,6 +549,41 @@
         }
         .friend-name {
             font-weight: 500;
+        }
+        /* Модальное окно для выбора действия с другом */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 300px;
+            text-align: center;
+        }
+        body.dark-theme .modal-content {
+            background: #2f3139;
+        }
+        .modal-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .modal-buttons button {
+            width: 100%;
         }
         /* Чаты (Telegram-стиль) */
         #chatsSection {
@@ -972,6 +1011,18 @@
         </div>
     </div>
 
+    <!-- Модальное окно для выбора действия с другом -->
+    <div id="friendModal" class="modal">
+        <div class="modal-content">
+            <h3 id="friendModalName">Друг</h3>
+            <div class="modal-buttons">
+                <button id="modalMessageBtn">✉ Написать сообщение</button>
+                <button id="modalProfileBtn">👤 Перейти в профиль</button>
+                <button class="secondary" id="modalCloseBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         (function() {
             // -------------------------------------------------------------
@@ -1015,6 +1066,9 @@
 
             // Тема
             let darkTheme = localStorage.getItem('theme') === 'dark';
+
+            // Для модалки друга
+            let selectedFriendUid = null;
 
             // -------------------------------------------------------------
             // 3. DOM-элементы
@@ -1069,6 +1123,13 @@
             const emojiPicker = document.getElementById('emojiPicker');
             const chatHeader = document.getElementById('chatHeader');
             const backFromChatBtn = document.getElementById('backFromChatBtn');
+
+            // Модалка друга
+            const friendModal = document.getElementById('friendModal');
+            const friendModalName = document.getElementById('friendModalName');
+            const modalMessageBtn = document.getElementById('modalMessageBtn');
+            const modalProfileBtn = document.getElementById('modalProfileBtn');
+            const modalCloseBtn = document.getElementById('modalCloseBtn');
 
             // -------------------------------------------------------------
             // 4. Тема
@@ -1401,10 +1462,19 @@
                 } else {
                     const editBtn = document.getElementById('editProfileBtn');
                     if (editBtn) editBtn.addEventListener('click', showEditProfileForm);
+                    // Обработка клика по друзьям (показываем модалку)
                     profileContainer.querySelectorAll('.friend-item').forEach(item => {
                         item.addEventListener('click', () => {
                             const friendUid = item.dataset.uid;
-                            goToUserProfile(friendUid);
+                            // Получаем имя друга для отображения в модалке
+                            db.collection('users').doc(friendUid).get().then(doc => {
+                                if (doc.exists) {
+                                    const friendData = doc.data();
+                                    selectedFriendUid = friendUid;
+                                    friendModalName.textContent = friendData.displayName || friendData.email || 'Друг';
+                                    friendModal.classList.add('show');
+                                }
+                            });
                         });
                     });
                 }
@@ -1416,6 +1486,29 @@
                     });
                 });
             }
+
+            // Обработка модалки
+            modalMessageBtn.addEventListener('click', () => {
+                if (selectedFriendUid) {
+                    openChatWithUser(selectedFriendUid);
+                    friendModal.classList.remove('show');
+                }
+            });
+            modalProfileBtn.addEventListener('click', () => {
+                if (selectedFriendUid) {
+                    goToUserProfile(selectedFriendUid);
+                    friendModal.classList.remove('show');
+                }
+            });
+            modalCloseBtn.addEventListener('click', () => {
+                friendModal.classList.remove('show');
+            });
+            // Закрыть по клику вне модалки
+            friendModal.addEventListener('click', (e) => {
+                if (e.target === friendModal) {
+                    friendModal.classList.remove('show');
+                }
+            });
 
             async function toggleFollow(targetUid, currentlyFollowing) {
                 if (!currentUser) return;
@@ -1690,7 +1783,6 @@
                         // выделить активный чат
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         item.classList.add('active');
-                        // на мобильных закрываем сайдбар? можно не закрывать, но для удобства оставим открытым
                     });
                 });
             }
@@ -1838,6 +1930,14 @@
             sendMessageBtn.addEventListener('click', () => sendMessage());
             messageInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') sendMessage(); });
 
+            // Обработка фокуса на поле ввода для мобильных
+            messageInput.addEventListener('focus', () => {
+                // Небольшая задержка, чтобы клавиатура успела открыться
+                setTimeout(() => {
+                    messageInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+
             // -------------------------------------------------------------
             // 11. Аутентификация
             // -------------------------------------------------------------
@@ -1942,6 +2042,12 @@
             function showApp() {
                 authContainer.classList.add('hidden');
                 appContainer.classList.remove('hidden');
+            }
+
+            // Вспомогательная функция для перехода в профиль друга
+            function goToUserProfile(uid) {
+                showSectionOnly('profile');
+                loadProfile(uid);
             }
         })();
     </script>
