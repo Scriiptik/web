@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimal Social Network · Firebase SPA</title>
+    <title>Minimal Messenger · Firebase SPA</title>
     <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
@@ -26,7 +26,7 @@
         }
         #app {
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             background: white;
             border-radius: 2rem;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
@@ -164,7 +164,7 @@
         /* Основной контент */
         .main-content {
             padding: 2rem;
-            min-height: 60vh;
+            min-height: 70vh;
         }
         .section {
             display: none;
@@ -328,21 +328,147 @@
             padding: 0.5rem 1.5rem;
             font-size: 0.9rem;
         }
-        /* Формы */
-        .edit-form {
-            margin-top: 2rem;
-        }
-        .flex-row {
+        /* Чаты */
+        .chats-list {
             display: flex;
-            gap: 1rem;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .chat-item {
+            display: flex;
             align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 1.5rem;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .chat-item:hover {
+            background: #eef2ff;
+        }
+        .chat-avatar {
+            width: 50px;
+            height: 50px;
+            background: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        .chat-info {
+            flex: 1;
+        }
+        .chat-name {
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .chat-last-message {
+            color: #64748b;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        .chat-time {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+        .chat-window {
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.5rem;
+            overflow: hidden;
+        }
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .message {
+            max-width: 70%;
+            padding: 0.75rem 1rem;
+            border-radius: 1.5rem;
+            background: white;
+            align-self: flex-start;
+            word-wrap: break-word;
+        }
+        .message.own {
+            background: #2563eb;
+            color: white;
+            align-self: flex-end;
+        }
+        .message-sender {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 0.25rem;
+            text-align: right;
+        }
+        .chat-input-area {
+            display: flex;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+        .chat-input-area input {
+            flex: 1;
+            padding: 0.9rem 1.2rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 3rem;
+            font-size: 1rem;
+        }
+        /* Друзья */
+        .friends-list {
+            display: flex;
             flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .friend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: #f1f5f9;
+            border-radius: 3rem;
+        }
+        .friend-avatar {
+            width: 32px;
+            height: 32px;
+            background: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .friend-name {
+            font-weight: 500;
+        }
+        .back-button {
+            margin-bottom: 1rem;
         }
         .hidden {
             display: none !important;
-        }
-        .text-center {
-            text-align: center;
         }
         .info-message {
             background: #f8fafc;
@@ -394,6 +520,7 @@
                     <button id="navFeed" class="active">Лента</button>
                     <button id="navProfile">Профиль</button>
                     <button id="navSearch">Поиск</button>
+                    <button id="navChats">Чаты</button>
                 </div>
                 <div class="user-info">
                     <span class="email-badge" id="headerEmail"></span>
@@ -426,6 +553,24 @@
                         <button id="searchBtn">Найти</button>
                     </div>
                     <div id="searchResults"></div>
+                </div>
+
+                <!-- Секция Чаты -->
+                <div id="chatsSection" class="section">
+                    <div id="chatsListContainer">
+                        <h3 style="margin-bottom:1rem;">Ваши чаты</h3>
+                        <div id="chatsList" class="chats-list"></div>
+                    </div>
+                    <div id="chatWindowContainer" class="hidden">
+                        <button id="backToChatsBtn" class="secondary back-button">← Назад к чатам</button>
+                        <div id="chatWindow" class="chat-window">
+                            <div id="messagesContainer" class="messages-container"></div>
+                            <div class="chat-input-area">
+                                <input type="text" id="messageInput" placeholder="Введите сообщение...">
+                                <button id="sendMessageBtn">Отправить</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -461,7 +606,11 @@
             let unsubscribeFeed = null;                  // для отписки от ленты
             let unsubscribeProfilePosts = null;          // для отписки от постов профиля
             let unsubscribeFollows = null;                // для слежения за подписками
+            let unsubscribeChats = null;                  // для списка чатов
+            let unsubscribeMessages = null;               // для сообщений в чате
             let viewingProfileUid = null;                 // чей профиль сейчас показываем (null = свой)
+            let currentChatId = null;                      // ID открытого чата
+            let currentChatParticipant = null;             // данные собеседника (для отображения)
 
             // -------------------------------------------------------------
             // 3. DOM-элементы
@@ -481,9 +630,11 @@
             const navFeed = document.getElementById('navFeed');
             const navProfile = document.getElementById('navProfile');
             const navSearch = document.getElementById('navSearch');
+            const navChats = document.getElementById('navChats');
             const feedSection = document.getElementById('feedSection');
             const profileSection = document.getElementById('profileSection');
             const searchSection = document.getElementById('searchSection');
+            const chatsSection = document.getElementById('chatsSection');
 
             // Элементы ленты
             const postText = document.getElementById('postText');
@@ -494,6 +645,15 @@
             const searchInput = document.getElementById('searchInput');
             const searchBtn = document.getElementById('searchBtn');
             const searchResults = document.getElementById('searchResults');
+
+            // Элементы чатов
+            const chatsListContainer = document.getElementById('chatsListContainer');
+            const chatWindowContainer = document.getElementById('chatWindowContainer');
+            const chatsList = document.getElementById('chatsList');
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageInput = document.getElementById('messageInput');
+            const sendMessageBtn = document.getElementById('sendMessageBtn');
+            const backToChatsBtn = document.getElementById('backToChatsBtn');
 
             // -------------------------------------------------------------
             // 4. Вспомогательные функции (UI, навигация)
@@ -509,25 +669,30 @@
             }
 
             function setActiveNav(section) {
-                [navFeed, navProfile, navSearch].forEach(btn => btn.classList.remove('active'));
+                [navFeed, navProfile, navSearch, navChats].forEach(btn => btn.classList.remove('active'));
                 if (section === 'feed') navFeed.classList.add('active');
                 if (section === 'profile') navProfile.classList.add('active');
                 if (section === 'search') navSearch.classList.add('active');
+                if (section === 'chats') navChats.classList.add('active');
             }
 
             function showSection(section) {
                 feedSection.classList.remove('active');
                 profileSection.classList.remove('active');
                 searchSection.classList.remove('active');
+                chatsSection.classList.remove('active');
                 if (section === 'feed') feedSection.classList.add('active');
                 if (section === 'profile') profileSection.classList.add('active');
                 if (section === 'search') searchSection.classList.add('active');
+                if (section === 'chats') chatsSection.classList.add('active');
             }
 
             // Очистка подписок при смене секций
             function cleanupSubscriptions() {
                 if (unsubscribeFeed) { unsubscribeFeed(); unsubscribeFeed = null; }
                 if (unsubscribeProfilePosts) { unsubscribeProfilePosts(); unsubscribeProfilePosts = null; }
+                if (unsubscribeChats) { unsubscribeChats(); unsubscribeChats = null; }
+                if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
             }
 
             // Переключение на ленту
@@ -561,28 +726,36 @@
                 setActiveNav('search');
                 showSection('search');
                 cleanupSubscriptions();
-                // очищаем старые результаты
                 searchResults.innerHTML = '';
+            }
+
+            // Переключение на чаты
+            function goToChats() {
+                setActiveNav('chats');
+                showSection('chats');
+                cleanupSubscriptions();
+                // Показываем список чатов, скрываем окно чата
+                chatsListContainer.classList.remove('hidden');
+                chatWindowContainer.classList.add('hidden');
+                currentChatId = null;
+                loadChats();
             }
 
             // -------------------------------------------------------------
             // 5. Работа с Firestore (профили, подписки, посты, лайки)
             // -------------------------------------------------------------
-            // Создать/обновить профиль пользователя
             async function ensureUserProfile(user) {
                 if (!user) return;
                 const userRef = db.collection('users').doc(user.uid);
                 const doc = await userRef.get();
                 if (!doc.exists) {
-                    // первый вход — создаём базовый профиль
                     await userRef.set({
                         email: user.email,
-                        displayName: user.email.split('@')[0], // временное имя
+                        displayName: user.email.split('@')[0],
                         bio: '',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
-                // подписываемся на реальные обновления профиля (для шапки и т.д.)
                 userRef.onSnapshot((snap) => {
                     if (snap.exists) {
                         currentUserProfile = snap.data();
@@ -591,10 +764,9 @@
                 });
             }
 
-            // Загрузить ленту (посты от тех, на кого подписан)
+            // Загрузить ленту
             function loadFeed() {
                 if (!currentUser) return;
-                // Сначала получаем список подписок (followees)
                 const followsQuery = db.collection('follows').where('followerId', '==', currentUser.uid);
                 unsubscribeFollows = followsQuery.onSnapshot(async (snapshot) => {
                     const followees = snapshot.docs.map(doc => doc.data().followeeId);
@@ -603,9 +775,6 @@
                         feedPosts.innerHTML = '<div class="info-message">Вы ещё ни на кого не подписались. Найдите интересных авторов в поиске!</div>';
                         return;
                     }
-
-                    // Ограничение Firestore: in поддерживает до 10 значений. Для демо ок, в реальном проекте нужен fan-out.
-                    // Разобьем на чанки по 10 (но для простоты ограничимся первыми 10)
                     const chunk = followees.slice(0, 10);
                     const postsQuery = db.collection('posts')
                         .where('userId', 'in', chunk)
@@ -614,17 +783,18 @@
                     if (unsubscribeFeed) unsubscribeFeed();
                     unsubscribeFeed = postsQuery.onSnapshot((postsSnap) => {
                         renderFeed(postsSnap.docs);
+                    }, (error) => {
+                        console.error('Ошибка ленты:', error);
+                        feedPosts.innerHTML = `<div class="info-message">Ошибка загрузки ленты: ${error.message}. Возможно, требуется создать индекс. Перейдите по ссылке в консоли.</div>`;
                     });
                 });
             }
 
-            // Отрисовать ленту
             async function renderFeed(postsDocs) {
                 if (postsDocs.length === 0) {
                     feedPosts.innerHTML = '<div class="info-message">В ленте пока нет постов.</div>';
                     return;
                 }
-                // соберём данные авторов
                 const authorIds = [...new Set(postsDocs.map(d => d.data().userId))];
                 const authorPromises = authorIds.map(uid => db.collection('users').doc(uid).get());
                 const authorSnaps = await Promise.all(authorPromises);
@@ -656,18 +826,14 @@
                     `;
                 });
                 feedPosts.innerHTML = html;
-
-                // добавим обработчики лайков
                 feedPosts.querySelectorAll('.like-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        const postId = btn.dataset.postId;
-                        toggleLike(postId);
+                        toggleLike(btn.dataset.postId);
                     });
                 });
             }
 
-            // Лайк / дизлайк
             async function toggleLike(postId) {
                 if (!currentUser) return;
                 const postRef = db.collection('posts').doc(postId);
@@ -675,25 +841,22 @@
                 if (!post.exists) return;
                 const likes = post.data().likes || [];
                 if (likes.includes(currentUser.uid)) {
-                    // убрать лайк
                     await postRef.update({
                         likes: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
                     });
                 } else {
-                    // поставить лайк
                     await postRef.update({
                         likes: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
                     });
                 }
             }
 
-            // Загрузить профиль (свой или чужой)
+            // Загрузить профиль
             async function loadProfile(uid) {
                 if (!uid) return;
                 const profileContainer = document.getElementById('profileContainer');
                 profileContainer.innerHTML = '<div class="info-message">Загрузка...</div>';
 
-                // Получаем данные пользователя
                 const userDoc = await db.collection('users').doc(uid).get();
                 if (!userDoc.exists) {
                     profileContainer.innerHTML = '<div class="info-message">Пользователь не найден</div>';
@@ -701,29 +864,40 @@
                 }
                 const userData = userDoc.data();
 
-                // Получаем посты пользователя
                 if (unsubscribeProfilePosts) unsubscribeProfilePosts();
                 const postsQuery = db.collection('posts')
                     .where('userId', '==', uid)
                     .orderBy('timestamp', 'desc');
                 unsubscribeProfilePosts = postsQuery.onSnapshot(async (postsSnap) => {
-                    // Получаем количество подписчиков и подписок
                     const followersCount = (await db.collection('follows').where('followeeId', '==', uid).get()).size;
                     const followingCount = (await db.collection('follows').where('followerId', '==', uid).get()).size;
 
-                    // Проверяем, подписан ли текущий пользователь на этого (если uid не свой)
                     let isFollowing = false;
                     if (currentUser && uid !== currentUser.uid) {
                         const followDoc = await db.collection('follows').doc(`${currentUser.uid}_${uid}`).get();
                         isFollowing = followDoc.exists;
                     }
 
-                    renderProfile(uid, userData, postsSnap.docs, followersCount, followingCount, isFollowing);
+                    // Загружаем список друзей (взаимные подписки), если это свой профиль
+                    let friends = [];
+                    if (uid === currentUser.uid) {
+                        const followersSnap = await db.collection('follows').where('followeeId', '==', uid).get();
+                        const followers = followersSnap.docs.map(d => d.data().followerId);
+                        const followeesSnap = await db.collection('follows').where('followerId', '==', uid).get();
+                        const followees = followeesSnap.docs.map(d => d.data().followeeId);
+                        const mutual = followers.filter(id => followees.includes(id));
+                        const friendDocs = await Promise.all(mutual.map(id => db.collection('users').doc(id).get()));
+                        friends = friendDocs.map(doc => ({ uid: doc.id, ...doc.data() }));
+                    }
+
+                    renderProfile(uid, userData, postsSnap.docs, followersCount, followingCount, isFollowing, friends);
+                }, (error) => {
+                    console.error('Ошибка загрузки постов профиля:', error);
+                    profileContainer.innerHTML = `<div class="info-message">Ошибка загрузки постов: ${error.message}. Возможно, требуется создать индекс. Перейдите по ссылке в консоли.</div>`;
                 });
             }
 
-            // Отрисовка профиля
-            function renderProfile(uid, userData, postsDocs, followersCount, followingCount, isFollowing) {
+            function renderProfile(uid, userData, postsDocs, followersCount, followingCount, isFollowing, friends = []) {
                 const profileContainer = document.getElementById('profileContainer');
                 const isOwnProfile = (currentUser && uid === currentUser.uid);
                 const avatarLetter = (userData.displayName || userData.email || '?')[0].toUpperCase();
@@ -755,7 +929,30 @@
                     </button>
                 ` : '';
 
+                const messageButton = !isOwnProfile ? `
+                    <button class="secondary" id="messageUserBtn" data-uid="${uid}">✉ Написать сообщение</button>
+                ` : '';
+
                 const editButton = isOwnProfile ? '<button id="editProfileBtn" class="secondary">✎ Редактировать профиль</button>' : '';
+
+                let friendsHtml = '';
+                if (isOwnProfile && friends.length > 0) {
+                    friendsHtml = `
+                        <div class="card">
+                            <h3>Друзья (взаимные подписки)</h3>
+                            <div class="friends-list">
+                                ${friends.map(f => `
+                                    <div class="friend-item" data-uid="${f.uid}">
+                                        <div class="friend-avatar">${(f.displayName || f.email || '?')[0].toUpperCase()}</div>
+                                        <span class="friend-name">${f.displayName || f.email}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else if (isOwnProfile) {
+                    friendsHtml = '<div class="info-message">У вас пока нет друзей (взаимных подписок).</div>';
+                }
 
                 profileContainer.innerHTML = `
                     <div class="card">
@@ -770,11 +967,13 @@
                                 </div>
                                 <div class="flex-row" style="margin-top:1rem;">
                                     ${followButton}
+                                    ${messageButton}
                                     ${editButton}
                                 </div>
                             </div>
                         </div>
                     </div>
+                    ${friendsHtml}
                     <div class="card">
                         <h3 style="margin-bottom:1rem;">Посты пользователя</h3>
                         ${postsHtml || '<p class="info-message">Пока нет постов.</p>'}
@@ -787,12 +986,22 @@
                     if (followBtn) {
                         followBtn.addEventListener('click', () => toggleFollow(uid, isFollowing));
                     }
+                    const messageBtn = profileContainer.querySelector('#messageUserBtn');
+                    if (messageBtn) {
+                        messageBtn.addEventListener('click', () => openChatWithUser(uid));
+                    }
                 } else {
                     const editBtn = document.getElementById('editProfileBtn');
                     if (editBtn) editBtn.addEventListener('click', showEditProfileForm);
+                    // Обработчики клика по друзьям
+                    profileContainer.querySelectorAll('.friend-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            const friendUid = item.dataset.uid;
+                            goToUserProfile(friendUid);
+                        });
+                    });
                 }
 
-                // лайки внутри постов профиля
                 profileContainer.querySelectorAll('.like-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -801,7 +1010,6 @@
                 });
             }
 
-            // Подписка / отписка
             async function toggleFollow(targetUid, currentlyFollowing) {
                 if (!currentUser) return;
                 const followId = `${currentUser.uid}_${targetUid}`;
@@ -815,10 +1023,8 @@
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
-                // обновим профиль (снимок сам обновится через loadProfile)
             }
 
-            // Показать форму редактирования профиля
             function showEditProfileForm() {
                 if (!currentUserProfile) return;
                 const profileContainer = document.getElementById('profileContainer');
@@ -843,7 +1049,6 @@
                 document.getElementById('cancelEditBtn').addEventListener('click', () => loadProfile(currentUser.uid));
             }
 
-            // Сохранить профиль
             async function saveProfile() {
                 const newName = document.getElementById('editName').value.trim();
                 const newBio = document.getElementById('editBio').value.trim();
@@ -852,7 +1057,7 @@
                     displayName: newName,
                     bio: newBio
                 });
-                loadProfile(currentUser.uid); // обновим отображение
+                loadProfile(currentUser.uid);
             }
 
             // -------------------------------------------------------------
@@ -864,8 +1069,6 @@
                     return;
                 }
                 searchResults.innerHTML = '<div class="info-message">Поиск...</div>';
-                // Поиск по displayName или email (начинается с query)
-                // В реальном проекте нужен индекс, для демо просто ищем по двум полям
                 const nameQuery = db.collection('users')
                     .orderBy('displayName')
                     .startAt(query)
@@ -875,57 +1078,68 @@
                     .startAt(query)
                     .endAt(query + '\uf8ff');
                 
-                const [nameSnap, emailSnap] = await Promise.all([nameQuery.get(), emailQuery.get()]);
-                const usersMap = new Map();
-                nameSnap.docs.forEach(doc => usersMap.set(doc.id, doc.data()));
-                emailSnap.docs.forEach(doc => usersMap.set(doc.id, doc.data()));
+                try {
+                    const [nameSnap, emailSnap] = await Promise.all([nameQuery.get(), emailQuery.get()]);
+                    const usersMap = new Map();
+                    nameSnap.docs.forEach(doc => usersMap.set(doc.id, doc.data()));
+                    emailSnap.docs.forEach(doc => usersMap.set(doc.id, doc.data()));
 
-                if (usersMap.size === 0) {
-                    searchResults.innerHTML = '<div class="info-message">Ничего не найдено</div>';
-                    return;
-                }
+                    if (usersMap.size === 0) {
+                        searchResults.innerHTML = '<div class="info-message">Ничего не найдено</div>';
+                        return;
+                    }
 
-                // Узнаём, на кого уже подписан текущий пользователь
-                const followees = currentFollowees || [];
-                let html = '';
-                for (let [uid, data] of usersMap.entries()) {
-                    if (uid === currentUser.uid) continue; // не показываем себя
-                    const isFollowing = followees.includes(uid);
-                    const avatarLetter = (data.displayName || data.email || '?')[0].toUpperCase();
-                    html += `
-                        <div class="user-card">
-                            <div class="info">
-                                <div class="mini-avatar">${avatarLetter}</div>
+                    const followees = currentFollowees || [];
+                    let html = '';
+                    for (let [uid, data] of usersMap.entries()) {
+                        if (uid === currentUser.uid) continue;
+                        const isFollowing = followees.includes(uid);
+                        const avatarLetter = (data.displayName || data.email || '?')[0].toUpperCase();
+                        html += `
+                            <div class="user-card">
+                                <div class="info">
+                                    <div class="mini-avatar">${avatarLetter}</div>
+                                    <div>
+                                        <h4 class="user-name-link" data-uid="${uid}">${data.displayName || 'Без имени'}</h4>
+                                        <small>${data.email}</small>
+                                        <p>${data.bio ? data.bio.substring(0,60) : ''}</p>
+                                    </div>
+                                </div>
                                 <div>
-                                    <h4 class="user-name-link" data-uid="${uid}">${data.displayName || 'Без имени'}</h4>
-                                    <small>${data.email}</small>
-                                    <p>${data.bio ? data.bio.substring(0,60) : ''}</p>
+                                    <button class="follow-btn ${isFollowing ? 'secondary' : ''}" data-follow-uid="${uid}">
+                                        ${isFollowing ? 'Отписаться' : 'Подписаться'}
+                                    </button>
+                                    <button class="secondary" style="margin-left:0.5rem;" data-message-uid="${uid}">✉</button>
                                 </div>
                             </div>
-                            <button class="follow-btn ${isFollowing ? 'secondary' : ''}" data-follow-uid="${uid}">
-                                ${isFollowing ? 'Отписаться' : 'Подписаться'}
-                            </button>
-                        </div>
-                    `;
-                }
-                searchResults.innerHTML = html;
+                        `;
+                    }
+                    searchResults.innerHTML = html;
 
-                // обработчики подписки и перехода в профиль
-                searchResults.querySelectorAll('.follow-btn').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        const targetUid = btn.dataset.followUid;
-                        const isFollowing = btn.classList.contains('secondary');
-                        await toggleFollow(targetUid, isFollowing);
-                        // обновим кнопку (тут можно через обновление всего поиска, но для простоты просто перезапустим поиск)
-                        searchUsers(searchInput.value);
+                    searchResults.querySelectorAll('.follow-btn').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            const targetUid = btn.dataset.followUid;
+                            const isFollowing = btn.classList.contains('secondary');
+                            await toggleFollow(targetUid, isFollowing);
+                            searchUsers(searchInput.value);
+                        });
                     });
-                });
-                searchResults.querySelectorAll('.user-name-link').forEach(span => {
-                    span.addEventListener('click', () => {
-                        const uid = span.dataset.uid;
-                        goToUserProfile(uid);
+                    searchResults.querySelectorAll('[data-message-uid]').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const uid = btn.dataset.messageUid;
+                            openChatWithUser(uid);
+                        });
                     });
-                });
+                    searchResults.querySelectorAll('.user-name-link').forEach(span => {
+                        span.addEventListener('click', () => {
+                            const uid = span.dataset.uid;
+                            goToUserProfile(uid);
+                        });
+                    });
+                } catch (error) {
+                    console.error('Ошибка поиска:', error);
+                    searchResults.innerHTML = `<div class="info-message">Ошибка: ${error.message}. Возможно, требуется создать индекс.</div>`;
+                }
             }
 
             // -------------------------------------------------------------
@@ -944,7 +1158,166 @@
             }
 
             // -------------------------------------------------------------
-            // 8. Аутентификация (вход/регистрация/выход)
+            // 8. Функции для чатов
+            // -------------------------------------------------------------
+            async function getOrCreateChat(otherUid) {
+                const currentUid = currentUser.uid;
+                const chatsRef = db.collection('chats');
+                const snapshot = await chatsRef
+                    .where('participants', 'array-contains', currentUid)
+                    .get();
+                let chat = null;
+                snapshot.forEach(doc => {
+                    const participants = doc.data().participants;
+                    if (participants.includes(otherUid)) {
+                        chat = { id: doc.id, ...doc.data() };
+                    }
+                });
+                if (!chat) {
+                    const newChatRef = await chatsRef.add({
+                        participants: [currentUid, otherUid],
+                        lastMessage: '',
+                        lastMessageTimestamp: null,
+                        lastMessageSender: null,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    chat = { id: newChatRef.id, participants: [currentUid, otherUid] };
+                }
+                return chat;
+            }
+
+            async function openChatWithUser(otherUid) {
+                const chat = await getOrCreateChat(otherUid);
+                currentChatId = chat.id;
+                // Получаем данные собеседника
+                const userDoc = await db.collection('users').doc(otherUid).get();
+                currentChatParticipant = { uid: otherUid, ...userDoc.data() };
+                // Переключаемся на секцию чатов и открываем окно чата
+                setActiveNav('chats');
+                showSection('chats');
+                cleanupSubscriptions();
+                chatsListContainer.classList.add('hidden');
+                chatWindowContainer.classList.remove('hidden');
+                loadMessages(chat.id);
+            }
+
+            function loadChats() {
+                if (!currentUser) return;
+                const chatsQuery = db.collection('chats')
+                    .where('participants', 'array-contains', currentUser.uid)
+                    .orderBy('updatedAt', 'desc');
+                unsubscribeChats = chatsQuery.onSnapshot(async (snapshot) => {
+                    const chatPromises = snapshot.docs.map(async (doc) => {
+                        const chat = { id: doc.id, ...doc.data() };
+                        const otherUid = chat.participants.find(uid => uid !== currentUser.uid);
+                        const userDoc = await db.collection('users').doc(otherUid).get();
+                        const userData = userDoc.data() || { displayName: 'Пользователь', email: '' };
+                        return { ...chat, otherUser: { uid: otherUid, ...userData } };
+                    });
+                    const chats = await Promise.all(chatPromises);
+                    renderChatsList(chats);
+                }, (error) => {
+                    console.error('Ошибка загрузки чатов:', error);
+                    chatsList.innerHTML = `<div class="info-message">Ошибка загрузки чатов: ${error.message}</div>`;
+                });
+            }
+
+            function renderChatsList(chats) {
+                if (chats.length === 0) {
+                    chatsList.innerHTML = '<div class="info-message">У вас пока нет чатов. Напишите кому-нибудь из поиска!</div>';
+                    return;
+                }
+                let html = '';
+                chats.forEach(chat => {
+                    const lastMessage = chat.lastMessage || 'Нет сообщений';
+                    const time = chat.lastMessageTimestamp ? new Date(chat.lastMessageTimestamp.toDate()).toLocaleString() : '';
+                    const avatarLetter = (chat.otherUser.displayName || chat.otherUser.email || '?')[0].toUpperCase();
+                    html += `
+                        <div class="chat-item" data-chat-id="${chat.id}" data-other-uid="${chat.otherUser.uid}">
+                            <div class="chat-avatar">${avatarLetter}</div>
+                            <div class="chat-info">
+                                <div class="chat-name">${chat.otherUser.displayName || chat.otherUser.email}</div>
+                                <div class="chat-last-message">${lastMessage}</div>
+                            </div>
+                            <div class="chat-time">${time}</div>
+                        </div>
+                    `;
+                });
+                chatsList.innerHTML = html;
+                chatsList.querySelectorAll('.chat-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const chatId = item.dataset.chatId;
+                        const otherUid = item.dataset.otherUid;
+                        currentChatId = chatId;
+                        // Получаем данные собеседника
+                        db.collection('users').doc(otherUid).get().then(doc => {
+                            currentChatParticipant = { uid: otherUid, ...doc.data() };
+                        });
+                        chatsListContainer.classList.add('hidden');
+                        chatWindowContainer.classList.remove('hidden');
+                        loadMessages(chatId);
+                    });
+                });
+            }
+
+            function loadMessages(chatId) {
+                if (unsubscribeMessages) unsubscribeMessages();
+                const messagesQuery = db.collection('messages')
+                    .where('chatId', '==', chatId)
+                    .orderBy('timestamp', 'asc');
+                unsubscribeMessages = messagesQuery.onSnapshot((snapshot) => {
+                    const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderMessages(messages);
+                }, (error) => {
+                    console.error('Ошибка загрузки сообщений:', error);
+                    messagesContainer.innerHTML = `<div class="info-message">Ошибка загрузки сообщений: ${error.message}</div>`;
+                });
+            }
+
+            function renderMessages(messages) {
+                if (messages.length === 0) {
+                    messagesContainer.innerHTML = '<div class="info-message">Нет сообщений. Напишите первое!</div>';
+                    return;
+                }
+                let html = '';
+                messages.forEach(msg => {
+                    const isOwn = msg.senderId === currentUser.uid;
+                    const senderName = isOwn ? 'Вы' : (currentChatParticipant?.displayName || 'Собеседник');
+                    const time = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString() : '';
+                    html += `
+                        <div class="message ${isOwn ? 'own' : ''}">
+                            <div class="message-sender">${senderName}</div>
+                            <div>${msg.text.replace(/</g, '&lt;')}</div>
+                            <div class="message-time">${time}</div>
+                        </div>
+                    `;
+                });
+                messagesContainer.innerHTML = html;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            async function sendMessage() {
+                const text = messageInput.value.trim();
+                if (!text || !currentChatId) return;
+                await db.collection('messages').add({
+                    chatId: currentChatId,
+                    senderId: currentUser.uid,
+                    text: text,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    read: false
+                });
+                // Обновляем lastMessage в чате
+                await db.collection('chats').doc(currentChatId).update({
+                    lastMessage: text,
+                    lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastMessageSender: currentUser.uid,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                messageInput.value = '';
+            }
+
+            // -------------------------------------------------------------
+            // 9. Аутентификация
             // -------------------------------------------------------------
             function handleLogin() {
                 const email = document.getElementById('loginEmail').value;
@@ -980,27 +1353,38 @@
             registerBtn.addEventListener('click', handleRegister);
             logoutBtn.addEventListener('click', handleLogout);
 
-            // Навигация по вкладкам приложения
+            // Навигация
             navFeed.addEventListener('click', goToFeed);
             navProfile.addEventListener('click', goToMyProfile);
             navSearch.addEventListener('click', goToSearch);
+            navChats.addEventListener('click', goToChats);
 
             // Поиск
             searchBtn.addEventListener('click', () => searchUsers(searchInput.value));
             searchInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') searchUsers(searchInput.value); });
 
-            // Создание поста
+            // Посты
             createPostBtn.addEventListener('click', createPost);
 
+            // Чаты
+            sendMessageBtn.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') sendMessage(); });
+            backToChatsBtn.addEventListener('click', () => {
+                chatsListContainer.classList.remove('hidden');
+                chatWindowContainer.classList.add('hidden');
+                if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
+                currentChatId = null;
+                loadChats(); // обновить список чатов
+            });
+
             // -------------------------------------------------------------
-            // 9. Слушатель состояния аутентификации (главный)
+            // 10. Слушатель состояния аутентификации
             // -------------------------------------------------------------
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUser = user;
                     showApp();
                     await ensureUserProfile(user);
-                    // По умолчанию открываем ленту
                     goToFeed();
                 } else {
                     currentUser = null;
@@ -1011,10 +1395,9 @@
                     if (unsubscribeFollows) { unsubscribeFollows(); unsubscribeFollows = null; }
                 }
             });
-
         })();
     </script>
-    <!-- Комментарии с инструкцией и правилами безопасности в начале файла (для краткости вынесены сюда) -->
+    <!-- Комментарии с инструкцией и правилами безопасности -->
     <!--
         Инструкция по настройке Firebase:
         1. Перейдите на https://console.firebase.google.com/
@@ -1041,6 +1424,14 @@
             match /follows/{followId} {
               allow read: if request.auth != null;
               allow write: if request.auth != null && request.auth.uid == request.resource.data.followerId;
+            }
+            match /chats/{chatId} {
+              allow read, write: if request.auth != null && 
+                request.auth.uid in resource.data.participants;
+            }
+            match /messages/{messageId} {
+              allow read, write: if request.auth != null && 
+                request.auth.uid in get(/databases/$(database)/documents/chats/$(resource.data.chatId)).data.participants;
             }
           }
         }
