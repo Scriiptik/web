@@ -683,6 +683,35 @@
             .back-button { display: inline-block; }
             .chat-input-area button { width: 36px; height: 36px; }
         }
+
+        /* Стили для модалки редактирования профиля (добавлено) */
+        #editProfileModal .modal-content {
+            max-width: 400px;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background: var(--bg-primary);
+        }
+        #editProfileModal input,
+        #editProfileModal textarea {
+            width: 100%;
+            margin-bottom: 1rem;
+            padding: 0.8rem 1rem;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        #editProfileModal .flex-row {
+            justify-content: space-around;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        #editProfileModal button {
+            min-width: 120px;
+        }
     </style>
 </head>
 <body>
@@ -1293,7 +1322,7 @@
                 editName.value = state.profile?.displayName || '';
                 editBio.value = state.profile?.bio || '';
                 editAvatar.value = '';
-                window.tempAvatar = null;
+                // window.tempAvatar = null;   // ← удалено, чтобы сохранить рисунок
                 editProfileModal.classList.add('show');
             }
 
@@ -1306,7 +1335,10 @@
                 openDrawingModal('avatar');
             });
 
-            cancelEditBtn.addEventListener('click', () => editProfileModal.classList.remove('show'));
+            cancelEditBtn.addEventListener('click', () => {
+                window.tempAvatar = null;   // ← добавили очистку при отмене
+                editProfileModal.classList.remove('show');
+            });
 
             saveProfileBtn.addEventListener('click', async () => {
                 const newName = editName.value.trim();
@@ -1327,6 +1359,7 @@
                 } else {
                     await db.collection('users').doc(state.currentUser.uid).update(updates);
                 }
+                window.tempAvatar = null;   // ← добавили очистку после сохранения
                 editProfileModal.classList.remove('show');
                 loadProfile(state.currentUser.uid);
             });
@@ -1688,15 +1721,32 @@
             recordBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
             recordBtn.addEventListener('touchcancel', stopRecording);
 
+            // Исправленная функция startRecording с поддержкой iOS
             async function startRecording() {
                 if (!state.currentChatId || isRecording) return;
                 try {
                     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
+
+                    // Определение поддерживаемого MIME-типа для iOS
+                    const mimeTypes = [
+                        'audio/mp4',
+                        'audio/aac',
+                        'audio/webm; codecs=opus',
+                        'audio/webm'
+                    ];
+                    let options = {};
+                    for (let mt of mimeTypes) {
+                        if (MediaRecorder.isTypeSupported(mt)) {
+                            options = { mimeType: mt };
+                            break;
+                        }
+                    }
+
+                    mediaRecorder = new MediaRecorder(stream, options);
                     audioChunks = [];
                     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
                     mediaRecorder.onstop = async () => {
-                        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
                         const reader = new FileReader();
                         reader.onload = () => {
                             sendMessage(null, reader.result, 'audio');
