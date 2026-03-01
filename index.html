@@ -11,7 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
     <style>
-        /* ----- СБРОС И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ----- */
+        /* ----- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И СБРОС ----- */
         * {
             margin: 0;
             padding: 0;
@@ -35,6 +35,7 @@
             --shadow-md: 0 2px 8px rgba(0,0,0,0.1);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
             --footer-height: 40px;
+            --header-height: 56px;
         }
         body.dark-theme {
             --bg-primary: #1f2128;
@@ -70,23 +71,7 @@
             overflow: hidden;
             box-shadow: var(--shadow-md);
         }
-        /* ----- СКРОЛЛБАРЫ ----- */
-        .scrollable {
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-            scrollbar-color: var(--text-secondary) transparent;
-        }
-        .scrollable::-webkit-scrollbar {
-            width: 5px;
-        }
-        .scrollable::-webkit-scrollbar-thumb {
-            background: var(--text-secondary);
-            border-radius: 10px;
-        }
-        .scrollable::-webkit-scrollbar-track {
-            background: transparent;
-        }
+
         /* ----- АУТЕНТИФИКАЦИЯ ----- */
         .auth-container {
             max-width: 380px;
@@ -155,7 +140,8 @@
         .auth-form button:hover {
             background: var(--accent-hover);
         }
-        /* ----- ШАПКА ----- */
+
+        /* ----- ШАПКА ПРИЛОЖЕНИЯ ----- */
         .app-header {
             padding: 0.5rem 1rem;
             background: var(--bg-sidebar);
@@ -163,7 +149,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            height: 56px;
+            height: var(--header-height);
             flex-shrink: 0;
         }
         .header-left {
@@ -233,7 +219,8 @@
         .logout-btn:hover {
             background: var(--bg-secondary);
         }
-        /* ----- БОКОВОЕ МЕНЮ ----- */
+
+        /* ----- БОКОВОЕ МЕНЮ (бургер) ----- */
         .nav-drawer {
             position: fixed;
             top: 0;
@@ -291,20 +278,24 @@
         .overlay.show {
             display: block;
         }
-        /* ----- ОСНОВНОЙ КОНТЕНТ ----- */
+
+        /* ----- ОСНОВНОЙ КОНТЕНТ (ЗАНИМАЕТ ВСЁ МЕСТО МЕЖДУ ШАПКОЙ И ФУТЕРОМ) ----- */
+        #appContainer {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
         .main-content {
             flex: 1;
             overflow: hidden;
             position: relative;
             background: var(--bg-primary);
-            display: flex;
-            flex-direction: column;
         }
         .section {
             display: none;
             height: 100%;
             width: 100%;
-            flex: 1;
         }
         .section.active {
             display: flex;
@@ -315,7 +306,8 @@
             overflow-y: auto;
             padding: 1rem;
         }
-        /* ----- НИЖНИЙ ФУТЕР (теперь вне main-content, но внутри app) ----- */
+
+        /* ----- НИЖНИЙ ФУТЕР (всегда внизу) ----- */
         .app-footer {
             height: var(--footer-height);
             background: var(--bg-sidebar);
@@ -327,6 +319,7 @@
             font-size: 0.8rem;
             flex-shrink: 0;
         }
+
         /* ----- КАРТОЧКИ И ПОСТЫ ----- */
         .card {
             background: var(--bg-primary);
@@ -381,6 +374,7 @@
             border-color: #ff4d4d;
             color: #ff4d4d;
         }
+
         /* ----- ПРОФИЛЬ ----- */
         .profile-header {
             display: flex;
@@ -446,6 +440,7 @@
             color: white;
             font-size: 0.9rem;
         }
+
         /* ----- ПОИСК ----- */
         .search-box {
             display: flex;
@@ -486,9 +481,11 @@
             font-size: 1.2rem;
             object-fit: cover;
         }
-        /* ----- ЧАТЫ ----- */
+
+        /* ----- ЧАТЫ (СТРОГАЯ СТРУКТУРА) ----- */
         #chatsSection {
             flex-direction: row;
+            height: 100%;
         }
         .chats-sidebar {
             width: 320px;
@@ -576,6 +573,7 @@
             font-size: 0.75rem;
             align-self: flex-start;
         }
+
         /* Правая область чата */
         .chat-main {
             flex: 1;
@@ -583,6 +581,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            height: 100%;
         }
         .chat-header {
             padding: 1rem 1.5rem;
@@ -610,12 +609,12 @@
         .back-button:hover {
             background: var(--bg-secondary);
         }
-        /* Имя собеседника кликабельно */
         .chat-header .contact-name {
             cursor: pointer;
             color: var(--accent);
             text-decoration: underline dotted;
         }
+
         /* Контейнер окна чата с рамкой */
         #chatWindowContainer {
             display: flex;
@@ -698,6 +697,8 @@
                 display: block;
             }
         }
+
+        /* Панель ввода сообщений (фиксированная снизу внутри окна чата) */
         .chat-input-area {
             display: flex;
             gap: 0.5rem;
@@ -738,7 +739,8 @@
         .chat-input-area button.record-btn {
             color: #ff4d4d;
         }
-        /* Самодельный эмодзи-пикер (простая сетка) */
+
+        /* Самодельный эмодзи-пикер */
         .emoji-picker {
             position: absolute;
             bottom: 80px;
@@ -769,6 +771,7 @@
         .emoji-item:hover {
             background: var(--bg-secondary);
         }
+
         /* ----- МОДАЛКИ ----- */
         .modal {
             display: none;
@@ -826,6 +829,7 @@
             color: var(--accent);
             border: 1px solid var(--border-light);
         }
+
         /* ----- АДАПТАЦИЯ ПОД МОБИЛЬНЫЕ ----- */
         @media (max-width: 768px) {
             .chats-sidebar {
@@ -848,6 +852,7 @@
                 display: flex;
             }
         }
+
         .hidden {
             display: none !important;
         }
@@ -909,8 +914,10 @@
                 <button id="registerBtn">Зарегистрироваться</button>
             </div>
         </div>
+
         <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
         <div id="appContainer" class="hidden">
+            <!-- Шапка -->
             <div class="app-header">
                 <div class="header-left">
                     <button id="burgerMenu" class="burger-menu">☰</button>
@@ -922,6 +929,7 @@
                     <button id="logoutBtn" class="logout-btn">Выйти</button>
                 </div>
             </div>
+
             <!-- Боковое меню -->
             <div id="navDrawer" class="nav-drawer">
                 <div class="drawer-header">
@@ -936,7 +944,8 @@
                 </div>
             </div>
             <div id="overlay" class="overlay"></div>
-            <!-- Основной контент -->
+
+            <!-- Основной контент (занимает всё место между шапкой и футером) -->
             <div class="main-content">
                 <!-- Лента -->
                 <div id="feedSection" class="section">
@@ -949,10 +958,12 @@
                         <div id="feedPosts"></div>
                     </div>
                 </div>
+
                 <!-- Профиль -->
                 <div id="profileSection" class="section">
                     <div class="section-content scrollable" id="profileContainer"></div>
                 </div>
+
                 <!-- Поиск -->
                 <div id="searchSection" class="section">
                     <div class="section-content scrollable">
@@ -963,6 +974,7 @@
                         <div id="searchResults"></div>
                     </div>
                 </div>
+
                 <!-- Чаты -->
                 <div id="chatsSection" class="section">
                     <!-- Левая панель -->
@@ -999,12 +1011,14 @@
                     </div>
                 </div>
             </div>
-            <!-- Нижний футер (теперь после main-content) -->
+
+            <!-- Нижний футер (всегда виден) -->
             <div class="app-footer">
                 © 2026 SCRIPT Studio. All rights reserved.
             </div>
         </div>
     </div>
+
     <!-- Модалка для редактирования профиля -->
     <div id="editProfileModal" class="modal">
         <div class="modal-content">
@@ -1018,6 +1032,7 @@
             </div>
         </div>
     </div>
+
     <!-- Модалка друга -->
     <div id="friendModal" class="modal">
         <div class="modal-content">
@@ -1029,6 +1044,7 @@
             </div>
         </div>
     </div>
+
     <script>
         (function() {
             // ---------- Firebase config ----------
@@ -1045,6 +1061,7 @@
             const auth = firebase.auth();
             const db = firebase.firestore();
             const storage = firebase.storage();
+
             // ---------- Глобальное состояние ----------
             let state = {
                 currentUser: null,
@@ -1061,6 +1078,7 @@
                     messages: null
                 }
             };
+
             // ---------- DOM элементы ----------
             const authContainer = document.getElementById('authContainer');
             const appContainer = document.getElementById('appContainer');
@@ -1120,7 +1138,7 @@
             let selectedFriendUid = null;
 
             // ---------- Самодельный эмодзи-пикер ----------
-            const emojiList = ['😊', '😂', '😍', '🥰', '😭', '😅', '😘', '😎', '🤔', '😏', '😴', '👍', '👎', '❤️', '🔥', '🎉', '🙏', '💀', '👀', '💯', '✨', '⭐', '🌟', '💔', '💖', '💙', '💚', '💛', '💜', '🖤', '🤍', '🤎', '💕', '💞', '💓', '💗', '💝', '💘', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⚛️', '🕉️', '🙏', '🕊️', '🌟', '⭐', '🌠', '🌌', '🌃', '🏙️', '🌄', '🌅', '🌆', '🌇', '🌉', '🌁', '🌃', '🌌', '🌠', '⭐', '🌟', '💫', '✨', '⚡', '🔥', '💥', '💢', '💦', '💨', '🕳️', '💣', '💤', '💩'];
+            const emojiList = ['😊', '😂', '😍', '🥰', '😭', '😅', '😘', '😎', '🤔', '😏', '😴', '👍', '👎', '❤️', '🔥', '🎉', '🙏', '💀', '👀', '💯', '✨', '⭐', '🌟', '💔', '💖', '💙', '💚', '💛', '💜', '🖤', '🤍', '🤎', '💕', '💞', '💓', '💗', '💝', '💘', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⚛️', '🙏', '🕊️', '🌟', '⭐', '🌠', '🌌', '🌃', '🏙️', '🌄', '🌅', '🌆', '🌇', '🌉', '🌁', '🌃', '🌌', '🌠', '⭐', '🌟', '💫', '✨', '⚡', '🔥', '💥', '💢', '💦', '💨', '🕳️', '💣', '💤', '💩'];
             function initEmojiPicker() {
                 emojiPicker.innerHTML = '';
                 emojiList.forEach(emoji => {
@@ -1135,7 +1153,15 @@
                 });
             }
             initEmojiPicker();
-            emojiBtn.addEventListener('click', () => emojiPicker.classList.toggle('show'));
+            emojiBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                emojiPicker.classList.toggle('show');
+            });
+            document.addEventListener('click', (e) => {
+                if (!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
+                    emojiPicker.classList.remove('show');
+                }
+            });
 
             // ---------- Тема ----------
             function applyTheme() {
@@ -1153,12 +1179,14 @@
                 state.darkTheme = !state.darkTheme;
                 applyTheme();
             });
+
             // ---------- Бургер-меню ----------
             function openDrawer() { navDrawer.classList.add('open'); overlay.classList.add('show'); }
             function closeDrawer() { navDrawer.classList.remove('open'); overlay.classList.remove('show'); }
             burgerMenu.addEventListener('click', openDrawer);
             closeDrawerBtn.addEventListener('click', closeDrawer);
             overlay.addEventListener('click', closeDrawer);
+
             // ---------- Управление секциями ----------
             function showSection(sectionId) {
                 feedSection.classList.remove('active');
@@ -1167,6 +1195,7 @@
                 chatsSection.classList.remove('active');
                 document.getElementById(sectionId).classList.add('active');
                 closeDrawer();
+
                 if (sectionId === 'chatsSection') {
                     if (window.innerWidth <= 768) {
                         chatsSidebar.classList.remove('hide-mobile');
@@ -1180,10 +1209,12 @@
                     loadChats();
                 }
             }
+
             drawerFeed.addEventListener('click', () => { showSection('feedSection'); loadFeed(); });
-            drawerProfile.addEventListener('click', () => { showSection('profileSection'); loadProfile(state.currentUser.uid); });
+            drawerProfile.addEventListener('click', () => { showSection('profileSection'); if (state.currentUser) loadProfile(state.currentUser.uid); });
             drawerSearch.addEventListener('click', () => { showSection('searchSection'); searchResults.innerHTML = ''; });
             drawerChats.addEventListener('click', () => { showSection('chatsSection'); });
+
             // ---------- Профиль ----------
             async function ensureUserProfile(user) {
                 if (!user) return;
@@ -1205,6 +1236,7 @@
                     }
                 });
             }
+
             // ---------- Лента ----------
             function loadFeed() {
                 if (!state.currentUser) return;
@@ -1226,6 +1258,7 @@
                     });
                 });
             }
+
             async function renderFeed(docs) {
                 if (!docs.length) { feedPosts.innerHTML = '<div class="info-message">В ленте пока нет постов.</div>'; return; }
                 const authorIds = [...new Set(docs.map(d => d.data().userId))];
@@ -1247,6 +1280,7 @@
                 feedPosts.innerHTML = html;
                 document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', e => toggleLike(btn.dataset.postId)));
             }
+
             async function toggleLike(postId) {
                 if (!state.currentUser) return;
                 const postRef = db.collection('posts').doc(postId);
@@ -1259,6 +1293,7 @@
                     await postRef.update({ likes: firebase.firestore.FieldValue.arrayUnion(state.currentUser.uid) });
                 }
             }
+
             createPostBtn.addEventListener('click', async () => {
                 const text = postText.value.trim();
                 if (!text) return;
@@ -1270,6 +1305,7 @@
                 });
                 postText.value = '';
             });
+
             // ---------- Профиль ----------
             async function loadProfile(uid) {
                 const container = document.getElementById('profileContainer');
@@ -1289,6 +1325,7 @@
                     renderProfile(uid, userDoc.data(), snap.docs, followers, following, isFollowing);
                 });
             }
+
             function renderProfile(uid, userData, postsDocs, followers, following, isFollowing) {
                 const container = document.getElementById('profileContainer');
                 const isOwn = uid === state.currentUser.uid;
@@ -1323,11 +1360,13 @@
                     document.getElementById('editProfileBtn')?.addEventListener('click', showEditForm);
                 }
             }
+
             async function toggleFollow(targetUid, currently) {
                 const id = `${state.currentUser.uid}_${targetUid}`;
                 if (currently) await db.collection('follows').doc(id).delete();
                 else await db.collection('follows').doc(id).set({ followerId: state.currentUser.uid, followeeId: targetUid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             }
+
             // ---------- Редактирование профиля ----------
             function showEditForm() {
                 editName.value = state.profile?.displayName || '';
@@ -1352,9 +1391,11 @@
                 editProfileModal.classList.remove('show');
                 loadProfile(state.currentUser.uid);
             });
+
             // ---------- Поиск ----------
             searchBtn.addEventListener('click', () => searchUsers(searchInput.value));
             searchInput.addEventListener('keyup', e => e.key === 'Enter' && searchUsers(searchInput.value));
+
             async function searchUsers(query) {
                 if (!query.trim()) return;
                 searchResults.innerHTML = '<div class="info-message">Поиск...</div>';
@@ -1385,6 +1426,7 @@
                 document.querySelectorAll('[data-message-uid]').forEach(b => b.addEventListener('click', e => openChatWithUser(b.dataset.messageUid)));
                 document.querySelectorAll('.user-name-link').forEach(span => span.addEventListener('click', e => goToUserProfile(span.dataset.uid)));
             }
+
             // ---------- Чаты ----------
             async function getOrCreateChat(otherUid) {
                 const currentUid = state.currentUser.uid;
@@ -1405,6 +1447,7 @@
                 }
                 return chat;
             }
+
             async function openChatWithUser(otherUid) {
                 const chat = await getOrCreateChat(otherUid);
                 state.currentChatId = chat.id;
@@ -1421,6 +1464,7 @@
                 loadMessages(chat.id);
                 loadChats();
             }
+
             function loadChats() {
                 if (!state.currentUser) return;
                 if (state.listeners.chats) state.listeners.chats();
@@ -1435,6 +1479,7 @@
                     renderChatsList(chats);
                 });
             }
+
             function renderChatsList(chats) {
                 if (!chats.length) { chatsList.innerHTML = '<div class="info-message">Нет чатов</div>'; return; }
                 let html = '';
@@ -1468,6 +1513,7 @@
                     });
                 });
             }
+
             function loadMessages(chatId) {
                 if (state.listeners.messages) state.listeners.messages();
                 const q = db.collection('messages').where('chatId', '==', chatId).orderBy('timestamp', 'asc');
@@ -1476,6 +1522,7 @@
                     renderMessages(msgs);
                 });
             }
+
             function renderMessages(msgs) {
                 if (!msgs.length) { messagesContainer.innerHTML = '<div class="info-message">Нет сообщений</div>'; return; }
                 let html = '';
@@ -1510,6 +1557,7 @@
                 });
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
+
             async function deleteMessage(msgId) {
                 if (!state.currentChatId) return;
                 const msgRef = db.collection('messages').doc(msgId);
@@ -1543,6 +1591,7 @@
                     });
                 }
             }
+
             async function sendMessage(text, mediaURL, mediaType) {
                 const msgText = text !== undefined ? text : messageInput.value.trim();
                 if (!msgText && !mediaURL) return;
@@ -1563,8 +1612,10 @@
                 });
                 if (!mediaURL) messageInput.value = '';
             }
+
             sendMessageBtn.addEventListener('click', () => sendMessage());
             messageInput.addEventListener('keyup', e => e.key === 'Enter' && sendMessage());
+
             attachBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', async e => {
                 const file = e.target.files[0];
@@ -1578,6 +1629,7 @@
                 await sendMessage(null, url, isImage ? 'image' : 'video');
                 fileInput.value = '';
             });
+
             let mediaRecorder, audioChunks, isRecording = false;
             recordBtn.addEventListener('click', async () => {
                 if (!state.currentChatId) return;
@@ -1605,6 +1657,7 @@
                     recordBtn.style.color = '';
                 }
             });
+
             backFromChatBtn.addEventListener('click', () => {
                 chatsSidebar.classList.remove('hide-mobile');
                 chatWindowContainer.classList.add('hidden');
@@ -1612,6 +1665,7 @@
                 if (state.listeners.messages) state.listeners.messages();
                 state.currentChatId = null;
             });
+
             chatSearchInput.addEventListener('input', e => {
                 const q = e.target.value.toLowerCase();
                 document.querySelectorAll('.chat-item').forEach(item => {
@@ -1619,11 +1673,14 @@
                     item.style.display = name.includes(q) ? 'flex' : 'none';
                 });
             });
+
             modalMessageBtn.addEventListener('click', () => { if (selectedFriendUid) openChatWithUser(selectedFriendUid); friendModal.classList.remove('show'); });
             modalProfileBtn.addEventListener('click', () => { if (selectedFriendUid) goToUserProfile(selectedFriendUid); friendModal.classList.remove('show'); });
             modalCloseBtn.addEventListener('click', () => friendModal.classList.remove('show'));
             friendModal.addEventListener('click', e => { if (e.target === friendModal) friendModal.classList.remove('show'); });
+
             window.goToUserProfile = (uid) => { showSection('profileSection'); loadProfile(uid); };
+
             // ---------- Аутентификация ----------
             function handleLogin() {
                 const email = document.getElementById('loginEmail').value;
@@ -1640,6 +1697,7 @@
             loginBtn.addEventListener('click', handleLogin);
             registerBtn.addEventListener('click', handleRegister);
             logoutBtn.addEventListener('click', () => auth.signOut());
+
             loginTab.addEventListener('click', () => {
                 loginTab.classList.add('active'); registerTab.classList.remove('active');
                 loginForm.classList.remove('hidden'); registerForm.classList.add('hidden');
@@ -1648,6 +1706,7 @@
                 registerTab.classList.add('active'); loginTab.classList.remove('active');
                 registerForm.classList.remove('hidden'); loginForm.classList.add('hidden');
             });
+
             auth.onAuthStateChanged(async user => {
                 if (user) {
                     state.currentUser = user;
@@ -1662,25 +1721,12 @@
                     appContainer.classList.add('hidden');
                 }
             });
+
             window.addEventListener('resize', () => {
                 document.body.style.height = window.innerHeight + 'px';
                 document.getElementById('app').style.height = window.innerHeight + 'px';
             });
         })();
     </script>
-    <!-- Инструкция по настройке CORS (для пользователя) -->
-    <!--
-        ⚠️ Если загрузка аватарок не работает из-за CORS, выполните в терминале:
-        gsutil cors set cors.json gs://webs-a50d2.firebasestorage.app
-        Где cors.json содержит:
-        [
-            {
-                "origin": ["https://scriiptik.github.io"],
-                "method": ["GET", "POST", "PUT", "DELETE"],
-                "maxAgeSeconds": 3600
-            }
-        ]
-        Подробнее: https://firebase.google.com/docs/storage/web/download-files#cors_configuration
-    -->
 </body>
 </html>
