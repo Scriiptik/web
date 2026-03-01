@@ -589,19 +589,67 @@
             display: none;
         }
         .message:hover .delete-msg { display: block; }
-        /* Кнопка ответа (добавлено) */
-        .reply-msg {
-            position: absolute;
-            bottom: 0;
-            right: 30px;
+
+        /* НОВЫЕ СТИЛИ ДЛЯ ПАНЕЛИ ОТВЕТА И ОТОБРАЖЕНИЯ ОТВЕТОВ */
+        .reply-panel {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-light);
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            border-radius: 12px 12px 0 0;
+            margin: 0 0.5rem;
+        }
+        .reply-info {
+            flex: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .reply-sender {
+            font-weight: 600;
+            color: var(--accent);
+            margin-right: 0.5rem;
+        }
+        .reply-text {
+            color: var(--text-secondary);
+        }
+        .reply-cancel {
             background: none;
             border: none;
-            font-size: 1rem;
+            font-size: 1.2rem;
             cursor: pointer;
-            color: var(--accent);
-            display: none;
+            color: var(--text-secondary);
+            padding: 0 0.5rem;
         }
-        .message:hover .reply-msg { display: block; }
+        .reply-cancel:hover {
+            color: var(--accent);
+        }
+
+        .message-reply {
+            background: rgba(0,0,0,0.05);
+            border-left: 3px solid var(--accent);
+            padding: 0.3rem 0.6rem;
+            margin-bottom: 0.3rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .message-reply .reply-sender {
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .message-reply .reply-text {
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .message-reply:hover {
+            background: rgba(0,0,0,0.1);
+        }
 
         .chat-input-area {
             display: flex;
@@ -827,6 +875,14 @@
                                 <span id="chatHeader" class="contact-name" style="cursor:pointer; color:var(--accent);"></span>
                             </div>
                             <div id="messagesContainer"></div>
+                            <!-- НОВАЯ ПАНЕЛЬ ОТВЕТА -->
+                            <div id="replyPanel" class="reply-panel hidden">
+                                <div class="reply-info">
+                                    <span class="reply-sender"></span>
+                                    <span class="reply-text"></span>
+                                </div>
+                                <button id="cancelReplyBtn" class="reply-cancel">✕</button>
+                            </div>
                             <div class="chat-input-area">
                                 <button id="emojiBtn" class="btn-icon">😊</button>
                                 <input type="text" id="messageInput" placeholder="Сообщение...">
@@ -1030,6 +1086,11 @@
             let currentPostIdForComment = null;
             let currentDrawingTarget = 'avatar';
             let postImage = null;
+
+            // НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ОТВЕТА
+            let replyToMessageId = null;
+            let replyToSender = '';
+            let replyToText = '';
 
             // Тема
             function applyTheme() {
@@ -1634,7 +1695,7 @@
                 });
             }
 
-            // Исправленная renderMessages с кнопкой ответа
+            // НОВАЯ ФУНКЦИЯ ОТОБРАЖЕНИЯ СООБЩЕНИЙ С ПОДДЕРЖКОЙ ОТВЕТОВ
             function renderMessages(msgs) {
                 if (!msgs.length) { messagesContainer.innerHTML = '<div class="info-message">Нет сообщений</div>'; return; }
                 let html = '';
@@ -1642,6 +1703,16 @@
                     const isOwn = m.senderId === state.currentUser.uid;
                     const sender = isOwn ? 'Вы' : (state.currentChatParticipant?.displayName || '');
                     const time = m.timestamp ? new Date(m.timestamp.toDate()).toLocaleTimeString() : '';
+
+                    // Блок ответа, если есть
+                    let replyHtml = '';
+                    if (m.replyTo) {
+                        replyHtml = `<div class="message-reply" data-reply-to="${m.replyTo.messageId}">
+                            <span class="reply-sender">${m.replyTo.sender}</span>
+                            <span class="reply-text">${m.replyTo.text}</span>
+                        </div>`;
+                    }
+
                     let media = '';
                     if (m.media) {
                         if (m.mediaType === 'image') media = `<img src="${m.media}" class="message-media" style="max-width:200px; border-radius:0.5rem;">`;
@@ -1650,17 +1721,19 @@
                     const isSingleEmoji = m.text && /^[\p{Emoji}]+$/u.test(m.text) && m.text.length <= 2;
                     const msgClass = `message ${isOwn ? 'own' : ''} ${isSingleEmoji ? 'single-emoji' : ''}`;
                     const deleteBtn = `<button class="delete-msg" data-msg-id="${m.id}">🗑️</button>`;
-                    const replyBtn = `<button class="reply-msg" data-msg-id="${m.id}" data-sender="${sender}" data-text="${m.text ? m.text.replace(/"/g, '&quot;') : ''}">↩️</button>`;
+
                     html += `<div class="${msgClass}" data-msg-id="${m.id}">
                         <div class="message-sender">${sender}</div>
+                        ${replyHtml}
                         <div>${m.text || ''}</div>
                         ${media}
                         <div class="message-time">${time}</div>
                         ${deleteBtn}
-                        ${replyBtn}
                     </div>`;
                 });
                 messagesContainer.innerHTML = html;
+
+                // Обработчики удаления
                 document.querySelectorAll('.delete-msg').forEach(btn => {
                     btn.addEventListener('click', async e => {
                         e.stopPropagation();
@@ -1670,18 +1743,76 @@
                         }
                     });
                 });
-                // Обработчики для кнопок ответа
-                document.querySelectorAll('.reply-msg').forEach(btn => {
-                    btn.addEventListener('click', e => {
-                        e.stopPropagation();
-                        const sender = btn.dataset.sender;
-                        const text = btn.dataset.text;
-                        messageInput.value = `Ответ @${sender}: «${text}»\n`;
-                        messageInput.focus();
+
+                // Обработчики для ответа: свайп влево на мобильных, двойной клик на ПК
+                document.querySelectorAll('.message').forEach(msgEl => {
+                    const msgId = msgEl.dataset.msgId;
+                    const senderEl = msgEl.querySelector('.message-sender');
+                    const sender = senderEl ? senderEl.textContent : '';
+                    const textEl = msgEl.querySelector('div:not(.message-sender):not(.message-reply):not(.message-time)');
+                    const text = textEl ? textEl.textContent : '';
+
+                    // Двойной клик (ПК)
+                    msgEl.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        setReply(msgId, sender, text);
+                    });
+
+                    // Свайп влево (мобильные)
+                    let touchStartX = 0;
+                    msgEl.addEventListener('touchstart', (e) => {
+                        touchStartX = e.touches[0].clientX;
+                    }, { passive: true });
+                    msgEl.addEventListener('touchend', (e) => {
+                        const touchEndX = e.changedTouches[0].clientX;
+                        const deltaX = touchStartX - touchEndX;
+                        if (deltaX > 50) { // свайп влево более 50px
+                            e.preventDefault();
+                            setReply(msgId, sender, text);
+                        }
                     });
                 });
+
+                // Клик на блоке ответа для перехода к исходному сообщению
+                document.querySelectorAll('.message-reply').forEach(replyEl => {
+                    replyEl.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const targetMsgId = replyEl.dataset.replyTo;
+                        const targetMsgEl = document.querySelector(`.message[data-msg-id="${targetMsgId}"]`);
+                        if (targetMsgEl) {
+                            targetMsgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // подсветка
+                            targetMsgEl.style.transition = 'background 0.3s';
+                            targetMsgEl.style.background = 'var(--accent)';
+                            setTimeout(() => targetMsgEl.style.background = '', 1000);
+                        }
+                    });
+                });
+
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
+
+            // НОВЫЕ ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ОТВЕТОМ
+            function setReply(messageId, sender, text) {
+                replyToMessageId = messageId;
+                replyToSender = sender;
+                replyToText = text;
+
+                const panel = document.getElementById('replyPanel');
+                panel.querySelector('.reply-sender').textContent = sender;
+                panel.querySelector('.reply-text').textContent = text.length > 30 ? text.slice(0,30)+'…' : text;
+                panel.classList.remove('hidden');
+            }
+
+            function clearReply() {
+                replyToMessageId = null;
+                replyToSender = '';
+                replyToText = '';
+                document.getElementById('replyPanel').classList.add('hidden');
+            }
+
+            // Обработчик кнопки отмены ответа
+            document.getElementById('cancelReplyBtn').addEventListener('click', clearReply);
 
             async function deleteMessage(msgId) {
                 if (!state.currentChatId) return;
@@ -1716,6 +1847,7 @@
                 }
             }
 
+            // ИЗМЕНЁННАЯ ФУНКЦИЯ sendMessage С ПОДДЕРЖКОЙ replyTo
             async function sendMessage(text, media, mediaType) {
                 const msgText = text !== undefined ? text : messageInput.value.trim();
                 if (!msgText && !media) return;
@@ -1727,6 +1859,14 @@
                 };
                 if (msgText) msg.text = msgText;
                 if (media) { msg.media = media; msg.mediaType = mediaType; }
+                // Добавляем replyTo, если есть
+                if (replyToMessageId) {
+                    msg.replyTo = {
+                        messageId: replyToMessageId,
+                        sender: replyToSender,
+                        text: replyToText
+                    };
+                }
                 await db.collection('messages').add(msg);
                 await db.collection('chats').doc(state.currentChatId).update({
                     lastMessage: msgText || (mediaType === 'image' ? '📷' : '🎤'),
@@ -1735,6 +1875,7 @@
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 if (!media) messageInput.value = '';
+                clearReply(); // очищаем ответ после отправки
             }
 
             sendMessageBtn.addEventListener('click', () => sendMessage());
