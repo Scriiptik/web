@@ -698,7 +698,7 @@
             }
         }
 
-        /* Панель ввода сообщений (фиксированная снизу внутри окна чата) */
+        /* Панель ввода сообщений */
         .chat-input-area {
             display: flex;
             gap: 0.5rem;
@@ -738,6 +738,37 @@
         }
         .chat-input-area button.record-btn {
             color: #ff4d4d;
+        }
+        /* Панель записи голоса */
+        .voice-recording-panel {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--accent);
+            color: white;
+            border-radius: 2rem;
+            margin-left: 0.5rem;
+        }
+        .voice-recording-panel.active {
+            display: flex;
+        }
+        .recording-timer {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .recording-visualizer {
+            width: 100px;
+            height: 20px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .recording-level {
+            height: 100%;
+            width: 0%;
+            background: white;
+            transition: width 0.1s;
         }
 
         /* Самодельный эмодзи-пикер */
@@ -1003,6 +1034,13 @@
                                 <input type="text" id="messageInput" placeholder="Сообщение...">
                                 <button id="attachBtn">📎</button>
                                 <input type="file" id="fileInput" accept="image/*,video/*" style="display:none;">
+                                <!-- Панель записи голоса (изначально скрыта) -->
+                                <div id="voicePanel" class="voice-recording-panel">
+                                    <span class="recording-timer" id="voiceTimer">00:00</span>
+                                    <div class="recording-visualizer">
+                                        <div id="voiceLevel" class="recording-level"></div>
+                                    </div>
+                                </div>
                                 <button id="recordBtn" class="record-btn">🎤</button>
                                 <button id="sendMessageBtn" style="background:var(--accent); color:white; border-radius:50%;">➤</button>
                             </div>
@@ -1135,6 +1173,12 @@
             const editAvatar = document.getElementById('editAvatar');
             const saveProfileBtn = document.getElementById('saveProfileBtn');
             const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+            // Элементы для записи голоса
+            const voicePanel = document.getElementById('voicePanel');
+            const voiceTimer = document.getElementById('voiceTimer');
+            const voiceLevel = document.getElementById('voiceLevel');
+
             let selectedFriendUid = null;
 
             // ---------- Самодельный эмодзи-пикер ----------
@@ -1383,9 +1427,15 @@
                 if (editAvatar.files.length > 0) {
                     const file = editAvatar.files[0];
                     const storageRef = storage.ref(`avatars/${state.currentUser.uid}`);
-                    await storageRef.put(file);
-                    const url = await storageRef.getDownloadURL();
-                    updates.avatar = url;
+                    try {
+                        await storageRef.put(file);
+                        const url = await storageRef.getDownloadURL();
+                        updates.avatar = url;
+                    } catch (error) {
+                        console.error('Ошибка загрузки аватарки:', error);
+                        alert('Не удалось загрузить аватарку. Проверьте настройки CORS и правила доступа к Storage.');
+                        return;
+                    }
                 }
                 await db.collection('users').doc(state.currentUser.uid).update(updates);
                 editProfileModal.classList.remove('show');
@@ -1560,35 +1610,43 @@
 
             async function deleteMessage(msgId) {
                 if (!state.currentChatId) return;
-                const msgRef = db.collection('messages').doc(msgId);
-                const msg = await msgRef.get();
-                if (!msg.exists) return;
-                if (msg.data().senderId !== state.currentUser.uid) {
-                    alert('Нельзя удалить чужое сообщение');
-                    return;
-                }
-                await msgRef.delete();
-                const chatRef = db.collection('chats').doc(state.currentChatId);
-                const messagesQuery = await db.collection('messages')
-                    .where('chatId', '==', state.currentChatId)
-                    .orderBy('timestamp', 'desc')
-                    .limit(1)
-                    .get();
-                if (!messagesQuery.empty) {
-                    const last = messagesQuery.docs[0].data();
-                    await chatRef.update({
-                        lastMessage: last.text || (last.mediaType === 'image' ? '📷' : '🎤'),
-                        lastMessageTimestamp: last.timestamp,
-                        lastMessageSender: last.senderId,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                } else {
-                    await chatRef.update({
-                        lastMessage: '',
-                        lastMessageTimestamp: null,
-                        lastMessageSender: null,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                try {
+                    const msgRef = db.collection('messages').doc(msgId);
+                    const msg = await msgRef.get();
+                    if (!msg.exists) return;
+                    if (msg.data().senderId !== state.currentUser.uid) {
+                        alert('Нельзя удалить чужое сообщение');
+                        return;
+                    }
+                    // Удаляем документ
+                    await msgRef.delete();
+
+                    // Обновляем последнее сообщение в чате
+                    const chatRef = db.collection('chats').doc(state.currentChatId);
+                    const messagesQuery = await db.collection('messages')
+                        .where('chatId', '==', state.currentChatId)
+                        .orderBy('timestamp', 'desc')
+                        .limit(1)
+                        .get();
+                    if (!messagesQuery.empty) {
+                        const last = messagesQuery.docs[0].data();
+                        await chatRef.update({
+                            lastMessage: last.text || (last.mediaType === 'image' ? '📷' : '🎤'),
+                            lastMessageTimestamp: last.timestamp,
+                            lastMessageSender: last.senderId,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    } else {
+                        await chatRef.update({
+                            lastMessage: '',
+                            lastMessageTimestamp: null,
+                            lastMessageSender: null,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                } catch (error) {
+                    console.error('Ошибка при удалении сообщения:', error);
+                    alert('Не удалось удалить сообщение. Попробуйте снова.');
                 }
             }
 
@@ -1616,48 +1674,109 @@
             sendMessageBtn.addEventListener('click', () => sendMessage());
             messageInput.addEventListener('keyup', e => e.key === 'Enter' && sendMessage());
 
+            // ---------- Отправка медиа (фото, видео) ----------
             attachBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', async e => {
                 const file = e.target.files[0];
                 if (!file || !state.currentChatId) return;
                 const isImage = file.type.startsWith('image/');
                 const isVideo = file.type.startsWith('video/');
-                if (!isImage && !isVideo) { alert('Только изображения и видео'); return; }
+                if (!isImage && !isVideo) { alert('Можно загружать только изображения и видео'); return; }
                 const ref = storage.ref(`chats/${state.currentChatId}/${Date.now()}_${file.name}`);
-                await ref.put(file);
-                const url = await ref.getDownloadURL();
-                await sendMessage(null, url, isImage ? 'image' : 'video');
+                try {
+                    await ref.put(file);
+                    const url = await ref.getDownloadURL();
+                    await sendMessage(null, url, isImage ? 'image' : 'video');
+                } catch (error) {
+                    console.error('Ошибка загрузки файла:', error);
+                    alert('Не удалось загрузить файл. Проверьте настройки CORS и правила доступа к Storage.');
+                }
                 fileInput.value = '';
             });
 
+            // ---------- Запись голоса с визуализацией ----------
             let mediaRecorder, audioChunks, isRecording = false;
-            recordBtn.addEventListener('click', async () => {
+            let recordingStartTime, timerInterval, analyser, dataArray, audioContext, source, stream;
+
+            recordBtn.addEventListener('mousedown', startRecording);
+            recordBtn.addEventListener('mouseup', stopRecording);
+            recordBtn.addEventListener('mouseleave', stopRecording); // на случай, если уведём мышь
+            // Для мобильных устройств
+            recordBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); });
+            recordBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
+            recordBtn.addEventListener('touchcancel', stopRecording);
+
+            async function startRecording() {
                 if (!state.currentChatId) return;
-                if (!isRecording) {
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        mediaRecorder = new MediaRecorder(stream);
-                        audioChunks = [];
-                        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                        mediaRecorder.onstop = async () => {
-                            const blob = new Blob(audioChunks, { type: 'audio/webm' });
-                            const ref = storage.ref(`chats/${state.currentChatId}/${Date.now()}_voice.webm`);
+                if (isRecording) return;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.onstop = async () => {
+                        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const ref = storage.ref(`chats/${state.currentChatId}/${Date.now()}_voice.webm`);
+                        try {
                             await ref.put(blob);
                             const url = await ref.getDownloadURL();
                             await sendMessage(null, url, 'audio');
-                            stream.getTracks().forEach(t => t.stop());
-                        };
-                        mediaRecorder.start();
-                        isRecording = true;
-                        recordBtn.style.color = '#ff0000';
-                    } catch { alert('Нет доступа к микрофону'); }
-                } else {
-                    mediaRecorder.stop();
-                    isRecording = false;
-                    recordBtn.style.color = '';
-                }
-            });
+                        } catch (error) {
+                            console.error('Ошибка загрузки голоса:', error);
+                            alert('Не удалось отправить голосовое сообщение. Проверьте настройки CORS.');
+                        }
+                        stream.getTracks().forEach(t => t.stop());
+                        if (audioContext) await audioContext.close();
+                    };
 
+                    // Визуализация
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    source = audioContext.createMediaStreamSource(stream);
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    source.connect(analyser);
+                    dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    recordBtn.style.color = '#ff0000';
+                    voicePanel.classList.add('active');
+                    recordingStartTime = Date.now();
+                    updateTimer();
+                } catch (err) {
+                    console.error('Ошибка доступа к микрофону:', err);
+                    alert('Не удалось получить доступ к микрофону.');
+                }
+            }
+
+            function stopRecording() {
+                if (!isRecording) return;
+                mediaRecorder.stop();
+                isRecording = false;
+                recordBtn.style.color = '';
+                voicePanel.classList.remove('active');
+                if (timerInterval) clearInterval(timerInterval);
+                if (source) source.disconnect();
+                if (audioContext) audioContext.close();
+            }
+
+            function updateTimer() {
+                timerInterval = setInterval(() => {
+                    if (!isRecording) return;
+                    const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                    const mins = Math.floor(elapsed / 60);
+                    const secs = elapsed % 60;
+                    voiceTimer.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    if (analyser && dataArray) {
+                        analyser.getByteFrequencyData(dataArray);
+                        const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+                        const level = Math.min(100, (avg / 128) * 100);
+                        voiceLevel.style.width = level + '%';
+                    }
+                }, 100);
+            }
+
+            // ---------- Назад из чата ----------
             backFromChatBtn.addEventListener('click', () => {
                 chatsSidebar.classList.remove('hide-mobile');
                 chatWindowContainer.classList.add('hidden');
@@ -1666,6 +1785,7 @@
                 state.currentChatId = null;
             });
 
+            // ---------- Поиск по чатам ----------
             chatSearchInput.addEventListener('input', e => {
                 const q = e.target.value.toLowerCase();
                 document.querySelectorAll('.chat-item').forEach(item => {
@@ -1674,6 +1794,7 @@
                 });
             });
 
+            // ---------- Модалка друга ----------
             modalMessageBtn.addEventListener('click', () => { if (selectedFriendUid) openChatWithUser(selectedFriendUid); friendModal.classList.remove('show'); });
             modalProfileBtn.addEventListener('click', () => { if (selectedFriendUid) goToUserProfile(selectedFriendUid); friendModal.classList.remove('show'); });
             modalCloseBtn.addEventListener('click', () => friendModal.classList.remove('show'));
@@ -1726,7 +1847,26 @@
                 document.body.style.height = window.innerHeight + 'px';
                 document.getElementById('app').style.height = window.innerHeight + 'px';
             });
+
+            // Инструкция по настройке CORS (выводится в консоль)
+            console.log('Если возникают ошибки CORS при загрузке файлов, выполните в терминале:');
+            console.log('gsutil cors set cors.json gs://webs-a50d2.firebasestorage.app');
+            console.log('где cors.json: [{"origin": ["https://scriiptik.github.io"], "method": ["GET","POST","PUT","DELETE"], "maxAgeSeconds": 3600}]');
         })();
     </script>
+    <!-- Инструкция по настройке CORS для пользователя (в комментарии) -->
+    <!--
+        ⚠️ Если загрузка аватарок, фото, видео или голоса не работает из-за CORS, выполните в терминале:
+        gsutil cors set cors.json gs://webs-a50d2.firebasestorage.app
+        Где cors.json содержит:
+        [
+            {
+                "origin": ["https://scriiptik.github.io"],
+                "method": ["GET", "POST", "PUT", "DELETE"],
+                "maxAgeSeconds": 3600
+            }
+        ]
+        Подробнее: https://firebase.google.com/docs/storage/web/download-files#cors_configuration
+    -->
 </body>
 </html>
