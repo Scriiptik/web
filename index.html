@@ -43,6 +43,60 @@
         body.dark-theme #app {
             background: #1f2128;
         }
+
+        /* ===== КАСТОМНЫЕ СКРОЛЛБАРЫ ===== */
+        .section-content::-webkit-scrollbar,
+        .chats-list::-webkit-scrollbar,
+        .messages-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .section-content::-webkit-scrollbar-track,
+        .chats-list::-webkit-scrollbar-track,
+        .messages-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        body.dark-theme .section-content::-webkit-scrollbar-track,
+        body.dark-theme .chats-list::-webkit-scrollbar-track,
+        body.dark-theme .messages-container::-webkit-scrollbar-track {
+            background: #2d2f36;
+        }
+        .section-content::-webkit-scrollbar-thumb,
+        .chats-list::-webkit-scrollbar-thumb,
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #b0b0b0;
+            border-radius: 10px;
+            border: 2px solid transparent;
+        }
+        .section-content::-webkit-scrollbar-thumb:hover,
+        .chats-list::-webkit-scrollbar-thumb:hover,
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: #909090;
+        }
+        body.dark-theme .section-content::-webkit-scrollbar-thumb,
+        body.dark-theme .chats-list::-webkit-scrollbar-thumb,
+        body.dark-theme .messages-container::-webkit-scrollbar-thumb {
+            background: #5a5f73;
+        }
+        body.dark-theme .section-content::-webkit-scrollbar-thumb:hover,
+        body.dark-theme .chats-list::-webkit-scrollbar-thumb:hover,
+        body.dark-theme .messages-container::-webkit-scrollbar-thumb:hover {
+            background: #7a7f94;
+        }
+        /* Для Firefox */
+        .section-content,
+        .chats-list,
+        .messages-container {
+            scrollbar-width: thin;
+            scrollbar-color: #b0b0b0 #f1f1f1;
+        }
+        body.dark-theme .section-content,
+        body.dark-theme .chats-list,
+        body.dark-theme .messages-container {
+            scrollbar-color: #5a5f73 #2d2f36;
+        }
+
         /* Аутентификация */
         .auth-container {
             padding: 2rem;
@@ -315,7 +369,14 @@
             width: 100%;
         }
         .section.active {
-            display: block;
+            display: flex;
+            flex-direction: column;
+        }
+        .section-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            -webkit-overflow-scrolling: touch; /* плавный скролл на iOS */
         }
         /* Универсальные карточки */
         .card {
@@ -638,6 +699,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 0.5rem;
+            -webkit-overflow-scrolling: touch;
         }
         .chat-item {
             display: flex;
@@ -745,6 +807,7 @@
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
+            -webkit-overflow-scrolling: touch;
         }
         body.dark-theme .messages-container {
             background: #0f1117;
@@ -941,7 +1004,7 @@
             <div class="main-content">
                 <!-- Секция Лента -->
                 <div id="feedSection" class="section active">
-                    <div style="padding:1rem; overflow-y:auto; height:100%;">
+                    <div class="section-content">
                         <div class="card">
                             <h3 style="margin-bottom:1rem;">Новый пост</h3>
                             <div class="input-group">
@@ -955,14 +1018,12 @@
 
                 <!-- Секция Профиль (и свой, и чужой) -->
                 <div id="profileSection" class="section">
-                    <div style="padding:1rem; overflow-y:auto; height:100%;">
-                        <div id="profileContainer"></div>
-                    </div>
+                    <div class="section-content" id="profileContainer"></div>
                 </div>
 
                 <!-- Секция Поиск -->
                 <div id="searchSection" class="section">
-                    <div style="padding:1rem; overflow-y:auto; height:100%;">
+                    <div class="section-content">
                         <div class="search-box">
                             <input type="text" id="searchInput" placeholder="Имя или email...">
                             <button id="searchBtn">Найти</button>
@@ -1025,7 +1086,7 @@
     <script>
         (function() {
             // -------------------------------------------------------------
-            // 1. Конфигурация Firebase (ваши данные)
+            // 1. Конфигурация Firebase
             // -------------------------------------------------------------
             const firebaseConfig = {
                 apiKey: "AIzaSyBw-Jv_Kp6UijGT4giu1DCO-kAXtlU-y5w",
@@ -1166,12 +1227,10 @@
 
             // Навигация по пунктам меню
             function showSectionOnly(section) {
-                // Скрываем все секции
                 feedSection.classList.remove('active');
                 profileSection.classList.remove('active');
                 searchSection.classList.remove('active');
                 chatsSection.classList.remove('active');
-                // Показываем нужную
                 if (section === 'feed') feedSection.classList.add('active');
                 if (section === 'profile') profileSection.classList.add('active');
                 if (section === 'search') searchSection.classList.add('active');
@@ -1181,7 +1240,6 @@
 
             drawerFeed.addEventListener('click', () => {
                 showSectionOnly('feed');
-                // Если мы были в чате, скрываем окно чата
                 chatWindowContainer.classList.add('hidden');
                 noChatSelected.classList.remove('hidden');
                 currentChatId = null;
@@ -1198,7 +1256,6 @@
                 searchResults.innerHTML = '';
             });
 
-            // При загрузке показываем чаты по умолчанию
             function goToChats() {
                 showSectionOnly('chats');
                 chatWindowContainer.classList.add('hidden');
@@ -1461,11 +1518,9 @@
                 } else {
                     const editBtn = document.getElementById('editProfileBtn');
                     if (editBtn) editBtn.addEventListener('click', showEditProfileForm);
-                    // Обработка клика по друзьям (показываем модалку)
                     profileContainer.querySelectorAll('.friend-item').forEach(item => {
                         item.addEventListener('click', () => {
                             const friendUid = item.dataset.uid;
-                            // Получаем имя друга для отображения в модалке
                             db.collection('users').doc(friendUid).get().then(doc => {
                                 if (doc.exists) {
                                     const friendData = doc.data();
@@ -1486,7 +1541,6 @@
                 });
             }
 
-            // Обработка модалки
             modalMessageBtn.addEventListener('click', () => {
                 if (selectedFriendUid) {
                     openChatWithUser(selectedFriendUid);
@@ -1502,7 +1556,6 @@
             modalCloseBtn.addEventListener('click', () => {
                 friendModal.classList.remove('show');
             });
-            // Закрыть по клику вне модалки
             friendModal.addEventListener('click', (e) => {
                 if (e.target === friendModal) {
                     friendModal.classList.remove('show');
@@ -1708,14 +1761,12 @@
                 currentChatId = chat.id;
                 const userDoc = await db.collection('users').doc(otherUid).get();
                 currentChatParticipant = { uid: otherUid, ...userDoc.data() };
-                // Переключаемся на секцию чатов
                 showSectionOnly('chats');
                 chatWindowContainer.classList.remove('hidden');
                 noChatSelected.classList.add('hidden');
                 chatHeader.textContent = `Чат с ${currentChatParticipant.displayName || currentChatParticipant.email}`;
                 loadMessages(chat.id);
-                loadChats(); // обновить список чатов
-                // выделяем активный чат в списке
+                loadChats();
                 document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
                 const activeItem = document.querySelector(`.chat-item[data-chat-id="${chat.id}"]`);
                 if (activeItem) activeItem.classList.add('active');
@@ -1779,7 +1830,6 @@
                         noChatSelected.classList.add('hidden');
                         chatHeader.textContent = `Чат с ${currentChatParticipant?.displayName || ''}`;
                         loadMessages(chatId);
-                        // выделить активный чат
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         item.classList.add('active');
                     });
@@ -1830,6 +1880,7 @@
                     `;
                 });
                 messagesContainer.innerHTML = html;
+                // Прокрутка вниз
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
 
@@ -1848,7 +1899,6 @@
                     message.mediaType = mediaType;
                 }
                 await db.collection('messages').add(message);
-                // Обновить lastMessage в чате
                 await db.collection('chats').doc(currentChatId).update({
                     lastMessage: messageText || (mediaType === 'image' ? '📷 Фото' : mediaType === 'audio' ? '🎤 Голосовое' : mediaType === 'video' ? '🎥 Видео' : 'Медиа'),
                     lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1878,7 +1928,6 @@
                 fileInput.value = '';
             });
 
-            // Запись голоса
             recordBtn.addEventListener('click', async () => {
                 if (!currentChatId) return;
                 if (!isRecording) {
@@ -1908,14 +1957,12 @@
                 }
             });
 
-            // Эмодзи (исправленный импорт)
             emojiBtn.addEventListener('click', () => {
                 emojiPicker.classList.toggle('show');
             });
-            // Динамический импорт с правильным извлечением default
             import('https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.0/index.js')
                 .then(module => {
-                    const Picker = module.default; // важно
+                    const Picker = module.default;
                     const picker = new Picker();
                     emojiPicker.appendChild(picker);
                     picker.addEventListener('emoji-click', event => {
@@ -1925,16 +1972,23 @@
                 })
                 .catch(err => console.error('Ошибка загрузки EmojiPicker:', err));
 
-            // Отправка сообщения
             sendMessageBtn.addEventListener('click', () => sendMessage());
             messageInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') sendMessage(); });
 
-            // Обработка фокуса на поле ввода для мобильных
+            // Прокрутка к полю ввода при фокусе (для мобильных)
             messageInput.addEventListener('focus', () => {
                 setTimeout(() => {
                     messageInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 300);
             });
+
+            if (postText) {
+                postText.addEventListener('focus', () => {
+                    setTimeout(() => {
+                        postText.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                });
+            }
 
             // -------------------------------------------------------------
             // 11. Аутентификация
@@ -1972,14 +2026,11 @@
             registerBtn.addEventListener('click', handleRegister);
             logoutBtn.addEventListener('click', handleLogout);
 
-            // Навигация через бургер уже настроена
-
             searchBtn.addEventListener('click', () => searchUsers(searchInput.value));
             searchInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') searchUsers(searchInput.value); });
 
             createPostBtn.addEventListener('click', createPost);
 
-            // Кнопка назад из чата на мобильных
             backFromChatBtn.addEventListener('click', () => {
                 chatWindowContainer.classList.add('hidden');
                 noChatSelected.classList.remove('hidden');
@@ -1987,7 +2038,6 @@
                 currentChatId = null;
             });
 
-            // Поиск в чатах
             chatSearchInput.addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase();
                 document.querySelectorAll('.chat-item').forEach(item => {
@@ -2008,7 +2058,7 @@
                     currentUser = user;
                     showApp();
                     await ensureUserProfile(user);
-                    goToChats(); // по умолчанию открываем чаты
+                    goToChats();
                 } else {
                     currentUser = null;
                     currentUserProfile = null;
@@ -2019,12 +2069,12 @@
                 }
             });
 
-            // Обработка клавиатуры на мобильных
+            // Корректировка высоты на мобильных (адресная строка)
             window.addEventListener('resize', () => {
                 document.body.style.height = window.innerHeight + 'px';
+                document.getElementById('app').style.height = window.innerHeight + 'px';
             });
 
-            // Функции очистки
             function cleanupSubscriptions() {
                 if (unsubscribeFeed) { unsubscribeFeed(); unsubscribeFeed = null; }
                 if (unsubscribeProfilePosts) { unsubscribeProfilePosts(); unsubscribeProfilePosts = null; }
@@ -2042,27 +2092,12 @@
                 appContainer.classList.remove('hidden');
             }
 
-            // Вспомогательная функция для перехода в профиль друга
             function goToUserProfile(uid) {
                 showSectionOnly('profile');
                 loadProfile(uid);
             }
         })();
     </script>
-    <!-- Комментарии с правилами безопасности -->
-    <!--
-        Правила для Firebase Storage:
-        service firebase.storage {
-          match /b/{bucket}/o {
-            match /avatars/{userId} {
-              allow read: if request.auth != null;
-              allow write: if request.auth != null && request.auth.uid == userId;
-            }
-            match /chats/{chatId}/{fileName} {
-              allow read, write: if request.auth != null;
-            }
-          }
-        }
-    -->
+    <!-- Комментарии с правилами безопасности (без изменений) -->
 </body>
 </html>
