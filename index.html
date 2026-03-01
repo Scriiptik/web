@@ -566,7 +566,7 @@
             align-self: flex-start;
             position: relative;
             color: var(--text-primary);
-            transition: transform 0.2s ease, opacity 0.2s; /* для возврата */
+            transition: transform 0.2s ease, opacity 0.2s;
         }
         .message.own {
             background: var(--message-out-bg);
@@ -1753,11 +1753,12 @@
                         state.currentChatId = chatId;
                         db.collection('users').doc(otherUid).get().then(doc => {
                             state.currentChatParticipant = { uid: otherUid, ...doc.data() };
+                            updateChatHeader(); // ← исправлено: обновляем заголовок после загрузки данных
                         });
                         if (window.innerWidth <= 768) chatsSidebar.classList.add('hide-mobile');
                         chatWindowContainer.classList.remove('hidden');
                         noChatSelected.classList.add('hidden');
-                        chatHeader.textContent = state.currentChatParticipant?.displayName || '';
+                        // Убрано chatHeader.textContent = ... чтобы не сбрасывать
                         chatHeader.onclick = () => {
                             showSection('profileSection');
                             loadProfile(otherUid);
@@ -1797,7 +1798,7 @@
                 }, TYPING_TIMEOUT);
             }
 
-            // Новая функция renderMessages с улучшенным свайпом
+            // Функция renderMessages с улучшенным свайпом
             function renderMessages(msgs) {
                 if (!msgs.length) { messagesContainer.innerHTML = '<div class="info-message">Нет сообщений</div>'; return; }
                 let html = '';
