@@ -819,6 +819,84 @@
         .info-message { padding: 2rem; text-align: center; color: var(--text-secondary); }
         .flex-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 
+        /* Стилизованные поля ввода */
+        .search-box,
+        .sidebar-search {
+            display: flex;
+            align-items: center;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: 2rem;
+            padding: 0 1rem;
+            margin: 1rem;
+            transition: border-color 0.2s;
+        }
+        .search-box:focus-within,
+        .sidebar-search:focus-within {
+            border-color: var(--accent);
+        }
+        .search-box input,
+        .sidebar-search input {
+            flex: 1;
+            padding: 0.8rem 0.5rem;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        .search-box::before {
+            content: '🔍';
+            margin-right: 0.5rem;
+            opacity: 0.6;
+        }
+        .sidebar-search::before {
+            content: '🔍';
+            margin-right: 0.5rem;
+            opacity: 0.6;
+        }
+        @media (max-width: 768px) {
+            .search-box, .sidebar-search {
+                margin: 0.5rem;
+            }
+        }
+
+        /* Бейдж непрочитанных в списке чатов */
+        .unread-badge {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            min-width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            padding: 0 4px;
+        }
+
+        /* Бейдж на пункте меню "Чаты" */
+        #drawerChats {
+            position: relative;
+        }
+        .menu-unread {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            min-width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+            padding: 0 4px;
+        }
+
         @media (max-width: 768px) {
             .chats-sidebar {
                 position: absolute;
@@ -938,10 +1016,10 @@
                 <!-- Поиск -->
                 <div id="searchSection" class="section">
                     <div class="section-content">
-                        <div class="search-box" style="display: flex; gap: 0.5rem;">
+                        <div class="search-box">
                             <input type="text" id="searchInput" placeholder="Имя или email...">
-                            <button id="searchBtn" class="btn-primary">Найти</button>
                         </div>
+                        <button id="searchBtn" class="btn-primary" style="margin: 0 1rem 1rem;">Найти</button>
                         <div id="searchResults"></div>
                     </div>
                 </div>
@@ -950,7 +1028,9 @@
                 <div id="chatsSection" class="section">
                     <div class="chats-sidebar" id="chatsSidebar">
                         <div class="sidebar-header"><h3>Чаты</h3></div>
-                        <div class="sidebar-search"><input type="text" id="chatSearchInput" placeholder="Поиск..."></div>
+                        <div class="sidebar-search">
+                            <input type="text" id="chatSearchInput" placeholder="Поиск...">
+                        </div>
                         <div class="chats-list" id="chatsList"></div>
                     </div>
                     <div class="chat-main">
@@ -1750,6 +1830,16 @@
             }
 
             // Чаты
+
+            // Новая функция для пометки чата прочитанным
+            async function markChatAsRead(chatId) {
+                if (!state.currentUser) return;
+                const chatRef = db.collection('chats').doc(chatId);
+                await chatRef.update({
+                    [`unreadCounts.${state.currentUser.uid}`]: 0
+                });
+            }
+
             async function getOrCreateChat(otherUid) {
                 const currentUid = state.currentUser.uid;
                 const chatsRef = db.collection('chats');
@@ -1763,7 +1853,12 @@
                         participants: [currentUid, otherUid],
                         lastMessage: '',
                         lastMessageTimestamp: null,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        // Добавляем счётчики непрочитанных сообщений
+                        unreadCounts: {
+                            [currentUid]: 0,
+                            [otherUid]: 0
+                        }
                     });
                     chat = { id: newChat.id, participants: [currentUid, otherUid] };
                 }
@@ -1784,6 +1879,8 @@
                     showSection('profileSection');
                     loadProfile(otherUid);
                 };
+                // Помечаем чат как прочитанный
+                markChatAsRead(chat.id);
                 loadMessages(chat.id);
                 loadChats();
 
@@ -1834,9 +1931,14 @@
                     const lastMsg = chat.lastMessage || 'Нет сообщений';
                     const time = chat.lastMessageTimestamp ? new Date(chat.lastMessageTimestamp.toDate()).toLocaleTimeString() : '';
                     const activeClass = chat.id === state.currentChatId ? 'active' : '';
+                    const unreadCount = chat.unreadCounts?.[state.currentUser.uid] || 0;
+                    const unreadBadge = unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : '';
                     html += `<div class="chat-item ${activeClass}" data-chat-id="${chat.id}" data-other-uid="${chat.otherUser.uid}">
                         <div class="chat-avatar">${chat.otherUser.avatar ? `<img src="${chat.otherUser.avatar}" style="width:54px;height:54px;border-radius:50%;object-fit:cover;">` : (chat.otherUser.displayName?.[0] || '?')}</div>
-                        <div class="chat-info"><div class="chat-name">${chat.otherUser.displayName || chat.otherUser.email}</div><div class="chat-last-message">${lastMsg}</div></div>
+                        <div class="chat-info">
+                            <div class="chat-name">${chat.otherUser.displayName || chat.otherUser.email} ${unreadBadge}</div>
+                            <div class="chat-last-message">${lastMsg}</div>
+                        </div>
                         <div class="chat-time">${time}</div>
                     </div>`;
                 });
@@ -1857,6 +1959,8 @@
                             showSection('profileSection');
                             loadProfile(otherUid);
                         };
+                        // Помечаем чат как прочитанный при клике
+                        markChatAsRead(chatId);
                         loadMessages(chatId);
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         item.classList.add('active');
@@ -1881,10 +1985,31 @@
                         };
                     });
                 });
+
+                // Обновляем общий бейдж непрочитанных в меню
+                updateUnreadTotal(chats);
+            }
+
+            function updateUnreadTotal(chats) {
+                const totalUnread = chats.reduce((sum, chat) => {
+                    return sum + (chat.unreadCounts?.[state.currentUser.uid] || 0);
+                }, 0);
+                const menuItem = document.getElementById('drawerChats');
+                // Удалим старый бейдж, если есть
+                const oldBadge = menuItem.querySelector('.menu-unread');
+                if (oldBadge) oldBadge.remove();
+                if (totalUnread > 0) {
+                    const badge = document.createElement('span');
+                    badge.className = 'menu-unread';
+                    badge.textContent = totalUnread;
+                    menuItem.appendChild(badge);
+                }
             }
 
             function loadMessages(chatId) {
                 if (state.listeners.messages) state.listeners.messages();
+                // Помечаем чат как прочитанный при открытии (уже вызвано выше, но на всякий случай)
+                markChatAsRead(chatId);
                 const q = db.collection('messages').where('chatId', '==', chatId).orderBy('timestamp', 'asc');
                 state.listeners.messages = q.onSnapshot(snap => {
                     const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -2081,7 +2206,7 @@
                 }
             }
 
-            // ИЗМЕНЁННАЯ ФУНКЦИЯ sendMessage С ПОДДЕРЖКОЙ replyTo
+            // ИЗМЕНЁННАЯ ФУНКЦИЯ sendMessage С ПОДДЕРЖКОЙ replyTo И ОБНОВЛЕНИЕМ СЧЁТЧИКОВ
             async function sendMessage(text, media, mediaType) {
                 const msgText = text !== undefined ? text : messageInput.value.trim();
                 if (!msgText && !media) return;
@@ -2101,6 +2226,19 @@
                     };
                 }
                 await db.collection('messages').add(msg);
+
+                // Получаем список участников чата, чтобы увеличить счётчик у получателя
+                const chatDoc = await db.collection('chats').doc(state.currentChatId).get();
+                const chatData = chatDoc.data();
+                const participants = chatData.participants;
+                const updates = {};
+                participants.forEach(uid => {
+                    if (uid !== state.currentUser.uid) {
+                        updates[`unreadCounts.${uid}`] = firebase.firestore.FieldValue.increment(1);
+                    }
+                });
+                await db.collection('chats').doc(state.currentChatId).update(updates);
+
                 await db.collection('chats').doc(state.currentChatId).update({
                     lastMessage: msgText || (mediaType === 'image' ? '📷' : '🎤'),
                     lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
