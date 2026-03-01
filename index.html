@@ -248,24 +248,11 @@
             border: 1px solid var(--border-light);
             transition: all 0.2s;
             text-align: left;
-            position: relative;
         }
         .nav-item:hover {
             background: var(--bg-secondary);
             border-color: var(--accent);
             color: var(--accent);
-        }
-        .badge {
-            background: red;
-            color: white;
-            border-radius: 50%;
-            padding: 2px 6px;
-            font-size: 12px;
-            margin-left: 5px;
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
         }
         .overlay {
             position: fixed;
@@ -369,8 +356,6 @@
             gap: 0.3rem;
             color: var(--text-secondary);
             transition: all 0.2s;
-            min-height: 44px;
-            min-width: 44px;
         }
         .like-btn:hover, .comment-btn:hover {
             background: var(--bg-secondary);
@@ -592,18 +577,18 @@
         }
         .message-sender { font-size: 0.75rem; font-weight: 600; color: var(--accent); }
         .message-time { font-size: 0.7rem; color: var(--text-secondary); text-align: right; }
-        .delete-msg, .reply-msg {
+        .delete-msg {
             position: absolute;
             top: 0;
+            right: 0;
             background: none;
             border: none;
             font-size: 1rem;
             cursor: pointer;
+            color: #ff4d4d;
             display: none;
         }
-        .delete-msg { right: 0; color: #ff4d4d; }
-        .reply-msg { left: 0; color: var(--accent); }
-        .message:hover .delete-msg, .message:hover .reply-msg { display: block; }
+        .message:hover .delete-msg { display: block; }
 
         .chat-input-area {
             display: flex;
@@ -686,44 +671,6 @@
         .hidden { display: none !important; }
         .info-message { padding: 2rem; text-align: center; color: var(--text-secondary); }
         .flex-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-
-        /* Стили для редактирования профиля */
-        .edit-profile-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .edit-profile-form label {
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: -0.5rem;
-        }
-        .edit-profile-form input[type="text"],
-        .edit-profile-form textarea,
-        .edit-profile-form input[type="file"] {
-            padding: 0.8rem 1rem;
-            border: 1px solid var(--border-light);
-            border-radius: var(--input-radius);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            outline: none;
-        }
-        .edit-profile-form textarea {
-            resize: vertical;
-        }
-        .avatar-preview {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            overflow: hidden;
-            margin: 0 auto;
-            border: 2px solid var(--accent);
-        }
-        .avatar-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
 
         @media (max-width: 768px) {
             .chats-sidebar {
@@ -865,22 +812,16 @@
     <div id="editProfileModal" class="modal">
         <div class="modal-content">
             <h3>Редактировать профиль</h3>
-            <div class="edit-profile-form">
-                <label for="editName">Имя</label>
-                <input type="text" id="editName" placeholder="Имя">
-                <label for="editBio">О себе</label>
-                <textarea id="editBio" rows="3" placeholder="О себе"></textarea>
-                <label for="editAvatar">Аватар (фото)</label>
-                <input type="file" id="editAvatar" accept="image/*">
-                <div class="avatar-preview" id="avatarPreview"></div>
-                <div class="flex-row" style="justify-content: center;">
-                    <button id="openPixelAvatarBtn" class="btn-secondary">🎨 Пиксель-арт</button>
-                    <button id="openFreeAvatarBtn" class="btn-secondary">🖌️ Рисовать</button>
-                </div>
-                <div class="flex-row" style="justify-content: center; margin-top:1rem;">
-                    <button id="saveProfileBtn" class="btn-primary">Сохранить</button>
-                    <button id="cancelEditBtn" class="btn-secondary">Отмена</button>
-                </div>
+            <input type="text" id="editName" placeholder="Имя">
+            <textarea id="editBio" rows="3" placeholder="О себе"></textarea>
+            <input type="file" id="editAvatar" accept="image/*">
+            <div class="flex-row" style="justify-content: center;">
+                <button id="openPixelAvatarBtn" class="btn-secondary">🎨 Пиксель-арт</button>
+                <button id="openFreeAvatarBtn" class="btn-secondary">🖌️ Рисовать</button>
+            </div>
+            <div class="flex-row" style="justify-content: center; margin-top:1rem;">
+                <button id="saveProfileBtn" class="btn-primary">Сохранить</button>
+                <button id="cancelEditBtn" class="btn-secondary">Отмена</button>
             </div>
         </div>
     </div>
@@ -1012,7 +953,6 @@
             const openFreeAvatarBtn = document.getElementById('openFreeAvatarBtn');
             const saveProfileBtn = document.getElementById('saveProfileBtn');
             const cancelEditBtn = document.getElementById('cancelEditBtn');
-            const avatarPreview = document.getElementById('avatarPreview');
             const drawingModal = document.getElementById('drawingModal');
             const drawingModalTitle = document.getElementById('drawingModalTitle');
             const modePixel = document.getElementById('modePixel');
@@ -1048,30 +988,6 @@
             let currentPostIdForComment = null;
             let currentDrawingTarget = 'avatar';
             let postImage = null;
-            let tempAvatar = null; // для хранения нарисованного аватара
-
-            // Для уведомлений
-            let unreadCount = 0;
-            const chatMenuItem = drawerChats;
-            const chatBadge = document.createElement('span');
-            chatBadge.className = 'badge';
-            chatBadge.style.display = 'none';
-            chatMenuItem.appendChild(chatBadge);
-            const chatLastTimestamps = new Map();
-
-            function playNotificationSound() {
-                try {
-                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    const oscillator = audioCtx.createOscillator();
-                    const gainNode = audioCtx.createGain();
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioCtx.destination);
-                    oscillator.frequency.value = 800;
-                    gainNode.gain.value = 0.1;
-                    oscillator.start();
-                    oscillator.stop(audioCtx.currentTime + 0.1);
-                } catch (e) {}
-            }
 
             // Тема
             function applyTheme() {
@@ -1106,9 +1022,6 @@
                 document.getElementById(sectionId).classList.add('active');
                 closeDrawer();
                 if (sectionId === 'chatsSection') {
-                    // Сброс уведомлений
-                    unreadCount = 0;
-                    chatBadge.style.display = 'none';
                     if (window.innerWidth <= 768) chatsSidebar.classList.remove('hide-mobile');
                     chatWindowContainer.classList.add('hidden');
                     noChatSelected.classList.remove('hidden');
@@ -1309,7 +1222,6 @@
                 freeCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e.touches[0]); });
                 freeCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
                 freeCanvas.addEventListener('touchend', stopDrawing);
-                freeCanvas.addEventListener('touchcancel', stopDrawing);
             }
 
             modePixel.addEventListener('click', () => {
@@ -1359,18 +1271,14 @@
                     }
                     const dataURL = canvas.toDataURL();
                     if (currentDrawingTarget === 'avatar') {
-                        tempAvatar = dataURL;
-                        updateAvatarPreview(dataURL);
-                        editProfileModal.classList.add('show'); // возвращаем модалку профиля
+                        window.tempAvatar = dataURL;
                     } else {
                         postImage = dataURL;
                     }
                 } else {
                     const dataURL = freeCanvas.toDataURL();
                     if (currentDrawingTarget === 'avatar') {
-                        tempAvatar = dataURL;
-                        updateAvatarPreview(dataURL);
-                        editProfileModal.classList.add('show');
+                        window.tempAvatar = dataURL;
                     } else {
                         postImage = dataURL;
                     }
@@ -1381,16 +1289,11 @@
             cancelDrawingBtn.addEventListener('click', () => drawingModal.classList.remove('show'));
 
             // Редактирование профиля
-            function updateAvatarPreview(src) {
-                avatarPreview.innerHTML = src ? `<img src="${src}">` : '';
-            }
-
             function showEditForm() {
                 editName.value = state.profile?.displayName || '';
                 editBio.value = state.profile?.bio || '';
                 editAvatar.value = '';
-                // Не сбрасываем tempAvatar!
-                updateAvatarPreview(tempAvatar || state.profile?.avatar || null);
+                window.tempAvatar = null;
                 editProfileModal.classList.add('show');
             }
 
@@ -1415,32 +1318,17 @@
                     const reader = new FileReader();
                     reader.onload = () => {
                         updates.avatar = reader.result;
-                        db.collection('users').doc(state.currentUser.uid).update(updates).then(() => {
-                            tempAvatar = null;
-                        });
+                        db.collection('users').doc(state.currentUser.uid).update(updates);
                     };
                     reader.readAsDataURL(file);
-                } else if (tempAvatar) {
-                    updates.avatar = tempAvatar;
+                } else if (window.tempAvatar) {
+                    updates.avatar = window.tempAvatar;
                     await db.collection('users').doc(state.currentUser.uid).update(updates);
-                    tempAvatar = null;
                 } else {
                     await db.collection('users').doc(state.currentUser.uid).update(updates);
                 }
                 editProfileModal.classList.remove('show');
                 loadProfile(state.currentUser.uid);
-            });
-
-            editAvatar.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        updateAvatarPreview(reader.result);
-                        tempAvatar = reader.result;
-                    };
-                    reader.readAsDataURL(file);
-                }
             });
 
             // Подписчики/подписки
@@ -1627,22 +1515,6 @@
                 if (state.listeners.chats) state.listeners.chats();
                 const q = db.collection('chats').where('participants', 'array-contains', state.currentUser.uid).orderBy('updatedAt', 'desc');
                 state.listeners.chats = q.onSnapshot(async snap => {
-                    // Обработка новых сообщений для уведомлений
-                    snap.docChanges().forEach(change => {
-                        if (change.type === 'modified' || change.type === 'added') {
-                            const chat = change.doc.data();
-                            const chatId = change.doc.id;
-                            const newTs = chat.lastMessageTimestamp?.toMillis() || 0;
-                            const prevTs = chatLastTimestamps.get(chatId) || 0;
-                            if (newTs > prevTs && chat.lastMessageSender && chat.lastMessageSender !== state.currentUser.uid && chatId !== state.currentChatId) {
-                                unreadCount++;
-                                chatBadge.style.display = 'inline';
-                                playNotificationSound();
-                            }
-                            chatLastTimestamps.set(chatId, newTs);
-                        }
-                    });
-
                     const chats = await Promise.all(snap.docs.map(async doc => {
                         const chat = { id: doc.id, ...doc.data() };
                         const otherUid = chat.participants.find(uid => uid !== state.currentUser.uid);
@@ -1714,14 +1586,12 @@
                     const isSingleEmoji = m.text && /^[\p{Emoji}]+$/u.test(m.text) && m.text.length <= 2;
                     const msgClass = `message ${isOwn ? 'own' : ''} ${isSingleEmoji ? 'single-emoji' : ''}`;
                     const deleteBtn = `<button class="delete-msg" data-msg-id="${m.id}">🗑️</button>`;
-                    const replyBtn = `<button class="reply-msg" data-msg-text="${(m.text || '').replace(/"/g, '&quot;')}" data-sender="${sender}">↩️</button>`;
                     html += `<div class="${msgClass}" data-msg-id="${m.id}">
                         <div class="message-sender">${sender}</div>
                         <div>${m.text || ''}</div>
                         ${media}
                         <div class="message-time">${time}</div>
                         ${deleteBtn}
-                        ${replyBtn}
                     </div>`;
                 });
                 messagesContainer.innerHTML = html;
@@ -1731,16 +1601,6 @@
                         const msgId = btn.dataset.msgId;
                         if (confirm('Удалить сообщение?')) {
                             await deleteMessage(msgId);
-                        }
-                    });
-                });
-                document.querySelectorAll('.reply-msg').forEach(btn => {
-                    btn.addEventListener('click', e => {
-                        const msgText = btn.dataset.msgText;
-                        const sender = btn.dataset.sender;
-                        if (msgText) {
-                            messageInput.value = `> ${sender}: ${msgText}\n` + messageInput.value;
-                            messageInput.focus();
                         }
                     });
                 });
@@ -1832,22 +1692,11 @@
                 if (!state.currentChatId || isRecording) return;
                 try {
                     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    
-                    // Определяем поддерживаемый MIME-тип
-                    const mimeTypes = ['audio/mp4', 'audio/webm', 'audio/ogg'];
-                    let selectedType = 'audio/webm';
-                    for (let type of mimeTypes) {
-                        if (MediaRecorder.isTypeSupported(type)) {
-                            selectedType = type;
-                            break;
-                        }
-                    }
-                    mediaRecorder = new MediaRecorder(stream, { mimeType: selectedType });
-                    
+                    mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
                     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
                     mediaRecorder.onstop = async () => {
-                        const blob = new Blob(audioChunks, { type: selectedType });
+                        const blob = new Blob(audioChunks, { type: 'audio/webm' });
                         const reader = new FileReader();
                         reader.onload = () => {
                             sendMessage(null, reader.result, 'audio');
@@ -1902,7 +1751,7 @@
                 }, 100);
             }
 
-            // Эмодзи-пикер
+            // Эмодзи-пикер (большой список)
             const emojiList = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
             emojiBtn.addEventListener('click', () => {
                 if (emojiPicker.classList.contains('hidden')) {
