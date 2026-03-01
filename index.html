@@ -30,10 +30,12 @@
             --shadow-md: 0 2px 8px rgba(0,0,0,0.1);
             --footer-height: 40px;
             --header-height: 56px;
+            --button-radius: 2rem;
+            --input-radius: 2rem;
         }
         body.dark-theme {
-            --bg-primary: #1f2128;
-            --bg-secondary: #181a20;
+            --bg-primary: #1a1c22;
+            --bg-secondary: #0f1117;
             --bg-sidebar: #1f2128;
             --text-primary: #f0f2f5;
             --text-secondary: #a0a8b4;
@@ -50,6 +52,8 @@
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            color: var(--text-primary);
+            transition: background-color 0.2s, color 0.2s;
         }
         #app {
             width: 100%;
@@ -60,7 +64,55 @@
             overflow: hidden;
         }
 
-        /* ----- АУТЕНТИФИКАЦИЯ ----- */
+        /* Кнопки */
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: var(--button-radius);
+            font-weight: 600;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        .btn-secondary {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--border-light);
+            padding: 0.5rem 1rem;
+            border-radius: var(--button-radius);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+        }
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--accent);
+            background: transparent;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-icon:hover {
+            background: var(--bg-secondary);
+            border-color: var(--border-light);
+        }
+
+        /* Аутентификация */
         .auth-container {
             max-width: 380px;
             margin: auto;
@@ -90,7 +142,9 @@
             cursor: pointer;
             flex: 1;
             border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
         }
+        .auth-tab:hover { color: var(--accent); }
         .auth-tab.active {
             color: var(--accent);
             border-bottom-color: var(--accent);
@@ -103,22 +157,15 @@
         .auth-form input {
             padding: 0.9rem 1.2rem;
             border: 1px solid var(--border-light);
-            border-radius: 1.5rem;
+            border-radius: var(--input-radius);
             background: var(--bg-secondary);
             color: var(--text-primary);
             outline: none;
+            transition: border-color 0.2s;
         }
-        .auth-form button {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 0.9rem;
-            border-radius: 1.5rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        .auth-form input:focus { border-color: var(--accent); }
 
-        /* ----- ШАПКА ----- */
+        /* Шапка */
         .app-header {
             padding: 0.5rem 1rem;
             background: var(--bg-sidebar);
@@ -138,7 +185,9 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
+            transition: background 0.2s;
         }
+        .burger-menu:hover { background: var(--bg-secondary); }
         .logo {
             font-size: 1.3rem;
             font-weight: 600;
@@ -150,15 +199,21 @@
             align-items: center;
         }
         .theme-toggle, .logout-btn {
-            background: none;
+            background: transparent;
             border: 1px solid var(--border-light);
             color: var(--text-secondary);
             padding: 0.5rem 1rem;
-            border-radius: 2rem;
+            border-radius: var(--button-radius);
             cursor: pointer;
+            transition: all 0.2s;
+        }
+        .theme-toggle:hover, .logout-btn:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
-        /* ----- БОКОВОЕ МЕНЮ ----- */
+        /* Боковое меню */
         .nav-drawer {
             position: fixed;
             top: 0;
@@ -169,6 +224,7 @@
             transition: left 0.25s ease;
             z-index: 2000;
             padding: 1rem;
+            border-right: 1px solid var(--border-light);
         }
         .nav-drawer.open { left: 0; }
         .close-drawer {
@@ -178,13 +234,26 @@
             color: var(--accent);
             cursor: pointer;
         }
+        .nav-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
         .nav-item {
             padding: 1rem;
             border-radius: 0.8rem;
             color: var(--text-primary);
             cursor: pointer;
+            border: 1px solid var(--border-light);
+            transition: all 0.2s;
+            text-align: left;
         }
-        .nav-item:hover { background: var(--bg-secondary); }
+        .nav-item:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
         .overlay {
             position: fixed;
             top: 0;
@@ -197,7 +266,7 @@
         }
         .overlay.show { display: block; }
 
-        /* ----- ОСНОВНОЙ КОНТЕНТ ----- */
+        /* Основной контент */
         #appContainer {
             display: flex;
             flex-direction: column;
@@ -231,27 +300,46 @@
             flex-shrink: 0;
         }
 
-        /* ----- КАРТОЧКИ И ПОСТЫ ----- */
+        /* Карточки и посты */
         .card {
             background: var(--bg-primary);
             border-radius: 1rem;
             padding: 1.5rem;
             border: 1px solid var(--border-light);
             margin-bottom: 1rem;
+            box-shadow: var(--shadow-sm);
         }
         .post {
             border-bottom: 1px solid var(--border-light);
             padding: 1rem 0;
         }
+        .post:last-child { border-bottom: none; }
         .post-header {
             display: flex;
             justify-content: space-between;
             margin-bottom: 0.5rem;
         }
-        .post-author { font-weight: 600; color: var(--accent); cursor: pointer; }
-        .post-time { color: var(--text-secondary); font-size: 0.85rem; }
-        .post-text { color: var(--text-primary); margin-bottom: 0.75rem; }
-        .post-image { max-width: 100%; max-height: 300px; border-radius: 1rem; margin: 0.5rem 0; }
+        .post-author {
+            font-weight: 600;
+            color: var(--accent);
+            cursor: pointer;
+        }
+        .post-author:hover { text-decoration: underline; }
+        .post-time {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .post-text {
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+        .post-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 1rem;
+            margin: 0.5rem 0;
+        }
         .post-actions {
             display: flex;
             gap: 1rem;
@@ -266,10 +354,20 @@
             display: inline-flex;
             align-items: center;
             gap: 0.3rem;
+            color: var(--text-secondary);
+            transition: all 0.2s;
         }
-        .like-btn.liked { background: #ff4d4d20; border-color: #ff4d4d; color: #ff4d4d; }
+        .like-btn:hover, .comment-btn:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+        }
+        .like-btn.liked {
+            background: #ff4d4d20;
+            border-color: #ff4d4d;
+            color: #ff4d4d;
+        }
 
-        /* ----- ПРОФИЛЬ ----- */
+        /* Профиль */
         .profile-header {
             display: flex;
             gap: 1.5rem;
@@ -288,20 +386,48 @@
             font-weight: 500;
             object-fit: cover;
         }
-        .avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
         .stats {
             display: flex;
             gap: 2rem;
             color: var(--text-secondary);
         }
-        .stats span { font-weight: 600; color: var(--text-primary); cursor: pointer; }
+        .stats span {
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
         .stats span:hover { text-decoration: underline; }
 
-        /* ----- ПИКСЕЛЬ-АРТ РЕДАКТОР ----- */
-        .pixel-editor {
+        /* Рисование */
+        .drawing-editor {
             background: var(--bg-primary);
             border-radius: 1rem;
             padding: 1rem;
+        }
+        .drawing-mode-switch {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        .mode-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-light);
+            border-radius: var(--button-radius);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        .mode-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
         }
         .pixel-canvas {
             display: grid;
@@ -310,6 +436,15 @@
             background: #ccc;
             width: fit-content;
             margin: 0 auto;
+        }
+        .free-canvas {
+            width: 300px;
+            height: 300px;
+            border: 1px solid var(--border-light);
+            background: white;
+            margin: 0 auto;
+            cursor: crosshair;
+            touch-action: none;
         }
         .pixel {
             width: 20px;
@@ -330,10 +465,12 @@
             border-radius: 50%;
             cursor: pointer;
             border: 2px solid transparent;
+            transition: transform 0.1s;
         }
+        .color:hover { transform: scale(1.1); }
         .color.selected { border-color: var(--accent); }
 
-        /* ----- МОДАЛКИ ----- */
+        /* Модальные окна */
         .modal {
             display: none;
             position: fixed;
@@ -355,22 +492,8 @@
             max-height: 90%;
             overflow-y: auto;
         }
-        .user-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .user-list-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            cursor: pointer;
-        }
-        .user-list-item:hover { background: var(--bg-secondary); }
 
-        /* ----- ЧАТЫ ----- */
+        /* Чаты */
         #chatsSection { flex-direction: row; }
         .chats-sidebar {
             width: 320px;
@@ -387,6 +510,7 @@
             padding: 0.75rem;
             border-radius: 1rem;
             cursor: pointer;
+            transition: background 0.2s;
         }
         .chat-item:hover { background: var(--bg-secondary); }
         .chat-item.active { background: var(--bg-secondary); }
@@ -404,6 +528,7 @@
         .chat-info { flex: 1; overflow: hidden; }
         .chat-name { font-weight: 600; color: var(--text-primary); }
         .chat-last-message { color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-time { color: var(--text-secondary); font-size: 0.75rem; }
 
         .chat-main { flex: 1; display: flex; flex-direction: column; }
         #chatWindowContainer {
@@ -419,6 +544,9 @@
             padding: 1rem;
             border-bottom: 1px solid var(--border-light);
             background: var(--bg-sidebar);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
         .back-button { display: none; }
         #messagesContainer {
@@ -437,6 +565,7 @@
             background: var(--message-in-bg);
             align-self: flex-start;
             position: relative;
+            color: var(--text-primary);
         }
         .message.own {
             background: var(--message-out-bg);
@@ -445,11 +574,6 @@
         .message.single-emoji {
             font-size: 4rem;
             padding: 0.2rem 0.5rem;
-            animation: pop 0.3s ease;
-        }
-        @keyframes pop {
-            0% { transform: scale(0.8); }
-            100% { transform: scale(1); }
         }
         .message-sender { font-size: 0.75rem; font-weight: 600; color: var(--accent); }
         .message-time { font-size: 0.7rem; color: var(--text-secondary); text-align: right; }
@@ -464,19 +588,22 @@
             color: #ff4d4d;
             display: none;
         }
-        .message.own:hover .delete-msg { display: block; }
+        .message:hover .delete-msg { display: block; }
+
         .chat-input-area {
             display: flex;
             gap: 0.5rem;
             padding: 0.75rem 1rem;
             background: var(--bg-sidebar);
             border-top: 1px solid var(--border-light);
+            flex-wrap: wrap;
         }
         .chat-input-area input {
             flex: 1;
+            min-width: 150px;
             padding: 0.8rem 1.2rem;
             border: 1px solid var(--border-light);
-            border-radius: 2rem;
+            border-radius: var(--input-radius);
             background: var(--bg-secondary);
             color: var(--text-primary);
             outline: none;
@@ -490,11 +617,61 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
+            transition: background 0.2s;
         }
+        .chat-input-area button:hover { background: var(--bg-secondary); }
+
+        /* Голосовая запись */
+        .voice-recording-panel {
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--accent);
+            border-radius: 2rem;
+            color: white;
+        }
+        .voice-recording-panel.active { display: flex; }
+        .recording-timer { font-size: 1rem; font-weight: 600; }
+        .recording-visualizer {
+            width: 100px;
+            height: 20px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .recording-level {
+            height: 100%;
+            width: 0%;
+            background: white;
+            transition: width 0.1s;
+        }
+
+        /* Эмодзи-пикер */
+        .emoji-picker {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0.25rem;
+            padding: 0.5rem;
+            background: var(--bg-sidebar);
+            border-radius: 1rem;
+            box-shadow: var(--shadow-md);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .emoji-item {
+            font-size: 1.8rem;
+            text-align: center;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.5rem;
+        }
+        .emoji-item:hover { background: var(--bg-secondary); }
 
         .hidden { display: none !important; }
         .info-message { padding: 2rem; text-align: center; color: var(--text-secondary); }
-        .flex-row { display: flex; gap: 0.5rem; align-items: center; }
+        .flex-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
         @media (max-width: 768px) {
             .chats-sidebar {
                 position: absolute;
@@ -504,6 +681,7 @@
             }
             .chats-sidebar.hide-mobile { transform: translateX(-100%); }
             .back-button { display: inline-block; }
+            .chat-input-area button { width: 36px; height: 36px; }
         }
     </style>
 </head>
@@ -519,12 +697,12 @@
             <div id="loginForm" class="auth-form">
                 <input type="email" id="loginEmail" placeholder="Email">
                 <input type="password" id="loginPassword" placeholder="Пароль">
-                <button id="loginBtn">Войти</button>
+                <button id="loginBtn" class="btn-primary">Войти</button>
             </div>
             <div id="registerForm" class="auth-form hidden">
                 <input type="email" id="registerEmail" placeholder="Email">
                 <input type="password" id="registerPassword" placeholder="Пароль">
-                <button id="registerBtn">Зарегистрироваться</button>
+                <button id="registerBtn" class="btn-primary">Зарегистрироваться</button>
             </div>
         </div>
 
@@ -560,17 +738,17 @@
             <div class="main-content">
                 <!-- Лента -->
                 <div id="feedSection" class="section">
-                    <div class="section-content" id="feedContent">
-                        <!-- Карточка создания поста -->
+                    <div class="section-content">
                         <div class="card">
                             <h3>Новый пост</h3>
                             <textarea id="postText" rows="3" placeholder="Что у вас нового?" style="width:100%; padding:0.8rem; border-radius:1rem; border:1px solid var(--border-light); background:var(--bg-secondary); color:var(--text-primary);"></textarea>
-                            <div style="margin: 0.5rem 0;">
-                                <button id="openPixelPostBtn" class="secondary">🎨 Нарисовать пиксель-арт</button>
+                            <div class="flex-row" style="margin: 0.5rem 0;">
+                                <button id="openPixelPostBtn" class="btn-secondary">🎨 Пиксель-арт</button>
+                                <button id="openFreePostBtn" class="btn-secondary">🖌️ Рисование</button>
                                 <input type="file" id="postImageInput" accept="image/*" style="display:none;">
-                                <button id="uploadPostImageBtn" class="secondary">🖼 Загрузить фото</button>
+                                <button id="uploadPostImageBtn" class="btn-secondary">🖼 Фото</button>
                             </div>
-                            <button id="createPostBtn" style="margin-top:1rem; background:var(--accent); color:white; border:none; padding:0.8rem; border-radius:2rem;">Опубликовать</button>
+                            <button id="createPostBtn" class="btn-primary" style="width:100%;">Опубликовать</button>
                         </div>
                         <div id="feedPosts"></div>
                     </div>
@@ -584,9 +762,9 @@
                 <!-- Поиск -->
                 <div id="searchSection" class="section">
                     <div class="section-content">
-                        <div class="search-box">
+                        <div class="search-box" style="display: flex; gap: 0.5rem;">
                             <input type="text" id="searchInput" placeholder="Имя или email...">
-                            <button id="searchBtn">Найти</button>
+                            <button id="searchBtn" class="btn-primary">Найти</button>
                         </div>
                         <div id="searchResults"></div>
                     </div>
@@ -603,55 +781,94 @@
                         <div id="noChatSelected" class="info-message">Выберите чат</div>
                         <div id="chatWindowContainer" class="hidden">
                             <div class="chat-header">
-                                <button id="backFromChatBtn" class="back-button">←</button>
-                                <span id="chatHeader" class="contact-name"></span>
+                                <button id="backFromChatBtn" class="back-button btn-icon">←</button>
+                                <span id="chatHeader" class="contact-name" style="cursor:pointer; color:var(--accent);"></span>
                             </div>
                             <div id="messagesContainer"></div>
                             <div class="chat-input-area">
-                                <button id="emojiBtn">😊</button>
+                                <button id="emojiBtn" class="btn-icon">😊</button>
                                 <input type="text" id="messageInput" placeholder="Сообщение...">
-                                <button id="attachBtn">📎</button>
+                                <button id="attachBtn" class="btn-icon">📎</button>
                                 <input type="file" id="fileInput" accept="image/*,video/*" style="display:none;">
-                                <button id="recordBtn">🎤</button>
-                                <button id="sendMessageBtn">➤</button>
+                                <div id="voicePanel" class="voice-recording-panel">
+                                    <span class="recording-timer" id="voiceTimer">00:00</span>
+                                    <div class="recording-visualizer">
+                                        <div id="voiceLevel" class="recording-level"></div>
+                                    </div>
+                                </div>
+                                <button id="recordBtn" class="btn-icon">🎤</button>
+                                <button id="sendMessageBtn" class="btn-icon">➤</button>
                             </div>
                             <div id="emojiPicker" class="emoji-picker hidden"></div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="app-footer">© 2026 SCRIPT Studio</div>
+            <div class="app-footer">© 2026 SCRIPT Messenger</div>
         </div>
     </div>
 
-    <!-- Модалки -->
-    <div id="pixelModal" class="modal">
+    <!-- Модалка редактирования профиля -->
+    <div id="editProfileModal" class="modal">
         <div class="modal-content">
-            <h3>Рисование пиксель-арта</h3>
-            <div class="pixel-editor">
-                <div class="pixel-canvas" id="pixelCanvas"></div>
-                <div class="color-palette" id="colorPalette"></div>
-                <button id="savePixelArt">Сохранить</button>
-                <button class="secondary" id="cancelPixelArt">Отмена</button>
+            <h3>Редактировать профиль</h3>
+            <input type="text" id="editName" placeholder="Имя">
+            <textarea id="editBio" rows="3" placeholder="О себе"></textarea>
+            <input type="file" id="editAvatar" accept="image/*">
+            <div class="flex-row" style="justify-content: center;">
+                <button id="openPixelAvatarBtn" class="btn-secondary">🎨 Пиксель-арт</button>
+                <button id="openFreeAvatarBtn" class="btn-secondary">🖌️ Рисовать</button>
+            </div>
+            <div class="flex-row" style="justify-content: center; margin-top:1rem;">
+                <button id="saveProfileBtn" class="btn-primary">Сохранить</button>
+                <button id="cancelEditBtn" class="btn-secondary">Отмена</button>
             </div>
         </div>
     </div>
 
+    <!-- Модалка рисования -->
+    <div id="drawingModal" class="modal">
+        <div class="modal-content">
+            <h3 id="drawingModalTitle">Рисование</h3>
+            <div class="drawing-mode-switch">
+                <button id="modePixel" class="mode-btn active">Пиксель-арт</button>
+                <button id="modeFree" class="mode-btn">Обычное</button>
+            </div>
+            <div class="drawing-editor">
+                <div id="pixelCanvasContainer">
+                    <div class="pixel-canvas" id="pixelCanvas"></div>
+                </div>
+                <div id="freeCanvasContainer" style="display:none;">
+                    <canvas id="freeCanvas" class="free-canvas" width="300" height="300"></canvas>
+                </div>
+                <div class="color-palette" id="colorPalette"></div>
+                <div class="flex-row" style="justify-content: center;">
+                    <button id="saveDrawingBtn" class="btn-primary">Сохранить</button>
+                    <button id="cancelDrawingBtn" class="btn-secondary">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка списка пользователей -->
     <div id="userListModal" class="modal">
         <div class="modal-content">
             <h3 id="userListTitle"></h3>
             <div id="userList" class="user-list"></div>
-            <button class="secondary" id="closeUserList">Закрыть</button>
+            <button id="closeUserList" class="btn-secondary">Закрыть</button>
         </div>
     </div>
 
+    <!-- Модалка комментариев -->
     <div id="commentModal" class="modal">
         <div class="modal-content">
             <h3>Комментарии</h3>
             <div id="commentsList" style="max-height:300px; overflow-y:auto;"></div>
             <textarea id="newComment" rows="2" placeholder="Ваш комментарий..."></textarea>
-            <button id="addCommentBtn">Отправить</button>
-            <button class="secondary" id="closeCommentModal">Закрыть</button>
+            <div class="flex-row" style="justify-content: center;">
+                <button id="addCommentBtn" class="btn-primary">Отправить</button>
+                <button id="closeCommentModal" class="btn-secondary">Закрыть</button>
+            </div>
         </div>
     </div>
 
@@ -669,7 +886,7 @@
             const auth = firebase.auth();
             const db = firebase.firestore();
 
-            // Глобальное состояние
+            // Состояние
             let state = {
                 currentUser: null,
                 profile: null,
@@ -680,7 +897,7 @@
                 listeners: {}
             };
 
-            // Элементы
+            // DOM элементы
             const authContainer = document.getElementById('authContainer');
             const appContainer = document.getElementById('appContainer');
             const loginTab = document.getElementById('loginTab');
@@ -725,11 +942,28 @@
             const emojiPicker = document.getElementById('emojiPicker');
             const chatHeader = document.getElementById('chatHeader');
             const backFromChatBtn = document.getElementById('backFromChatBtn');
-            const pixelModal = document.getElementById('pixelModal');
+            const voicePanel = document.getElementById('voicePanel');
+            const voiceTimer = document.getElementById('voiceTimer');
+            const voiceLevel = document.getElementById('voiceLevel');
+            const editProfileModal = document.getElementById('editProfileModal');
+            const editName = document.getElementById('editName');
+            const editBio = document.getElementById('editBio');
+            const editAvatar = document.getElementById('editAvatar');
+            const openPixelAvatarBtn = document.getElementById('openPixelAvatarBtn');
+            const openFreeAvatarBtn = document.getElementById('openFreeAvatarBtn');
+            const saveProfileBtn = document.getElementById('saveProfileBtn');
+            const cancelEditBtn = document.getElementById('cancelEditBtn');
+            const drawingModal = document.getElementById('drawingModal');
+            const drawingModalTitle = document.getElementById('drawingModalTitle');
+            const modePixel = document.getElementById('modePixel');
+            const modeFree = document.getElementById('modeFree');
+            const pixelCanvasContainer = document.getElementById('pixelCanvasContainer');
+            const freeCanvasContainer = document.getElementById('freeCanvasContainer');
             const pixelCanvas = document.getElementById('pixelCanvas');
+            const freeCanvas = document.getElementById('freeCanvas');
             const colorPalette = document.getElementById('colorPalette');
-            const savePixelArt = document.getElementById('savePixelArt');
-            const cancelPixelArt = document.getElementById('cancelPixelArt');
+            const saveDrawingBtn = document.getElementById('saveDrawingBtn');
+            const cancelDrawingBtn = document.getElementById('cancelDrawingBtn');
             const userListModal = document.getElementById('userListModal');
             const userListTitle = document.getElementById('userListTitle');
             const userList = document.getElementById('userList');
@@ -740,14 +974,20 @@
             const addCommentBtn = document.getElementById('addCommentBtn');
             const closeCommentModal = document.getElementById('closeCommentModal');
             const openPixelPostBtn = document.getElementById('openPixelPostBtn');
+            const openFreePostBtn = document.getElementById('openFreePostBtn');
             const uploadPostImageBtn = document.getElementById('uploadPostImageBtn');
             const postImageInput = document.getElementById('postImageInput');
 
             let selectedFriendUid = null;
-            let currentPixelMode = 'avatar'; // 'avatar' или 'post'
+            let currentDrawingMode = 'pixel';
             let pixelGrid = Array(256).fill('#ffffff');
+            let freeCanvasCtx = null;
+            let isDrawing = false;
+            let lastX, lastY;
             let selectedColor = '#000000';
             let currentPostIdForComment = null;
+            let currentDrawingTarget = 'avatar';
+            let postImage = null;
 
             // Тема
             function applyTheme() {
@@ -766,7 +1006,7 @@
                 applyTheme();
             });
 
-            // Бургер-меню
+            // Бургер
             function openDrawer() { navDrawer.classList.add('open'); overlay.classList.add('show'); }
             function closeDrawer() { navDrawer.classList.remove('open'); overlay.classList.remove('show'); }
             burgerMenu.addEventListener('click', openDrawer);
@@ -819,7 +1059,7 @@
                 });
             }
 
-            // Лента (все посты)
+            // Лента
             function loadFeed() {
                 if (state.listeners.feed) state.listeners.feed();
                 const postsQuery = db.collection('posts').orderBy('timestamp', 'desc');
@@ -906,81 +1146,8 @@
 
             closeCommentModal.addEventListener('click', () => commentModal.classList.remove('show'));
 
-            // Посты с изображениями и пиксель-артом
-            openPixelPostBtn.addEventListener('click', () => {
-                currentPixelMode = 'post';
-                pixelGrid = Array(256).fill('#ffffff');
-                openPixelEditor();
-            });
-
-            uploadPostImageBtn.addEventListener('click', () => postImageInput.click());
-            postImageInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        postImage = reader.result; // временно сохраним
-                        alert('Изображение загружено, теперь опубликуйте пост');
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-
-            let postImage = null;
-
-            createPostBtn.addEventListener('click', async () => {
-                const text = postText.value.trim();
-                if (!text && !postImage && pixelGrid.every(c => c === '#ffffff')) return;
-                let image = postImage;
-                if (currentPixelMode === 'post' && pixelGrid.some(c => c !== '#ffffff')) {
-                    // Конвертируем пиксели в canvas и получаем dataURL
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 16;
-                    canvas.height = 16;
-                    const ctx = canvas.getContext('2d');
-                    for (let i = 0; i < 16; i++) {
-                        for (let j = 0; j < 16; j++) {
-                            ctx.fillStyle = pixelGrid[i * 16 + j];
-                            ctx.fillRect(j, i, 1, 1);
-                        }
-                    }
-                    image = canvas.toDataURL();
-                }
-                await db.collection('posts').add({
-                    userId: state.currentUser.uid,
-                    text: text || '',
-                    image: image || null,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    likes: []
-                });
-                postText.value = '';
-                postImage = null;
-                pixelGrid = Array(256).fill('#ffffff');
-            });
-
-            // Пиксель-арт редактор
-            function openPixelEditor() {
-                renderPixelCanvas();
-                renderPalette();
-                pixelModal.classList.add('show');
-            }
-
-            function renderPixelCanvas() {
-                pixelCanvas.innerHTML = '';
-                for (let i = 0; i < 256; i++) {
-                    const div = document.createElement('div');
-                    div.className = 'pixel';
-                    div.style.backgroundColor = pixelGrid[i];
-                    div.dataset.index = i;
-                    div.addEventListener('click', () => {
-                        pixelGrid[i] = selectedColor;
-                        div.style.backgroundColor = selectedColor;
-                    });
-                    pixelCanvas.appendChild(div);
-                }
-            }
-
-            function renderPalette() {
+            // Рисование
+            function initPalette() {
                 const colors = ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#888888', '#ff8800', '#88ff00', '#0088ff'];
                 colorPalette.innerHTML = '';
                 colors.forEach(color => {
@@ -994,36 +1161,175 @@
                     });
                     colorPalette.appendChild(div);
                 });
-                colorPalette.firstChild.classList.add('selected');
+                colorPalette.firstChild?.classList.add('selected');
             }
 
-            savePixelArt.addEventListener('click', () => {
-                if (currentPixelMode === 'avatar') {
+            function renderPixelCanvas() {
+                pixelCanvas.innerHTML = '';
+                for (let i = 0; i < 16; i++) {
+                    for (let j = 0; j < 16; j++) {
+                        const div = document.createElement('div');
+                        div.className = 'pixel';
+                        div.style.backgroundColor = pixelGrid[i*16 + j];
+                        div.dataset.index = i*16 + j;
+                        div.addEventListener('click', () => {
+                            pixelGrid[div.dataset.index] = selectedColor;
+                            div.style.backgroundColor = selectedColor;
+                        });
+                        pixelCanvas.appendChild(div);
+                    }
+                }
+            }
+
+            function initFreeCanvas() {
+                freeCanvasCtx = freeCanvas.getContext('2d');
+                freeCanvasCtx.fillStyle = '#ffffff';
+                freeCanvasCtx.fillRect(0, 0, 300, 300);
+                freeCanvasCtx.strokeStyle = selectedColor;
+                freeCanvasCtx.lineWidth = 4;
+                freeCanvasCtx.lineCap = 'round';
+
+                const startDrawing = (e) => {
+                    isDrawing = true;
+                    const rect = freeCanvas.getBoundingClientRect();
+                    const scaleX = freeCanvas.width / rect.width;
+                    const scaleY = freeCanvas.height / rect.height;
+                    const x = (e.clientX - rect.left) * scaleX;
+                    const y = (e.clientY - rect.top) * scaleY;
+                    lastX = x; lastY = y;
+                };
+                const draw = (e) => {
+                    if (!isDrawing) return;
+                    e.preventDefault();
+                    const rect = freeCanvas.getBoundingClientRect();
+                    const scaleX = freeCanvas.width / rect.width;
+                    const scaleY = freeCanvas.height / rect.height;
+                    const x = (e.clientX - rect.left) * scaleX;
+                    const y = (e.clientY - rect.top) * scaleY;
+                    freeCanvasCtx.beginPath();
+                    freeCanvasCtx.moveTo(lastX, lastY);
+                    freeCanvasCtx.lineTo(x, y);
+                    freeCanvasCtx.strokeStyle = selectedColor;
+                    freeCanvasCtx.stroke();
+                    lastX = x; lastY = y;
+                };
+                const stopDrawing = () => isDrawing = false;
+
+                freeCanvas.addEventListener('mousedown', startDrawing);
+                freeCanvas.addEventListener('mousemove', draw);
+                freeCanvas.addEventListener('mouseup', stopDrawing);
+                freeCanvas.addEventListener('mouseleave', stopDrawing);
+                freeCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e.touches[0]); });
+                freeCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+                freeCanvas.addEventListener('touchend', stopDrawing);
+            }
+
+            modePixel.addEventListener('click', () => {
+                modePixel.classList.add('active');
+                modeFree.classList.remove('active');
+                pixelCanvasContainer.style.display = 'block';
+                freeCanvasContainer.style.display = 'none';
+                currentDrawingMode = 'pixel';
+            });
+            modeFree.addEventListener('click', () => {
+                modeFree.classList.add('active');
+                modePixel.classList.remove('active');
+                pixelCanvasContainer.style.display = 'none';
+                freeCanvasContainer.style.display = 'block';
+                currentDrawingMode = 'free';
+                if (!freeCanvasCtx) initFreeCanvas();
+            });
+
+            function openDrawingModal(target) {
+                currentDrawingTarget = target;
+                drawingModalTitle.textContent = target === 'avatar' ? 'Рисование аватара' : 'Рисование для поста';
+                pixelGrid = Array(256).fill('#ffffff');
+                renderPixelCanvas();
+                if (freeCanvasCtx) {
+                    freeCanvasCtx.fillStyle = '#ffffff';
+                    freeCanvasCtx.fillRect(0, 0, 300, 300);
+                }
+                modePixel.classList.add('active');
+                modeFree.classList.remove('active');
+                pixelCanvasContainer.style.display = 'block';
+                freeCanvasContainer.style.display = 'none';
+                currentDrawingMode = 'pixel';
+                drawingModal.classList.add('show');
+            }
+
+            saveDrawingBtn.addEventListener('click', () => {
+                if (currentDrawingMode === 'pixel') {
                     const canvas = document.createElement('canvas');
                     canvas.width = 16;
                     canvas.height = 16;
                     const ctx = canvas.getContext('2d');
                     for (let i = 0; i < 16; i++) {
                         for (let j = 0; j < 16; j++) {
-                            ctx.fillStyle = pixelGrid[i * 16 + j];
+                            ctx.fillStyle = pixelGrid[i*16 + j];
                             ctx.fillRect(j, i, 1, 1);
                         }
                     }
-                    const avatarBase64 = canvas.toDataURL();
-                    db.collection('users').doc(state.currentUser.uid).update({ avatar: avatarBase64 });
+                    const dataURL = canvas.toDataURL();
+                    if (currentDrawingTarget === 'avatar') {
+                        window.tempAvatar = dataURL;
+                    } else {
+                        postImage = dataURL;
+                    }
+                } else {
+                    const dataURL = freeCanvas.toDataURL();
+                    if (currentDrawingTarget === 'avatar') {
+                        window.tempAvatar = dataURL;
+                    } else {
+                        postImage = dataURL;
+                    }
                 }
-                pixelModal.classList.remove('show');
+                drawingModal.classList.remove('show');
             });
 
-            cancelPixelArt.addEventListener('click', () => pixelModal.classList.remove('show'));
+            cancelDrawingBtn.addEventListener('click', () => drawingModal.classList.remove('show'));
 
             // Редактирование профиля
             function showEditForm() {
-                // Здесь можно добавить форму редактирования, но для краткости оставим просто кнопку пиксель-арта
-                currentPixelMode = 'avatar';
-                pixelGrid = Array(256).fill('#ffffff');
-                openPixelEditor();
+                editName.value = state.profile?.displayName || '';
+                editBio.value = state.profile?.bio || '';
+                editAvatar.value = '';
+                window.tempAvatar = null;
+                editProfileModal.classList.add('show');
             }
+
+            openPixelAvatarBtn.addEventListener('click', () => {
+                editProfileModal.classList.remove('show');
+                openDrawingModal('avatar');
+            });
+            openFreeAvatarBtn.addEventListener('click', () => {
+                editProfileModal.classList.remove('show');
+                openDrawingModal('avatar');
+            });
+
+            cancelEditBtn.addEventListener('click', () => editProfileModal.classList.remove('show'));
+
+            saveProfileBtn.addEventListener('click', async () => {
+                const newName = editName.value.trim();
+                const newBio = editBio.value.trim();
+                if (!newName) { alert('Имя не может быть пустым'); return; }
+                const updates = { displayName: newName, bio: newBio };
+                if (editAvatar.files.length > 0) {
+                    const file = editAvatar.files[0];
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        updates.avatar = reader.result;
+                        db.collection('users').doc(state.currentUser.uid).update(updates);
+                    };
+                    reader.readAsDataURL(file);
+                } else if (window.tempAvatar) {
+                    updates.avatar = window.tempAvatar;
+                    await db.collection('users').doc(state.currentUser.uid).update(updates);
+                } else {
+                    await db.collection('users').doc(state.currentUser.uid).update(updates);
+                }
+                editProfileModal.classList.remove('show');
+                loadProfile(state.currentUser.uid);
+            });
 
             // Подписчики/подписки
             async function showUserList(type, uid) {
@@ -1041,7 +1347,7 @@
                 userList.innerHTML = users.map(doc => {
                     const data = doc.data();
                     return `<div class="user-list-item" data-uid="${doc.id}">
-                        <div class="mini-avatar">${data.avatar ? `<img src="${data.avatar}" style="width:40px;height:40px;border-radius:50%;">` : (data.displayName?.[0] || '?')}</div>
+                        <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;">${data.avatar ? `<img src="${data.avatar}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">` : (data.displayName?.[0] || '?')}</div>
                         <span>${data.displayName || data.email}</span>
                     </div>`;
                 }).join('');
@@ -1082,9 +1388,9 @@
                 const container = document.getElementById('profileContainer');
                 const isOwn = uid === state.currentUser.uid;
                 const avatarHtml = userData.avatar ? `<img src="${userData.avatar}" class="avatar-img">` : (userData.displayName?.[0] || '?');
-                const followBtn = !isOwn ? `<button class="follow-btn ${isFollowing ? 'secondary' : ''}" data-uid="${uid}">${isFollowing ? 'Отписаться' : 'Подписаться'}</button>` : '';
-                const messageBtn = !isOwn ? `<button class="secondary" data-message-uid="${uid}">✉ Написать</button>` : '';
-                const editBtn = isOwn ? '<button id="editProfileBtn" class="secondary">✎ Редактировать</button>' : '';
+                const followBtn = !isOwn ? `<button class="follow-btn ${isFollowing ? 'btn-secondary' : 'btn-primary'}" data-uid="${uid}">${isFollowing ? 'Отписаться' : 'Подписаться'}</button>` : '';
+                const messageBtn = !isOwn ? `<button class="btn-secondary" data-message-uid="${uid}">✉ Написать</button>` : '';
+                const editBtn = isOwn ? '<button id="editProfileBtn" class="btn-secondary">✎ Редактировать</button>' : '';
                 let postsHtml = postsDocs.map(doc => {
                     const p = doc.data();
                     const time = p.timestamp ? new Date(p.timestamp.toDate()).toLocaleString() : '';
@@ -1141,17 +1447,21 @@
                 for (let [uid, data] of users.entries()) {
                     if (uid === state.currentUser.uid) continue;
                     const isFollowing = state.followees.includes(uid);
-                    html += `<div class="user-card">
-                        <div class="info"><div class="mini-avatar">${data.avatar ? `<img src="${data.avatar}" style="width:48px;height:48px;border-radius:50%;">` : (data.displayName?.[0] || '?')}</div>
-                        <div><h4 class="user-name-link" data-uid="${uid}">${data.displayName || data.email}</h4><small>${data.email}</small></div></div>
-                        <div><button class="follow-btn ${isFollowing ? 'secondary' : ''}" data-follow-uid="${uid}">${isFollowing ? '✓' : '+'}</button>
-                        <button class="secondary" data-message-uid="${uid}">✉</button></div>
+                    html += `<div class="user-card" style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--border-light);">
+                        <div class="info" style="display:flex; align-items:center; gap:1rem;">
+                            <div style="width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;">${data.avatar ? `<img src="${data.avatar}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">` : (data.displayName?.[0] || '?')}</div>
+                            <div><h4 class="user-name-link" data-uid="${uid}" style="cursor:pointer;color:var(--accent);">${data.displayName || data.email}</h4><small>${data.email}</small></div>
+                        </div>
+                        <div>
+                            <button class="follow-btn ${isFollowing ? 'btn-secondary' : 'btn-primary'}" data-follow-uid="${uid}">${isFollowing ? 'Отписаться' : 'Подписаться'}</button>
+                            <button class="btn-secondary" data-message-uid="${uid}">✉</button>
+                        </div>
                     </div>`;
                 }
                 searchResults.innerHTML = html;
                 document.querySelectorAll('.follow-btn').forEach(b => b.addEventListener('click', async e => {
                     const uid = b.dataset.followUid;
-                    await toggleFollow(uid, b.classList.contains('secondary'));
+                    await toggleFollow(uid, b.classList.contains('btn-secondary'));
                     searchUsers(searchInput.value);
                 }));
                 document.querySelectorAll('[data-message-uid]').forEach(b => b.addEventListener('click', e => openChatWithUser(b.dataset.messageUid)));
@@ -1270,12 +1580,12 @@
                     const time = m.timestamp ? new Date(m.timestamp.toDate()).toLocaleTimeString() : '';
                     let media = '';
                     if (m.media) {
-                        if (m.mediaType === 'image') media = `<img src="${m.media}" class="message-media" style="max-width:200px;">`;
+                        if (m.mediaType === 'image') media = `<img src="${m.media}" class="message-media" style="max-width:200px; border-radius:0.5rem;">`;
                         else if (m.mediaType === 'audio') media = `<audio controls src="${m.media}" class="message-audio"></audio>`;
                     }
                     const isSingleEmoji = m.text && /^[\p{Emoji}]+$/u.test(m.text) && m.text.length <= 2;
                     const msgClass = `message ${isOwn ? 'own' : ''} ${isSingleEmoji ? 'single-emoji' : ''}`;
-                    const deleteBtn = isOwn ? `<button class="delete-msg" data-msg-id="${m.id}">🗑️</button>` : '';
+                    const deleteBtn = `<button class="delete-msg" data-msg-id="${m.id}">🗑️</button>`;
                     html += `<div class="${msgClass}" data-msg-id="${m.id}">
                         <div class="message-sender">${sender}</div>
                         <div>${m.text || ''}</div>
@@ -1301,14 +1611,7 @@
                 if (!state.currentChatId) return;
                 try {
                     const msgRef = db.collection('messages').doc(msgId);
-                    const msg = await msgRef.get();
-                    if (!msg.exists) return;
-                    if (msg.data().senderId !== state.currentUser.uid) {
-                        alert('Нельзя удалить чужое сообщение');
-                        return;
-                    }
                     await msgRef.delete();
-                    // Обновить lastMessage в чате
                     const chatRef = db.collection('chats').doc(state.currentChatId);
                     const messagesQuery = await db.collection('messages')
                         .where('chatId', '==', state.currentChatId)
@@ -1333,7 +1636,7 @@
                     }
                 } catch (error) {
                     console.error('Ошибка удаления:', error);
-                    alert('Не удалось удалить сообщение. Возможно, недостаточно прав.');
+                    alert('Не удалось удалить сообщение. Попробуйте снова.');
                 }
             }
 
@@ -1361,7 +1664,7 @@
             sendMessageBtn.addEventListener('click', () => sendMessage());
             messageInput.addEventListener('keyup', e => e.key === 'Enter' && sendMessage());
 
-            // Медиа в чате (base64)
+            // Медиа
             attachBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', e => {
                 const file = e.target.files[0];
@@ -1374,18 +1677,21 @@
                 fileInput.value = '';
             });
 
-            // Голосовые (base64)
+            // Голос
             let mediaRecorder, audioChunks, isRecording = false;
+            let recordingStartTime, timerInterval, analyser, dataArray, audioContext, source, stream;
+
             recordBtn.addEventListener('mousedown', startRecording);
             recordBtn.addEventListener('mouseup', stopRecording);
             recordBtn.addEventListener('mouseleave', stopRecording);
             recordBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); });
             recordBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
+            recordBtn.addEventListener('touchcancel', stopRecording);
 
             async function startRecording() {
                 if (!state.currentChatId || isRecording) return;
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
                     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
@@ -1397,9 +1703,22 @@
                         };
                         reader.readAsDataURL(blob);
                         stream.getTracks().forEach(t => t.stop());
+                        if (audioContext) await audioContext.close();
                     };
+
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    source = audioContext.createMediaStreamSource(stream);
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    source.connect(analyser);
+                    dataArray = new Uint8Array(analyser.frequencyBinCount);
+
                     mediaRecorder.start();
                     isRecording = true;
+                    recordBtn.style.color = '#ff0000';
+                    voicePanel.classList.add('active');
+                    recordingStartTime = Date.now();
+                    updateTimer();
                 } catch (err) {
                     alert('Нет доступа к микрофону');
                 }
@@ -1409,18 +1728,38 @@
                 if (!isRecording) return;
                 mediaRecorder.stop();
                 isRecording = false;
+                recordBtn.style.color = '';
+                voicePanel.classList.remove('active');
+                if (timerInterval) clearInterval(timerInterval);
+                if (source) source.disconnect();
+                if (audioContext) audioContext.close();
             }
 
-            // Эмодзи-пикер (простой)
-            const emojiList = ['😊', '😂', '😍', '🥰', '😭', '😅', '👍', '❤️', '🔥', '🎉'];
+            function updateTimer() {
+                timerInterval = setInterval(() => {
+                    if (!isRecording) return;
+                    const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                    const mins = Math.floor(elapsed / 60);
+                    const secs = elapsed % 60;
+                    voiceTimer.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    if (analyser && dataArray) {
+                        analyser.getByteFrequencyData(dataArray);
+                        const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+                        const level = Math.min(100, (avg / 128) * 100);
+                        voiceLevel.style.width = level + '%';
+                    }
+                }, 100);
+            }
+
+            // Эмодзи-пикер (большой список)
+            const emojiList = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
             emojiBtn.addEventListener('click', () => {
                 if (emojiPicker.classList.contains('hidden')) {
                     emojiPicker.innerHTML = '';
                     emojiList.forEach(e => {
                         const span = document.createElement('span');
+                        span.className = 'emoji-item';
                         span.textContent = e;
-                        span.style.fontSize = '2rem';
-                        span.style.cursor = 'pointer';
                         span.onclick = () => {
                             messageInput.value += e;
                             emojiPicker.classList.add('hidden');
@@ -1433,6 +1772,44 @@
                 }
             });
 
+            // Посты с рисованием
+            openPixelPostBtn.addEventListener('click', () => {
+                currentDrawingTarget = 'post';
+                openDrawingModal('post');
+            });
+            openFreePostBtn.addEventListener('click', () => {
+                currentDrawingTarget = 'post';
+                openDrawingModal('post');
+            });
+
+            uploadPostImageBtn.addEventListener('click', () => postImageInput.click());
+            postImageInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        postImage = reader.result;
+                        alert('Изображение загружено, теперь опубликуйте пост');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            createPostBtn.addEventListener('click', async () => {
+                const text = postText.value.trim();
+                if (!text && !postImage) return;
+                await db.collection('posts').add({
+                    userId: state.currentUser.uid,
+                    text: text || '',
+                    image: postImage || null,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    likes: []
+                });
+                postText.value = '';
+                postImage = null;
+            });
+
+            // Назад из чата
             backFromChatBtn.addEventListener('click', () => {
                 chatsSidebar.classList.remove('hide-mobile');
                 chatWindowContainer.classList.add('hidden');
@@ -1492,6 +1869,9 @@
                 document.body.style.height = window.innerHeight + 'px';
                 document.getElementById('app').style.height = window.innerHeight + 'px';
             });
+
+            // Инициализация
+            initPalette();
         })();
     </script>
 </body>
