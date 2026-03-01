@@ -335,8 +335,9 @@
             line-height: 1.4;
         }
         .post-image {
-            max-width: 100%;
-            max-height: 300px;
+            max-width: 200px;
+            max-height: 200px;
+            object-fit: contain;
             border-radius: 1rem;
             margin: 0.5rem 0;
         }
@@ -541,12 +542,25 @@
             overflow: hidden;
         }
         .chat-header {
-            padding: 1rem;
+            padding: 0.8rem 1rem;
             border-bottom: 1px solid var(--border-light);
             background: var(--bg-sidebar);
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            position: relative;
+        }
+        .typing-indicator {
+            position: absolute;
+            bottom: -20px;
+            left: 1rem;
+            font-size: 0.8rem;
+            color: var(--accent);
+            background: var(--bg-sidebar);
+            padding: 2px 8px;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-sm);
+            display: none;
         }
         .back-button { display: none; }
         #messagesContainer {
@@ -557,6 +571,7 @@
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
+            position: relative;
         }
         .message {
             max-width: 75%;
@@ -566,6 +581,7 @@
             align-self: flex-start;
             position: relative;
             color: var(--text-primary);
+            word-break: break-word;
         }
         .message.own {
             background: var(--message-out-bg);
@@ -576,20 +592,54 @@
             padding: 0.2rem 0.5rem;
         }
         .message-sender { font-size: 0.75rem; font-weight: 600; color: var(--accent); }
-        .message-time { font-size: 0.7rem; color: var(--text-secondary); text-align: right; }
-        .delete-msg {
+        .message-time { font-size: 0.7rem; color: var(--text-secondary); text-align: right; margin-top: 0.2rem; }
+        .message-actions {
             position: absolute;
             top: 0;
             right: 0;
+            display: flex;
+            gap: 0.2rem;
+            background: var(--bg-primary);
+            border-radius: 1rem;
+            padding: 0.2rem;
+            box-shadow: var(--shadow-sm);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .message:hover .message-actions { opacity: 1; }
+        .message-action-btn {
             background: none;
             border: none;
             font-size: 1rem;
             cursor: pointer;
-            color: #ff4d4d;
-            display: none;
+            color: var(--text-secondary);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
-        .message:hover .delete-msg { display: block; }
-
+        .message-action-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--accent);
+        }
+        .message-media {
+            max-width: 200px;
+            border-radius: 0.5rem;
+            margin-top: 0.3rem;
+        }
+        .link-preview {
+            display: inline-block;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-light);
+            border-radius: 0.5rem;
+            padding: 0.2rem 0.5rem;
+            margin-top: 0.3rem;
+            font-size: 0.8rem;
+            color: var(--accent);
+            text-decoration: none;
+        }
         .chat-input-area {
             display: flex;
             gap: 0.5rem;
@@ -597,6 +647,7 @@
             background: var(--bg-sidebar);
             border-top: 1px solid var(--border-light);
             flex-wrap: wrap;
+            align-items: center;
         }
         .chat-input-area input {
             flex: 1;
@@ -607,6 +658,9 @@
             background: var(--bg-secondary);
             color: var(--text-primary);
             outline: none;
+        }
+        .chat-input-area input:focus {
+            border-color: var(--accent);
         }
         .chat-input-area button {
             background: none;
@@ -671,6 +725,25 @@
         .hidden { display: none !important; }
         .info-message { padding: 2rem; text-align: center; color: var(--text-secondary); }
         .flex-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
+        /* Поиск по сообщениям */
+        .message-search {
+            padding: 0.5rem 1rem;
+            background: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border-light);
+        }
+        .message-search input {
+            width: 100%;
+            padding: 0.6rem 1rem;
+            border: 1px solid var(--border-light);
+            border-radius: var(--input-radius);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            outline: none;
+        }
+        .message-search input:focus {
+            border-color: var(--accent);
+        }
 
         @media (max-width: 768px) {
             .chats-sidebar {
@@ -783,6 +856,10 @@
                             <div class="chat-header">
                                 <button id="backFromChatBtn" class="back-button btn-icon">←</button>
                                 <span id="chatHeader" class="contact-name" style="cursor:pointer; color:var(--accent);"></span>
+                                <span id="typingIndicator" class="typing-indicator"></span>
+                            </div>
+                            <div class="message-search">
+                                <input type="text" id="messageSearchInput" placeholder="🔍 Поиск в чате...">
                             </div>
                             <div id="messagesContainer"></div>
                             <div class="chat-input-area">
@@ -886,6 +963,9 @@
             const auth = firebase.auth();
             const db = firebase.firestore();
 
+            // Звук уведомления (короткий beep в base64)
+            const notificationSound = new Audio('data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8AP8A/gD9APwA+wD6APkA+AD3APYA9QD0APMA8gDxAPAA7wDuAO0A7ADrAOoA6QDoAOcA5gDlAOQA4wDiAOEA4ADfAN4A3QDcANsA2gDZANgA1wDWANUA1ADTANIA0QDQAM8AzgDNAMwAywDKAMkAyADHAMYAxQDEAAMA');
+            
             // Состояние
             let state = {
                 currentUser: null,
@@ -894,7 +974,13 @@
                 currentChatId: null,
                 currentChatParticipant: null,
                 darkTheme: localStorage.getItem('theme') === 'dark',
-                listeners: {}
+                listeners: {},
+                messages: [],
+                lastVisible: null,
+                loadingMore: false,
+                hasMore: true,
+                replyToMessage: null,
+                typingTimeout: null
             };
 
             // DOM элементы
@@ -977,6 +1063,8 @@
             const openFreePostBtn = document.getElementById('openFreePostBtn');
             const uploadPostImageBtn = document.getElementById('uploadPostImageBtn');
             const postImageInput = document.getElementById('postImageInput');
+            const typingIndicator = document.getElementById('typingIndicator');
+            const messageSearchInput = document.getElementById('messageSearchInput');
 
             let selectedFriendUid = null;
             let currentDrawingMode = 'pixel';
@@ -988,6 +1076,7 @@
             let currentPostIdForComment = null;
             let currentDrawingTarget = 'avatar';
             let postImage = null;
+            let tempAvatarData = null;
 
             // Тема
             function applyTheme() {
@@ -1257,28 +1346,35 @@
                 drawingModal.classList.add('show');
             }
 
+            // Исправленное сохранение рисунка с нужным размером
             saveDrawingBtn.addEventListener('click', () => {
                 if (currentDrawingMode === 'pixel') {
                     const canvas = document.createElement('canvas');
-                    canvas.width = 16;
-                    canvas.height = 16;
+                    canvas.width = 200;
+                    canvas.height = 200;
                     const ctx = canvas.getContext('2d');
                     for (let i = 0; i < 16; i++) {
                         for (let j = 0; j < 16; j++) {
                             ctx.fillStyle = pixelGrid[i*16 + j];
-                            ctx.fillRect(j, i, 1, 1);
+                            ctx.fillRect(j*12.5, i*12.5, 12.5, 12.5); // масштабируем до 200px
                         }
                     }
                     const dataURL = canvas.toDataURL();
                     if (currentDrawingTarget === 'avatar') {
-                        window.tempAvatar = dataURL;
+                        tempAvatarData = dataURL;
                     } else {
                         postImage = dataURL;
                     }
                 } else {
-                    const dataURL = freeCanvas.toDataURL();
+                    // для free canvas тоже увеличиваем до 200x200
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 200;
+                    canvas.height = 200;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(freeCanvas, 0, 0, 200, 200);
+                    const dataURL = canvas.toDataURL();
                     if (currentDrawingTarget === 'avatar') {
-                        window.tempAvatar = dataURL;
+                        tempAvatarData = dataURL;
                     } else {
                         postImage = dataURL;
                     }
@@ -1293,7 +1389,7 @@
                 editName.value = state.profile?.displayName || '';
                 editBio.value = state.profile?.bio || '';
                 editAvatar.value = '';
-                window.tempAvatar = null;
+                tempAvatarData = null;
                 editProfileModal.classList.add('show');
             }
 
@@ -1321,8 +1417,8 @@
                         db.collection('users').doc(state.currentUser.uid).update(updates);
                     };
                     reader.readAsDataURL(file);
-                } else if (window.tempAvatar) {
-                    updates.avatar = window.tempAvatar;
+                } else if (tempAvatarData) {
+                    updates.avatar = tempAvatarData;
                     await db.collection('users').doc(state.currentUser.uid).update(updates);
                 } else {
                     await db.collection('users').doc(state.currentUser.uid).update(updates);
@@ -1562,15 +1658,136 @@
                 });
             }
 
-            function loadMessages(chatId) {
-                if (state.listeners.messages) state.listeners.messages();
-                const q = db.collection('messages').where('chatId', '==', chatId).orderBy('timestamp', 'asc');
-                state.listeners.messages = q.onSnapshot(snap => {
-                    const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    renderMessages(msgs);
+            // Запрос разрешения на уведомления
+            function requestNotificationPermission() {
+                if (Notification.permission !== 'granted') {
+                    Notification.requestPermission();
+                }
+            }
+            requestNotificationPermission();
+
+            // Функция показа уведомления
+            function showNotification(title, body) {
+                if (Notification.permission === 'granted' && document.hidden) {
+                    new Notification(title, { body, icon: '/favicon.ico' });
+                }
+                if (document.hidden) {
+                    notificationSound.play().catch(e => console.log('Звук не воспроизведён'));
+                }
+            }
+
+            // Водяной знак
+            function addWatermarkToImage(dataUrl, callback) {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    ctx.font = 'bold 24px Arial';
+                    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                    ctx.fillText('SCRIPT Studio', 20, canvas.height - 30);
+                    callback(canvas.toDataURL('image/jpeg', 0.9));
+                };
+                img.src = dataUrl;
+            }
+
+            // Отправка сообщения с водяным знаком
+            function sendMessageWithMedia(text, file, type) {
+                if (file && type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        addWatermarkToImage(reader.result, (watermarked) => {
+                            sendMessage(text, watermarked, 'image');
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    sendMessage(text, file ? URL.createObjectURL(file) : null, type);
+                }
+            }
+
+            // Ответ на сообщение
+            function setReplyTo(message) {
+                state.replyToMessage = message;
+                messageInput.placeholder = `Ответ ${message.senderName || 'пользователю'}: ${message.text?.substring(0,20)}...`;
+            }
+
+            // Редактирование сообщения
+            async function editMessage(msgId, newText) {
+                await db.collection('messages').doc(msgId).update({
+                    text: newText,
+                    edited: true,
+                    editedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
             }
 
+            // Индикатор печатания
+            function sendTyping(chatId, userId) {
+                if (!chatId) return;
+                const typingRef = db.collection('typing').doc(chatId);
+                typingRef.set({
+                    userId: userId,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                if (state.typingTimeout) clearTimeout(state.typingTimeout);
+                state.typingTimeout = setTimeout(() => {
+                    typingRef.delete();
+                }, 3000);
+            }
+
+            // Слушатель печатания
+            function listenTyping(chatId) {
+                db.collection('typing').doc(chatId).onSnapshot((doc) => {
+                    if (doc.exists && doc.data().userId !== state.currentUser.uid) {
+                        typingIndicator.textContent = 'печатает...';
+                        typingIndicator.style.display = 'block';
+                        setTimeout(() => { typingIndicator.style.display = 'none'; }, 3000);
+                    } else {
+                        typingIndicator.style.display = 'none';
+                    }
+                });
+            }
+
+            // Пагинация
+            async function loadMoreMessages(chatId) {
+                if (state.loadingMore || !state.hasMore) return;
+                state.loadingMore = true;
+                const first = await db.collection('messages')
+                    .where('chatId', '==', chatId)
+                    .orderBy('timestamp', 'desc')
+                    .startAfter(state.lastVisible)
+                    .limit(20)
+                    .get();
+                if (first.empty) {
+                    state.hasMore = false;
+                } else {
+                    const msgs = first.docs.map(d => ({ id: d.id, ...d.data() })).reverse();
+                    state.messages = [...msgs, ...state.messages];
+                    state.lastVisible = first.docs[first.docs.length-1];
+                    renderMessages(state.messages);
+                }
+                state.loadingMore = false;
+            }
+
+            // Поиск по сообщениям
+            function filterMessages(searchTerm) {
+                if (!searchTerm) {
+                    renderMessages(state.messages);
+                    return;
+                }
+                const filtered = state.messages.filter(m => m.text && m.text.toLowerCase().includes(searchTerm.toLowerCase()));
+                renderMessages(filtered);
+            }
+
+            // Предпросмотр ссылок
+            function detectLinks(text) {
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                return text.replace(urlRegex, '<a href="$1" target="_blank" class="link-preview">🔗 $1</a>');
+            }
+
+            // Рендер сообщений с кнопками reply/edit
             function renderMessages(msgs) {
                 if (!msgs.length) { messagesContainer.innerHTML = '<div class="info-message">Нет сообщений</div>'; return; }
                 let html = '';
@@ -1580,66 +1797,61 @@
                     const time = m.timestamp ? new Date(m.timestamp.toDate()).toLocaleTimeString() : '';
                     let media = '';
                     if (m.media) {
-                        if (m.mediaType === 'image') media = `<img src="${m.media}" class="message-media" style="max-width:200px; border-radius:0.5rem;">`;
+                        if (m.mediaType === 'image') media = `<img src="${m.media}" class="message-media" onclick="window.open(this.src)">`;
                         else if (m.mediaType === 'audio') media = `<audio controls src="${m.media}" class="message-audio"></audio>`;
                     }
                     const isSingleEmoji = m.text && /^[\p{Emoji}]+$/u.test(m.text) && m.text.length <= 2;
                     const msgClass = `message ${isOwn ? 'own' : ''} ${isSingleEmoji ? 'single-emoji' : ''}`;
-                    const deleteBtn = `<button class="delete-msg" data-msg-id="${m.id}">🗑️</button>`;
+                    // Кнопки reply, edit, delete
+                    const replyBtn = `<button class="message-action-btn" onclick="window.setReplyTo(${JSON.stringify(m).replace(/"/g, '&quot;')})" title="Ответить">↩️</button>`;
+                    const editBtn = isOwn ? `<button class="message-action-btn" onclick="window.editMessagePrompt('${m.id}')" title="Редактировать">✎</button>` : '';
+                    const deleteBtn = `<button class="message-action-btn" onclick="deleteMessage('${m.id}')" title="Удалить">🗑️</button>`;
                     html += `<div class="${msgClass}" data-msg-id="${m.id}">
                         <div class="message-sender">${sender}</div>
-                        <div>${m.text || ''}</div>
+                        <div>${m.text ? detectLinks(m.text) : ''} ${m.edited ? '<small>(ред.)</small>' : ''}</div>
                         ${media}
                         <div class="message-time">${time}</div>
-                        ${deleteBtn}
+                        <div class="message-actions">${replyBtn} ${editBtn} ${deleteBtn}</div>
                     </div>`;
                 });
                 messagesContainer.innerHTML = html;
-                document.querySelectorAll('.delete-msg').forEach(btn => {
-                    btn.addEventListener('click', async e => {
-                        e.stopPropagation();
-                        const msgId = btn.dataset.msgId;
-                        if (confirm('Удалить сообщение?')) {
-                            await deleteMessage(msgId);
-                        }
-                    });
-                });
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
 
-            async function deleteMessage(msgId) {
-                if (!state.currentChatId) return;
-                try {
-                    const msgRef = db.collection('messages').doc(msgId);
-                    await msgRef.delete();
-                    const chatRef = db.collection('chats').doc(state.currentChatId);
-                    const messagesQuery = await db.collection('messages')
-                        .where('chatId', '==', state.currentChatId)
-                        .orderBy('timestamp', 'desc')
-                        .limit(1)
-                        .get();
-                    if (!messagesQuery.empty) {
-                        const last = messagesQuery.docs[0].data();
-                        await chatRef.update({
-                            lastMessage: last.text || (last.mediaType === 'image' ? '📷' : '🎤'),
-                            lastMessageTimestamp: last.timestamp,
-                            lastMessageSender: last.senderId,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    } else {
-                        await chatRef.update({
-                            lastMessage: '',
-                            lastMessageTimestamp: null,
-                            lastMessageSender: null,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    }
-                } catch (error) {
-                    console.error('Ошибка удаления:', error);
-                    alert('Не удалось удалить сообщение. Попробуйте снова.');
-                }
+            // Глобальные функции для onclick
+            window.setReplyTo = setReplyTo;
+            window.editMessagePrompt = (msgId) => {
+                const newText = prompt('Введите новый текст:');
+                if (newText) editMessage(msgId, newText);
+            };
+            window.deleteMessage = deleteMessage;
+
+            // Загрузка сообщений с пагинацией и уведомлениями
+            function loadMessages(chatId) {
+                if (state.listeners.messages) state.listeners.messages();
+                // Слушаем последние 20 сообщений (для пагинации будем подгружать старые)
+                const q = db.collection('messages')
+                    .where('chatId', '==', chatId)
+                    .orderBy('timestamp', 'desc')
+                    .limit(20);
+                state.listeners.messages = q.onSnapshot(snap => {
+                    const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() })).reverse();
+                    state.messages = msgs;
+                    state.lastVisible = snap.docs[snap.docs.length-1];
+                    state.hasMore = snap.docs.length === 20;
+                    renderMessages(msgs);
+                    // Уведомление о новых сообщениях
+                    snap.docChanges().forEach(change => {
+                        if (change.type === 'added' && change.doc.data().senderId !== state.currentUser.uid) {
+                            const msg = change.doc.data();
+                            showNotification('Новое сообщение', msg.text || 'Медиа');
+                        }
+                    });
+                });
+                listenTyping(chatId);
             }
 
+            // Отправка сообщения (обычная)
             async function sendMessage(text, media, mediaType) {
                 const msgText = text !== undefined ? text : messageInput.value.trim();
                 if (!msgText && !media) return;
@@ -1659,21 +1871,39 @@
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 if (!media) messageInput.value = '';
+                // Если был ответ, сбросить
+                state.replyToMessage = null;
+                messageInput.placeholder = 'Сообщение...';
             }
 
             sendMessageBtn.addEventListener('click', () => sendMessage());
             messageInput.addEventListener('keyup', e => e.key === 'Enter' && sendMessage());
+
+            // Обработчик ввода для typing
+            messageInput.addEventListener('input', () => {
+                if (state.currentChatId) {
+                    sendTyping(state.currentChatId, state.currentUser.uid);
+                }
+            });
+
+            // Пагинация при скролле
+            messagesContainer.addEventListener('scroll', () => {
+                if (messagesContainer.scrollTop < 50 && state.hasMore && !state.loadingMore) {
+                    loadMoreMessages(state.currentChatId);
+                }
+            });
+
+            // Поиск по сообщениям
+            messageSearchInput.addEventListener('input', (e) => {
+                filterMessages(e.target.value);
+            });
 
             // Медиа
             attachBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', e => {
                 const file = e.target.files[0];
                 if (!file || !state.currentChatId) return;
-                const reader = new FileReader();
-                reader.onload = () => {
-                    sendMessage(null, reader.result, file.type.startsWith('image/') ? 'image' : 'video');
-                };
-                reader.readAsDataURL(file);
+                sendMessageWithMedia(null, file, file.type);
                 fileInput.value = '';
             });
 
