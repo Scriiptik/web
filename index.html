@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Messenger · Firebase</title>
+    <title>SCRIPTMessenger</title>
     <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
@@ -11,10 +11,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
     <!-- Emoji picker (исправлено) -->
-    <script type="module">
-        import Picker from 'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.0/index.js';
-        window.EmojiPicker = Picker;
-    </script>
     <style>
         * {
             margin: 0;
@@ -23,7 +19,7 @@
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
         }
         body {
-            background: #f5f7fa;
+            background: #f0f2f5;
             height: 100vh;
             display: flex;
             align-items: center;
@@ -32,12 +28,11 @@
             overflow: hidden;
         }
         body.dark-theme {
-            background: #1a1a1a;
+            background: #0d0e12;
             color: #e0e0e0;
         }
         #app {
             width: 100%;
-            max-width: 1200px;
             height: 100vh;
             background: white;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
@@ -47,20 +42,33 @@
             transition: background 0.3s;
         }
         body.dark-theme #app {
-            background: #2d2d2d;
+            background: #1f2128;
         }
-        /* Аутентификация (центрированная) */
+        /* Аутентификация */
         .auth-container {
             padding: 2rem;
             max-width: 400px;
             margin: auto;
             width: 100%;
+            text-align: center;
+        }
+        .auth-logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2563eb;
+            margin-bottom: 2rem;
+        }
+        body.dark-theme .auth-logo {
+            color: #90caf9;
         }
         .auth-tabs {
             display: flex;
             gap: 1rem;
             margin-bottom: 2rem;
             border-bottom: 2px solid #eef2f6;
+        }
+        body.dark-theme .auth-tabs {
+            border-bottom-color: #2f3139;
         }
         .auth-tab {
             padding: 0.75rem 1.5rem;
@@ -108,8 +116,8 @@
         }
         body.dark-theme .input-group input,
         body.dark-theme .input-group textarea {
-            background: #3a3a3a;
-            border-color: #555;
+            background: #2f3139;
+            border-color: #3f4149;
             color: #fff;
         }
         .input-group input:focus,
@@ -141,7 +149,7 @@
             border-color: #2563eb;
         }
         body.dark-theme button.secondary {
-            background: #3a3a3a;
+            background: #2f3139;
             color: #90caf9;
             border-color: #90caf9;
         }
@@ -156,55 +164,58 @@
         button.danger:hover {
             background: #dc2626;
         }
-        /* Шапка приложения (десктоп) */
+        /* Шапка приложения */
         .app-header {
             background: white;
-            padding: 0.75rem 1.5rem;
-            border-bottom: 2px solid #eef2f6;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #eef2f6;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 1rem;
-        }
-        body.dark-theme .app-header {
-            background: #2d2d2d;
-            border-bottom-color: #444;
-        }
-        .nav {
-            display: flex;
             gap: 0.5rem;
         }
-        .nav button {
+        body.dark-theme .app-header {
+            background: #1f2128;
+            border-bottom-color: #2f3139;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .burger-menu {
+            font-size: 2rem;
+            cursor: pointer;
             background: none;
-            color: #64748b;
-            padding: 0.5rem 1rem;
-            border-radius: 2rem;
-            font-weight: 500;
-            white-space: nowrap;
-        }
-        body.dark-theme .nav button {
-            color: #aaa;
-        }
-        .nav button:hover,
-        .nav button.active {
-            background: #eef2ff;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 50%;
             color: #2563eb;
-            transform: none;
-            box-shadow: none;
+            line-height: 1;
         }
-        body.dark-theme .nav button:hover,
-        body.dark-theme .nav button.active {
-            background: #3a3a3a;
+        .burger-menu:hover {
+            background: #eef2ff;
+        }
+        body.dark-theme .burger-menu:hover {
+            background: #2f3139;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2563eb;
+        }
+        body.dark-theme .logo {
             color: #90caf9;
         }
         .user-info {
             display: flex;
             align-items: center;
-            gap: 1.5rem;
+            gap: 0.5rem;
         }
         .email-badge {
             color: #334155;
             font-weight: 500;
+            font-size: 0.9rem;
         }
         body.dark-theme .email-badge {
             color: #ccc;
@@ -222,9 +233,78 @@
             background: #eef2ff;
         }
         body.dark-theme .theme-toggle:hover {
-            background: #3a3a3a;
+            background: #2f3139;
         }
-        /* Основной контент (занимает всё оставшееся место) */
+        /* Боковое меню навигации */
+        .nav-drawer {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100%;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            transition: left 0.3s;
+            z-index: 2000;
+            padding: 1rem;
+        }
+        body.dark-theme .nav-drawer {
+            background: #1f2128;
+        }
+        .nav-drawer.open {
+            left: 0;
+        }
+        .drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+        .drawer-header .logo {
+            font-size: 1.2rem;
+        }
+        .close-drawer {
+            font-size: 2rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #2563eb;
+        }
+        .nav-items {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .nav-item {
+            padding: 1rem;
+            border-radius: 1rem;
+            background: #f0f2f5;
+            color: #0f172a;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        body.dark-theme .nav-item {
+            background: #2f3139;
+            color: #fff;
+        }
+        .nav-item:hover {
+            background: #e2e8f0;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1999;
+        }
+        .overlay.show {
+            display: block;
+        }
+        /* Основной контент */
         .main-content {
             flex: 1;
             overflow: hidden;
@@ -248,8 +328,8 @@
             margin-bottom: 1.5rem;
         }
         body.dark-theme .card {
-            background: #2d2d2d;
-            border-color: #444;
+            background: #2f3139;
+            border-color: #3f4149;
         }
         /* Профиль */
         .profile-header {
@@ -313,7 +393,7 @@
             padding: 1.5rem 0;
         }
         body.dark-theme .post {
-            border-bottom-color: #444;
+            border-bottom-color: #3f4149;
         }
         .post-header {
             display: flex;
@@ -386,8 +466,8 @@
             background: #fafbfc;
         }
         body.dark-theme .search-box input {
-            background: #3a3a3a;
-            border-color: #555;
+            background: #2f3139;
+            border-color: #3f4149;
             color: #fff;
         }
         .user-card {
@@ -400,7 +480,7 @@
             border-bottom: 1px solid #eef2f6;
         }
         body.dark-theme .user-card {
-            border-bottom-color: #444;
+            border-bottom-color: #3f4149;
         }
         .user-card .info {
             display: flex;
@@ -448,7 +528,7 @@
             cursor: pointer;
         }
         body.dark-theme .friend-item {
-            background: #3a3a3a;
+            background: #2f3139;
         }
         .friend-avatar {
             width: 32px;
@@ -483,8 +563,8 @@
             transition: transform 0.3s;
         }
         body.dark-theme .chats-sidebar {
-            background: #2d2d2d;
-            border-right-color: #444;
+            background: #1f2128;
+            border-right-color: #2f3139;
         }
         .sidebar-header {
             padding: 1rem;
@@ -494,29 +574,14 @@
             border-bottom: 1px solid #eef2f6;
         }
         body.dark-theme .sidebar-header {
-            border-bottom-color: #444;
-        }
-        .burger-menu {
-            font-size: 1.8rem;
-            cursor: pointer;
-            background: none;
-            border: none;
-            padding: 0.5rem;
-            border-radius: 50%;
-            color: #2563eb;
-        }
-        .burger-menu:hover {
-            background: #eef2ff;
-        }
-        body.dark-theme .burger-menu:hover {
-            background: #3a3a3a;
+            border-bottom-color: #2f3139;
         }
         .sidebar-search {
             padding: 1rem;
             border-bottom: 1px solid #eef2f6;
         }
         body.dark-theme .sidebar-search {
-            border-bottom-color: #444;
+            border-bottom-color: #2f3139;
         }
         .sidebar-search input {
             width: 100%;
@@ -527,8 +592,8 @@
             background: #fafbfc;
         }
         body.dark-theme .sidebar-search input {
-            background: #3a3a3a;
-            border-color: #555;
+            background: #2f3139;
+            border-color: #3f4149;
             color: #fff;
         }
         .chats-list {
@@ -550,13 +615,13 @@
             background: #f1f5f9;
         }
         body.dark-theme .chat-item:hover {
-            background: #3a3a3a;
+            background: #2f3139;
         }
         .chat-item.active {
             background: #eef2ff;
         }
         body.dark-theme .chat-item.active {
-            background: #3a3a3a;
+            background: #2f3139;
         }
         .chat-avatar {
             width: 54px;
@@ -599,7 +664,7 @@
             font-size: 0.8rem;
             align-self: flex-start;
         }
-        /* Правая область (сообщения) */
+        /* Правая область сообщений */
         .chat-main {
             flex: 1;
             background: white;
@@ -608,7 +673,7 @@
             overflow: hidden;
         }
         body.dark-theme .chat-main {
-            background: #2d2d2d;
+            background: #1f2128;
         }
         .chat-header {
             padding: 1rem 2rem;
@@ -619,7 +684,7 @@
             gap: 1rem;
         }
         body.dark-theme .chat-header {
-            border-bottom-color: #444;
+            border-bottom-color: #2f3139;
         }
         .back-button {
             display: none;
@@ -644,7 +709,7 @@
             gap: 0.5rem;
         }
         body.dark-theme .messages-container {
-            background: #1e1e1e;
+            background: #0f1117;
         }
         .message {
             max-width: 70%;
@@ -656,7 +721,7 @@
             position: relative;
         }
         body.dark-theme .message {
-            background: #3a3a3a;
+            background: #2f3139;
             color: #fff;
         }
         .message.own {
@@ -699,8 +764,8 @@
             flex-wrap: wrap;
         }
         body.dark-theme .chat-input-area {
-            background: #2d2d2d;
-            border-top-color: #444;
+            background: #1f2128;
+            border-top-color: #2f3139;
         }
         .chat-input-area input[type="text"] {
             flex: 1;
@@ -712,8 +777,8 @@
             background: #fafbfc;
         }
         body.dark-theme .chat-input-area input[type="text"] {
-            background: #3a3a3a;
-            border-color: #555;
+            background: #2f3139;
+            border-color: #3f4149;
             color: #fff;
         }
         .chat-input-area button {
@@ -759,29 +824,6 @@
             .back-button {
                 display: inline-block;
             }
-            .nav {
-                display: none; /* навигация в бургере */
-            }
-            .user-info {
-                gap: 0.5rem;
-            }
-        }
-        /* Бургер-меню навигация (мобильная) */
-        .mobile-nav {
-            display: none;
-            flex-direction: column;
-            padding: 1rem;
-            gap: 0.5rem;
-        }
-        .mobile-nav button {
-            text-align: left;
-            padding: 1rem;
-            border-radius: 1rem;
-        }
-        @media (max-width: 768px) {
-            .mobile-nav {
-                display: flex;
-            }
         }
         .hidden {
             display: none !important;
@@ -799,6 +841,7 @@
     <div id="app">
         <!-- БЛОК АУТЕНТИФИКАЦИИ -->
         <div id="authContainer" class="auth-container">
+            <div class="auth-logo">SCRIPTMessenger</div>
             <div class="auth-tabs">
                 <button id="loginTab" class="auth-tab active">Вход</button>
                 <button id="registerTab" class="auth-tab">Регистрация</button>
@@ -832,11 +875,9 @@
         <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ (скрыто до входа) -->
         <div id="appContainer" class="hidden">
             <div class="app-header">
-                <div class="nav">
-                    <button id="navFeed" class="active">Лента</button>
-                    <button id="navProfile">Профиль</button>
-                    <button id="navSearch">Поиск</button>
-                    <button id="navChats">Чаты</button>
+                <div class="header-left">
+                    <button id="burgerMenu" class="burger-menu">☰</button>
+                    <span class="logo">SCRIPTMessenger</span>
                 </div>
                 <div class="user-info">
                     <span class="email-badge" id="headerEmail"></span>
@@ -844,6 +885,20 @@
                     <button id="logoutBtn" class="secondary">Выйти</button>
                 </div>
             </div>
+
+            <!-- Боковое меню навигации -->
+            <div id="navDrawer" class="nav-drawer">
+                <div class="drawer-header">
+                    <span class="logo">SCRIPTMessenger</span>
+                    <button id="closeDrawer" class="close-drawer">✕</button>
+                </div>
+                <div class="nav-items">
+                    <div class="nav-item" id="drawerFeed">Лента</div>
+                    <div class="nav-item" id="drawerProfile">Профиль</div>
+                    <div class="nav-item" id="drawerSearch">Поиск</div>
+                </div>
+            </div>
+            <div id="overlay" class="overlay"></div>
 
             <div class="main-content">
                 <!-- Секция Лента -->
@@ -883,19 +938,12 @@
                     <!-- Левая панель чатов -->
                     <div class="chats-sidebar" id="chatsSidebar">
                         <div class="sidebar-header">
-                            <button id="burgerMenu" class="burger-menu">☰</button>
                             <h3>Чаты</h3>
                         </div>
                         <div class="sidebar-search">
                             <input type="text" id="chatSearchInput" placeholder="Поиск...">
                         </div>
                         <div class="chats-list" id="chatsList"></div>
-                        <!-- Мобильная навигация внутри бургера -->
-                        <div class="mobile-nav">
-                            <button id="mobileNavFeed">Лента</button>
-                            <button id="mobileNavProfile">Профиль</button>
-                            <button id="mobileNavSearch">Поиск</button>
-                        </div>
                     </div>
                     <!-- Правая область сообщений -->
                     <div class="chat-main" id="chatMain">
@@ -983,10 +1031,15 @@
             const headerEmail = document.getElementById('headerEmail');
             const themeToggle = document.getElementById('themeToggle');
 
-            const navFeed = document.getElementById('navFeed');
-            const navProfile = document.getElementById('navProfile');
-            const navSearch = document.getElementById('navSearch');
-            const navChats = document.getElementById('navChats');
+            // Навигация через бургер
+            const burgerMenu = document.getElementById('burgerMenu');
+            const navDrawer = document.getElementById('navDrawer');
+            const overlay = document.getElementById('overlay');
+            const closeDrawer = document.getElementById('closeDrawer');
+            const drawerFeed = document.getElementById('drawerFeed');
+            const drawerProfile = document.getElementById('drawerProfile');
+            const drawerSearch = document.getElementById('drawerSearch');
+
             const feedSection = document.getElementById('feedSection');
             const profileSection = document.getElementById('profileSection');
             const searchSection = document.getElementById('searchSection');
@@ -1002,7 +1055,6 @@
 
             // Элементы чатов
             const chatsSidebar = document.getElementById('chatsSidebar');
-            const burgerMenu = document.getElementById('burgerMenu');
             const chatSearchInput = document.getElementById('chatSearchInput');
             const chatsList = document.getElementById('chatsList');
             const chatWindowContainer = document.getElementById('chatWindowContainer');
@@ -1017,9 +1069,6 @@
             const emojiPicker = document.getElementById('emojiPicker');
             const chatHeader = document.getElementById('chatHeader');
             const backFromChatBtn = document.getElementById('backFromChatBtn');
-            const mobileNavFeed = document.getElementById('mobileNavFeed');
-            const mobileNavProfile = document.getElementById('mobileNavProfile');
-            const mobileNavSearch = document.getElementById('mobileNavSearch');
 
             // -------------------------------------------------------------
             // 4. Тема
@@ -1041,149 +1090,62 @@
             });
 
             // -------------------------------------------------------------
-            // 5. Вспомогательные функции (UI, навигация)
+            // 5. Управление бургер-меню
             // -------------------------------------------------------------
-            function showAuth() {
-                authContainer.classList.remove('hidden');
-                appContainer.classList.add('hidden');
+            function openDrawer() {
+                navDrawer.classList.add('open');
+                overlay.classList.add('show');
             }
-
-            function showApp() {
-                authContainer.classList.add('hidden');
-                appContainer.classList.remove('hidden');
+            function closeDrawerFn() {
+                navDrawer.classList.remove('open');
+                overlay.classList.remove('show');
             }
+            burgerMenu.addEventListener('click', openDrawer);
+            closeDrawer.addEventListener('click', closeDrawerFn);
+            overlay.addEventListener('click', closeDrawerFn);
 
-            function setActiveNav(section) {
-                [navFeed, navProfile, navSearch, navChats].forEach(btn => btn.classList.remove('active'));
-                if (section === 'feed') navFeed.classList.add('active');
-                if (section === 'profile') navProfile.classList.add('active');
-                if (section === 'search') navSearch.classList.add('active');
-                if (section === 'chats') navChats.classList.add('active');
-            }
-
-            function showSection(section) {
+            // Навигация по пунктам меню
+            function showSectionOnly(section) {
+                // Скрываем все секции
                 feedSection.classList.remove('active');
                 profileSection.classList.remove('active');
                 searchSection.classList.remove('active');
                 chatsSection.classList.remove('active');
+                // Показываем нужную
                 if (section === 'feed') feedSection.classList.add('active');
                 if (section === 'profile') profileSection.classList.add('active');
                 if (section === 'search') searchSection.classList.add('active');
                 if (section === 'chats') chatsSection.classList.add('active');
-
-                // На мобильных при переходе на чаты открываем сайдбар
-                if (section === 'chats') {
-                    chatsSidebar.classList.add('open');
-                }
+                closeDrawerFn();
             }
 
-            // Закрыть сайдбар на мобильных
-            function closeSidebar() {
-                chatsSidebar.classList.remove('open');
-            }
-
-            // Открыть чат и скрыть сайдбар на мобильных
-            function openChat(chatId, otherUid) {
-                currentChatId = chatId;
-                db.collection('users').doc(otherUid).get().then(doc => {
-                    currentChatParticipant = { uid: otherUid, ...doc.data() };
-                });
-                chatWindowContainer.classList.remove('hidden');
-                noChatSelected.classList.add('hidden');
-                chatHeader.textContent = `Чат с ${currentChatParticipant?.displayName || ''}`;
-                loadMessages(chatId);
-                closeSidebar(); // на мобильных закрываем сайдбар
-            }
-
-            function cleanupSubscriptions() {
-                if (unsubscribeFeed) { unsubscribeFeed(); unsubscribeFeed = null; }
-                if (unsubscribeProfilePosts) { unsubscribeProfilePosts(); unsubscribeProfilePosts = null; }
-                if (unsubscribeChats) { unsubscribeChats(); unsubscribeChats = null; }
-                if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
-            }
-
-            function goToFeed() {
-                setActiveNav('feed');
-                showSection('feed');
-                cleanupSubscriptions();
+            drawerFeed.addEventListener('click', () => {
+                showSectionOnly('feed');
+                // Если мы были в чате, скрываем окно чата
+                chatWindowContainer.classList.add('hidden');
+                noChatSelected.classList.remove('hidden');
+                currentChatId = null;
+                if (unsubscribeMessages) unsubscribeMessages();
                 loadFeed();
-            }
-
-            function goToMyProfile() {
+            });
+            drawerProfile.addEventListener('click', () => {
+                showSectionOnly('profile');
                 viewingProfileUid = currentUser.uid;
-                setActiveNav('profile');
-                showSection('profile');
-                cleanupSubscriptions();
                 loadProfile(viewingProfileUid);
-            }
-
-            function goToUserProfile(uid) {
-                viewingProfileUid = uid;
-                setActiveNav('profile');
-                showSection('profile');
-                cleanupSubscriptions();
-                loadProfile(uid);
-            }
-
-            function goToSearch() {
-                setActiveNav('search');
-                showSection('search');
-                cleanupSubscriptions();
+            });
+            drawerSearch.addEventListener('click', () => {
+                showSectionOnly('search');
                 searchResults.innerHTML = '';
-            }
+            });
 
+            // При загрузке показываем чаты по умолчанию
             function goToChats() {
-                setActiveNav('chats');
-                showSection('chats');
-                cleanupSubscriptions();
+                showSectionOnly('chats');
                 chatWindowContainer.classList.add('hidden');
                 noChatSelected.classList.remove('hidden');
                 currentChatId = null;
                 loadChats();
             }
-
-            // Бургер меню
-            burgerMenu.addEventListener('click', () => {
-                chatsSidebar.classList.toggle('open');
-            });
-
-            // Назад из чата на мобильных
-            backFromChatBtn.addEventListener('click', () => {
-                chatWindowContainer.classList.add('hidden');
-                noChatSelected.classList.remove('hidden');
-                if (unsubscribeMessages) unsubscribeMessages();
-                currentChatId = null;
-                // на мобильных открываем сайдбар
-                chatsSidebar.classList.add('open');
-            });
-
-            // Мобильная навигация
-            mobileNavFeed.addEventListener('click', () => {
-                goToFeed();
-                closeSidebar();
-            });
-            mobileNavProfile.addEventListener('click', () => {
-                goToMyProfile();
-                closeSidebar();
-            });
-            mobileNavSearch.addEventListener('click', () => {
-                goToSearch();
-                closeSidebar();
-            });
-
-            // Поиск в чатах (фильтрация списка чатов)
-            chatSearchInput.addEventListener('input', (e) => {
-                const query = e.target.value.toLowerCase();
-                // Фильтрация уже загруженных чатов (они в DOM)
-                document.querySelectorAll('.chat-item').forEach(item => {
-                    const name = item.querySelector('.chat-name')?.textContent.toLowerCase() || '';
-                    if (name.includes(query)) {
-                        item.style.display = 'flex';
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
-            });
 
             // -------------------------------------------------------------
             // 6. Работа с Firestore (профили, подписки, посты, лайки)
@@ -1654,9 +1616,8 @@
                 currentChatId = chat.id;
                 const userDoc = await db.collection('users').doc(otherUid).get();
                 currentChatParticipant = { uid: otherUid, ...userDoc.data() };
-                setActiveNav('chats');
-                showSection('chats');
-                cleanupSubscriptions();
+                // Переключаемся на секцию чатов
+                showSectionOnly('chats');
                 chatWindowContainer.classList.remove('hidden');
                 noChatSelected.classList.add('hidden');
                 chatHeader.textContent = `Чат с ${currentChatParticipant.displayName || currentChatParticipant.email}`;
@@ -1729,7 +1690,7 @@
                         // выделить активный чат
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         item.classList.add('active');
-                        closeSidebar(); // на мобильных
+                        // на мобильных закрываем сайдбар? можно не закрывать, но для удобства оставим открытым
                     });
                 });
             }
@@ -1860,17 +1821,18 @@
             emojiBtn.addEventListener('click', () => {
                 emojiPicker.classList.toggle('show');
             });
-            // Используем глобальный класс, определённый в модуле
-            if (window.EmojiPicker) {
-                const picker = new window.EmojiPicker();
-                emojiPicker.appendChild(picker);
-                picker.addEventListener('emoji-click', event => {
-                    messageInput.value += event.detail.unicode;
-                    emojiPicker.classList.remove('show');
-                });
-            } else {
-                console.error('EmojiPicker не загрузился');
-            }
+            // Динамический импорт с правильным извлечением default
+            import('https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.0/index.js')
+                .then(module => {
+                    const Picker = module.default; // важно
+                    const picker = new Picker();
+                    emojiPicker.appendChild(picker);
+                    picker.addEventListener('emoji-click', event => {
+                        messageInput.value += event.detail.unicode;
+                        emojiPicker.classList.remove('show');
+                    });
+                })
+                .catch(err => console.error('Ошибка загрузки EmojiPicker:', err));
 
             // Отправка сообщения
             sendMessageBtn.addEventListener('click', () => sendMessage());
@@ -1912,22 +1874,43 @@
             registerBtn.addEventListener('click', handleRegister);
             logoutBtn.addEventListener('click', handleLogout);
 
-            navFeed.addEventListener('click', goToFeed);
-            navProfile.addEventListener('click', goToMyProfile);
-            navSearch.addEventListener('click', goToSearch);
-            navChats.addEventListener('click', goToChats);
+            // Навигация через бургер уже настроена
 
             searchBtn.addEventListener('click', () => searchUsers(searchInput.value));
             searchInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') searchUsers(searchInput.value); });
 
             createPostBtn.addEventListener('click', createPost);
 
+            // Кнопка назад из чата на мобильных
+            backFromChatBtn.addEventListener('click', () => {
+                chatWindowContainer.classList.add('hidden');
+                noChatSelected.classList.remove('hidden');
+                if (unsubscribeMessages) unsubscribeMessages();
+                currentChatId = null;
+            });
+
+            // Поиск в чатах
+            chatSearchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                document.querySelectorAll('.chat-item').forEach(item => {
+                    const name = item.querySelector('.chat-name')?.textContent.toLowerCase() || '';
+                    if (name.includes(query)) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+
+            // -------------------------------------------------------------
+            // 12. Слушатель состояния аутентификации
+            // -------------------------------------------------------------
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUser = user;
                     showApp();
                     await ensureUserProfile(user);
-                    goToFeed();
+                    goToChats(); // по умолчанию открываем чаты
                 } else {
                     currentUser = null;
                     currentUserProfile = null;
@@ -1938,11 +1921,28 @@
                 }
             });
 
-            // Обработка клавиатуры на мобильных (чтобы не перекрывала)
+            // Обработка клавиатуры на мобильных
             window.addEventListener('resize', () => {
-                // при открытии клавиатуры на мобильных высота меняется
                 document.body.style.height = window.innerHeight + 'px';
             });
+
+            // Функции очистки
+            function cleanupSubscriptions() {
+                if (unsubscribeFeed) { unsubscribeFeed(); unsubscribeFeed = null; }
+                if (unsubscribeProfilePosts) { unsubscribeProfilePosts(); unsubscribeProfilePosts = null; }
+                if (unsubscribeChats) { unsubscribeChats(); unsubscribeChats = null; }
+                if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
+            }
+
+            function showAuth() {
+                authContainer.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+            }
+
+            function showApp() {
+                authContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+            }
         })();
     </script>
     <!-- Комментарии с правилами безопасности -->
