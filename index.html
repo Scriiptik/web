@@ -1144,7 +1144,7 @@
             flex-wrap: wrap;
             align-items: center;
             gap: 0.5rem;
-            justify-content: center; /* центрируем содержимое */
+            justify-content: center;
         }
         .shared-canvas-toolbar button {
             background: var(--bg-secondary);
@@ -1162,7 +1162,6 @@
         .shared-canvas-toolbar input[type=range] {
             width: 80px;
         }
-        /* Контейнер для палитры внутри тулбара */
         .toolbar-palette {
             display: flex;
             align-items: center;
@@ -1170,7 +1169,6 @@
             flex-wrap: wrap;
             justify-content: center;
         }
-        /* Курсор ластика */
         #eraserCursor {
             position: fixed;
             pointer-events: none;
@@ -1437,7 +1435,6 @@
                 <button id="eraserBtn" class="btn-secondary">Ластик</button>
                 <label>Толщина: <input type="range" id="lineWidthRange" min="1" max="20" value="4"></label>
                 <label>Прозрачность: <input type="range" id="lineAlphaRange" min="0" max="1" step="0.05" value="1"></label>
-                <!-- Палитра и пикер в тулбаре -->
                 <div class="toolbar-palette">
                     <div class="color-palette" id="sharedCanvasPalette" style="margin:0; padding:0;"></div>
                     <div class="color-picker-custom" style="margin:0;">
@@ -1725,7 +1722,6 @@
                 sharedCanvasCtx.stroke();
                 sharedCanvasCtx.globalAlpha = 1;
 
-                // Отправляем каждое движение без троттлинга (макс. частота ~60fps)
                 const line = {
                     startX: sharedLastX,
                     startY: sharedLastY,
@@ -1832,7 +1828,7 @@
 
             // Переключение секций
             let currentSectionId = 'feedSection';
-            let arModule = null; // инициализируем позже
+            let arModule = null;
             function showSection(sectionId) {
                 if (currentSectionId === 'arSection' && sectionId !== 'arSection' && arModule) {
                     arModule.stopAR();
@@ -2689,7 +2685,7 @@
 
             document.getElementById('cancelReplyBtn').addEventListener('click', clearReply);
 
-            // Исправленная функция удаления сообщения с обновлением unreadCounts
+            // Исправленная функция удаления сообщения с атомарным обновлением unreadCounts
             async function deleteMessage(msgId) {
                 if (!state.currentChatId) return;
                 try {
@@ -2699,20 +2695,22 @@
                     const msgData = msgSnap.data();
                     const isOwn = msgData.senderId === state.currentUser.uid;
 
+                    // Удаляем сообщение
                     await msgRef.delete();
 
-                    // Если удаляем чужое сообщение, уменьшаем unreadCounts для текущего пользователя (если оно было непрочитанным)
+                    // Обновляем unreadCounts для текущего пользователя, если удаляем чужое сообщение
                     if (!isOwn) {
                         const chatRef = db.collection('chats').doc(state.currentChatId);
-                        const chatSnap = await chatRef.get();
-                        if (chatSnap.exists) {
-                            const currentUnread = chatSnap.data().unreadCounts?.[state.currentUser.uid] || 0;
+                        await db.runTransaction(async (transaction) => {
+                            const chatDoc = await transaction.get(chatRef);
+                            if (!chatDoc.exists) return;
+                            const currentUnread = chatDoc.data().unreadCounts?.[state.currentUser.uid] || 0;
                             if (currentUnread > 0) {
-                                await chatRef.update({
+                                transaction.update(chatRef, {
                                     [`unreadCounts.${state.currentUser.uid}`]: currentUnread - 1
                                 });
                             }
-                        }
+                        });
                     }
 
                     // Обновляем последнее сообщение в чате
