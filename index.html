@@ -1112,6 +1112,24 @@
             .mobile-logout-btn:hover {
                 background: #ff1f1f;
             }
+
+            /* Скрываем предустановленную палитру цветов на телефоне в совместном холсте */
+            #sharedCanvasPalette {
+                display: none !important;
+            }
+            .toolbar-palette .color-picker-custom {
+                display: flex !important;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .shared-canvas-toolbar {
+                padding: 0.2rem;
+                gap: 0.2rem;
+            }
+            .shared-canvas-toolbar button,
+            .shared-canvas-toolbar label {
+                font-size: 0.8rem;
+            }
         }
         @media (min-width: 769px) {
             .mobile-only { display: none; }
@@ -1274,7 +1292,10 @@
 
                 <!-- Профиль -->
                 <div id="profileSection" class="section">
-                    <div class="section-content" id="profileContainer"></div>
+                    <div class="section-content" style="position: relative;">
+                        <button id="installAppBtn" style="position: absolute; top: 0.5rem; right: 1rem; z-index: 10; background: none; border: none; font-size: 1.5rem; cursor: pointer;" title="Установить приложение">📲</button>
+                        <div id="profileContainer"></div>
+                    </div>
                 </div>
 
                 <!-- Поиск -->
@@ -1613,6 +1634,10 @@
             let touchPanStart = { x: 0, y: 0 };
             let isTouchPanning = false;
 
+            // --- Буфер для линий (чтобы не отправлять каждое движение) ---
+            let pendingLines = [];
+            let sendBatchTimer = null;
+
             // Палитра для холста
             function initSharedPalette() {
                 const colors = ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#888888', '#ff8800', '#88ff00', '#0088ff'];
@@ -1730,7 +1755,8 @@
                 sharedCanvasCtx.stroke();
                 sharedCanvasCtx.globalAlpha = 1;
 
-                const line = {
+                // Добавляем линию в буфер
+                pendingLines.push({
                     startX: sharedLastX,
                     startY: sharedLastY,
                     endX: x,
@@ -1738,10 +1764,21 @@
                     color: eraserMode ? '#ffffff' : sharedColor,
                     lineWidth: sharedLineWidth,
                     alpha: sharedAlpha
-                };
-                db.collection('sharedCanvas').doc(state.currentChatId).update({
-                    lines: firebase.firestore.FieldValue.arrayUnion(line)
-                }).catch(err => console.log('Firestore error', err));
+                });
+
+                // Запускаем таймер для отправки, если ещё не запущен
+                if (!sendBatchTimer) {
+                    sendBatchTimer = setTimeout(() => {
+                        if (pendingLines.length > 0 && state.currentChatId) {
+                            const linesToSend = [...pendingLines];
+                            pendingLines = [];
+                            db.collection('sharedCanvas').doc(state.currentChatId).update({
+                                lines: firebase.firestore.FieldValue.arrayUnion(...linesToSend)
+                            }).catch(err => console.log('Firestore batch error', err));
+                        }
+                        sendBatchTimer = null;
+                    }, 50); // отправка раз в 50 мс
+                }
 
                 sharedLastX = x;
                 sharedLastY = y;
@@ -1749,6 +1786,18 @@
 
             function stopSharedDrawing() {
                 sharedDrawing = false;
+                // Принудительно отправляем оставшиеся линии
+                if (sendBatchTimer) {
+                    clearTimeout(sendBatchTimer);
+                    sendBatchTimer = null;
+                }
+                if (pendingLines.length > 0 && state.currentChatId) {
+                    const linesToSend = [...pendingLines];
+                    pendingLines = [];
+                    db.collection('sharedCanvas').doc(state.currentChatId).update({
+                        lines: firebase.firestore.FieldValue.arrayUnion(...linesToSend)
+                    }).catch(err => console.log('Firestore final batch error', err));
+                }
             }
 
             function handleWheel(e) {
@@ -3348,6 +3397,73 @@
             });
 
             initPalette();
+
+            // ---------- Кнопка установки приложения (PWA) ----------
+            const installAppBtn = document.getElementById('installAppBtn');
+            if (installAppBtn) {
+                installAppBtn.addEventListener('click', showInstallInstructions);
+            }
+
+            function showInstallInstructions() {
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                const isAndroid = /Android/.test(navigator.userAgent);
+                let message = '';
+
+                if (isIOS) {
+                    message = 'Нажмите "Поделиться" <span style="font-size:1.5rem;">⬆️</span> в Safari, затем выберите "На экран «Домой»".';
+                } else if (isAndroid && window.matchMedia('(display-mode: standalone)').matches) {
+                    message = 'Приложение уже установлено.';
+                } else if (isAndroid) {
+                    message = 'В меню браузера выберите "Добавить на главный экран".';
+                } else {
+                    message = 'Для установки нажмите соответствующую иконку в адресной строке.';
+                }
+                alert(message); // В продакшене заменить на красивое модальное окно
+            }
+
+            // ---------- Генерация манифеста и иконки для PWA ----------
+            function generateIconAndManifest() {
+                // Создаём иконку на canvas (синий фон, белая буква S)
+                const canvas = document.createElement('canvas');
+                canvas.width = 192;
+                canvas.height = 192;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#2a7bde'; // синий
+                ctx.fillRect(0, 0, 192, 192);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 120px "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('S', 96, 96);
+                const iconDataURL = canvas.toDataURL('image/png');
+
+                // Создаём манифест
+                const manifest = {
+                    name: 'SCRIPTMessenger',
+                    short_name: 'SCRIPT',
+                    start_url: window.location.href,
+                    display: 'standalone',
+                    background_color: '#2a7bde',
+                    theme_color: '#2a7bde',
+                    icons: [
+                        {
+                            src: iconDataURL,
+                            sizes: '192x192',
+                            type: 'image/png'
+                        }
+                    ]
+                };
+
+                // Создаём Blob и ссылку
+                const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+                const manifestURL = URL.createObjectURL(manifestBlob);
+                const link = document.createElement('link');
+                link.rel = 'manifest';
+                link.href = manifestURL;
+                document.head.appendChild(link);
+            }
+
+            generateIconAndManifest();
         })();
     </script>
 </body>
