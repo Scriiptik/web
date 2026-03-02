@@ -1604,9 +1604,14 @@
             let sharedCanvasCtx = null;
             let scale = 1;
             let offsetX = 0, offsetY = 0;
-            let isPanning = false;
+            let isPanning = false;          // для средней кнопки мыши
             let panStartX, panStartY;
             let sharedCanvasListenerData = null;
+
+            // Для мультитач на холсте
+            let touchZoomDistance = 0;
+            let touchPanStart = { x: 0, y: 0 };
+            let isTouchPanning = false;
 
             // Палитра для холста
             function initSharedPalette() {
@@ -1688,6 +1693,9 @@
             }
 
             function startSharedDrawing(e) {
+                // Не начинаем рисование, если зажата средняя кнопка мыши или если это мультитач
+                if (e.button === 1) return;
+                if (e.touches && e.touches.length > 1) return;
                 e.preventDefault();
                 sharedDrawing = true;
                 const rect = sharedCanvas.getBoundingClientRect();
@@ -1763,7 +1771,7 @@
             }
 
             function startPan(e) {
-                if (e.button === 1 || (e.ctrlKey && e.button === 0)) {
+                if (e.button === 1) { // средняя кнопка мыши
                     e.preventDefault();
                     isPanning = true;
                     panStartX = e.clientX;
@@ -1799,6 +1807,82 @@
                 if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
                     eraserCursor.style.left = clientX + 'px';
                     eraserCursor.style.top = clientY + 'px';
+                }
+            }
+
+            // Обработчики мультитач
+            function handleTouchStart(e) {
+                e.preventDefault();
+                if (e.touches.length === 2) {
+                    // Начало жеста двумя пальцами
+                    const touch1 = e.touches[0];
+                    const touch2 = e.touches[1];
+                    const dx = touch1.clientX - touch2.clientX;
+                    const dy = touch1.clientY - touch2.clientY;
+                    touchZoomDistance = Math.hypot(dx, dy);
+                    touchPanStart.x = (touch1.clientX + touch2.clientX) / 2;
+                    touchPanStart.y = (touch1.clientY + touch2.clientY) / 2;
+                    isTouchPanning = true;
+                    sharedDrawing = false; // отключаем рисование
+                } else if (e.touches.length === 1) {
+                    // Один палец — рисование
+                    startSharedDrawing(e);
+                }
+            }
+
+            function handleTouchMove(e) {
+                e.preventDefault();
+                if (isTouchPanning && e.touches.length === 2) {
+                    const touch1 = e.touches[0];
+                    const touch2 = e.touches[1];
+                    const dx = touch1.clientX - touch2.clientX;
+                    const dy = touch1.clientY - touch2.clientY;
+                    const newDist = Math.hypot(dx, dy);
+                    const scaleFactor = newDist / touchZoomDistance;
+                    const newScale = scale * scaleFactor;
+                    if (newScale >= 0.5 && newScale <= 5) {
+                        // Масштабирование относительно центра между пальцами
+                        const centerX = (touch1.clientX + touch2.clientX) / 2;
+                        const centerY = (touch1.clientY + touch2.clientY) / 2;
+                        const rect = sharedCanvas.getBoundingClientRect();
+                        const prevCenterCanvasX = (centerX - rect.left - offsetX) / scale;
+                        const prevCenterCanvasY = (centerY - rect.top - offsetY) / scale;
+                        scale = newScale;
+                        offsetX = centerX - rect.left - prevCenterCanvasX * scale;
+                        offsetY = centerY - rect.top - prevCenterCanvasY * scale;
+                        sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+                        if (sharedCanvasListenerData) {
+                            redrawAllLines(sharedCanvasListenerData.lines);
+                        }
+                        updateEraserCursor();
+                    }
+                    touchZoomDistance = newDist;
+
+                    // Панорамирование (смещение средней точки)
+                    const newCenterX = (touch1.clientX + touch2.clientX) / 2;
+                    const newCenterY = (touch1.clientY + touch2.clientY) / 2;
+                    const deltaX = newCenterX - touchPanStart.x;
+                    const deltaY = newCenterY - touchPanStart.y;
+                    offsetX += deltaX;
+                    offsetY += deltaY;
+                    sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+                    if (sharedCanvasListenerData) {
+                        redrawAllLines(sharedCanvasListenerData.lines);
+                    }
+                    touchPanStart.x = newCenterX;
+                    touchPanStart.y = newCenterY;
+                    updateEraserCursor();
+                } else if (!isTouchPanning && e.touches.length === 1) {
+                    drawShared(e);
+                }
+            }
+
+            function handleTouchEnd(e) {
+                if (e.touches.length < 2) {
+                    isTouchPanning = false;
+                }
+                if (e.touches.length === 0) {
+                    stopSharedDrawing();
                 }
             }
 
@@ -2532,6 +2616,10 @@
                 markChatAsRead(chatId);
                 const q = db.collection('messages').where('chatId', '==', chatId).orderBy('timestamp', 'asc');
                 state.listeners.messages = q.onSnapshot(snap => {
+                    // Если чат открыт, сбрасываем счётчик при любом обновлении
+                    if (state.currentChatId === chatId) {
+                        markChatAsRead(chatId);
+                    }
                     const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     renderMessages(msgs);
                 });
@@ -2685,7 +2773,7 @@
 
             document.getElementById('cancelReplyBtn').addEventListener('click', clearReply);
 
-            // Исправленная функция удаления сообщения с атомарным обновлением unreadCounts
+            // Удаление сообщения с корректировкой unreadCounts для всех участников
             async function deleteMessage(msgId) {
                 if (!state.currentChatId) return;
                 try {
@@ -2698,23 +2786,33 @@
                     // Удаляем сообщение
                     await msgRef.delete();
 
-                    // Обновляем unreadCounts для текущего пользователя, если удаляем чужое сообщение
-                    if (!isOwn) {
-                        const chatRef = db.collection('chats').doc(state.currentChatId);
-                        await db.runTransaction(async (transaction) => {
-                            const chatDoc = await transaction.get(chatRef);
-                            if (!chatDoc.exists) return;
-                            const currentUnread = chatDoc.data().unreadCounts?.[state.currentUser.uid] || 0;
-                            if (currentUnread > 0) {
+                    // Обновляем unreadCounts в транзакции
+                    const chatRef = db.collection('chats').doc(state.currentChatId);
+                    await db.runTransaction(async (transaction) => {
+                        const chatDoc = await transaction.get(chatRef);
+                        if (!chatDoc.exists) return;
+                        const participants = chatDoc.data().participants;
+                        const unreadCounts = chatDoc.data().unreadCounts || {};
+
+                        if (isOwn) {
+                            // Удаляем своё сообщение — уменьшаем счётчик для другого участника (получателя)
+                            const otherUid = participants.find(uid => uid !== state.currentUser.uid);
+                            if (otherUid && (unreadCounts[otherUid] || 0) > 0) {
                                 transaction.update(chatRef, {
-                                    [`unreadCounts.${state.currentUser.uid}`]: currentUnread - 1
+                                    [`unreadCounts.${otherUid}`]: (unreadCounts[otherUid] || 0) - 1
                                 });
                             }
-                        });
-                    }
+                        } else {
+                            // Удаляем чужое сообщение — уменьшаем счётчик для текущего пользователя
+                            if ((unreadCounts[state.currentUser.uid] || 0) > 0) {
+                                transaction.update(chatRef, {
+                                    [`unreadCounts.${state.currentUser.uid}`]: (unreadCounts[state.currentUser.uid] || 0) - 1
+                                });
+                            }
+                        }
+                    });
 
                     // Обновляем последнее сообщение в чате
-                    const chatRef = db.collection('chats').doc(state.currentChatId);
                     const messagesQuery = await db.collection('messages')
                         .where('chatId', '==', state.currentChatId)
                         .orderBy('timestamp', 'desc')
@@ -2987,17 +3085,19 @@
                     sharedCanvas.addEventListener('mousemove', drawShared);
                     sharedCanvas.addEventListener('mouseup', stopSharedDrawing);
                     sharedCanvas.addEventListener('mouseleave', stopSharedDrawing);
-                    sharedCanvas.addEventListener('touchstart', startSharedDrawing, { passive: false });
-                    sharedCanvas.addEventListener('touchmove', drawShared, { passive: false });
-                    sharedCanvas.addEventListener('touchend', stopSharedDrawing);
-                    sharedCanvas.addEventListener('touchcancel', stopSharedDrawing);
                     sharedCanvas.addEventListener('wheel', handleWheel, { passive: false });
                     sharedCanvas.addEventListener('mousedown', startPan);
                     sharedCanvas.addEventListener('mousemove', panMove);
                     sharedCanvas.addEventListener('mouseup', endPan);
                     sharedCanvas.addEventListener('mouseleave', endPan);
                     sharedCanvas.addEventListener('mousemove', moveEraserCursor);
-                    sharedCanvas.addEventListener('touchmove', moveEraserCursor);
+
+                    // Мультитач
+                    sharedCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    sharedCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    sharedCanvas.addEventListener('touchend', handleTouchEnd);
+                    sharedCanvas.addEventListener('touchcancel', handleTouchEnd);
+
                     updateEraserCursor();
                 });
             }
@@ -3014,7 +3114,9 @@
                     sharedCanvas.removeEventListener('mousemove', panMove);
                     sharedCanvas.removeEventListener('mouseup', endPan);
                     sharedCanvas.removeEventListener('mousemove', moveEraserCursor);
-                    sharedCanvas.removeEventListener('touchmove', moveEraserCursor);
+                    sharedCanvas.removeEventListener('touchstart', handleTouchStart);
+                    sharedCanvas.removeEventListener('touchmove', handleTouchMove);
+                    sharedCanvas.removeEventListener('touchend', handleTouchEnd);
                     eraserCursor.style.display = 'none';
                 });
             }
