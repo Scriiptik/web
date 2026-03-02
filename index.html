@@ -338,7 +338,7 @@
         .nav-items {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.75rem;
             flex: 1;
             overflow-y: auto;
         }
@@ -355,6 +355,9 @@
             background: var(--bg-secondary);
             border-color: var(--accent);
             color: var(--accent);
+        }
+        .profile-item {
+            margin-bottom: 0.5rem;
         }
         .overlay {
             position: fixed;
@@ -397,7 +400,9 @@
         }
         #feedPosts, #profileContainer, #searchResults {
             width: 100%;
-            max-width: 600px;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 1rem;
         }
         .card {
             background: var(--bg-primary);
@@ -518,13 +523,16 @@
             max-width: 100%;
             max-height: 300px;
             border-radius: 1rem;
-            margin: 0.5rem 0;
+            margin: 0.5rem auto;
+            display: block;
         }
         .post-image.pixel-art {
             image-rendering: crisp-edges;
             width: 300px;
             height: 300px;
             object-fit: contain;
+            margin: 0.5rem auto;
+            display: block;
         }
         .post-actions {
             display: flex;
@@ -1183,8 +1191,9 @@
                     <button id="closeDrawerBtn" class="close-drawer">✕</button>
                 </div>
                 <div class="nav-items">
+                    <!-- Профиль теперь первый и с отдельным классом для отступа -->
+                    <div class="nav-item profile-item" id="drawerProfile">Профиль</div>
                     <div class="nav-item" id="drawerFeed">Лента</div>
-                    <div class="nav-item" id="drawerProfile">Профиль</div>
                     <div class="nav-item" id="drawerSearch">Поиск</div>
                     <div class="nav-item" id="drawerChats">Чаты</div>
                     <div class="nav-item" id="drawerAr">Paint Camera</div>
@@ -1616,8 +1625,8 @@
                         startY: sharedLastY,
                         endX: x,
                         endY: y,
-                        color: sharedColor,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        color: sharedColor
+                        // timestamp удалён, так как вызывает ошибку
                     };
                     db.collection('sharedCanvas').doc(state.currentChatId).update({
                         lines: firebase.firestore.FieldValue.arrayUnion(line)
