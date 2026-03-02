@@ -34,6 +34,7 @@
             --header-height: 56px;
             --button-radius: 2rem;
             --input-radius: 2rem;
+            --messenger-color: #000000; /* по умолчанию для светлой темы */
         }
         body.dark-theme {
             --bg-primary: #1a1c22;
@@ -46,6 +47,7 @@
             --border-light: #2f3139;
             --message-out-bg: #2b4b6e;
             --message-in-bg: #2f3139;
+            --messenger-color: #ffffff; /* для тёмной темы белый */
         }
         body {
             background: var(--bg-secondary);
@@ -163,9 +165,9 @@
         }
 
         .splash-messenger {
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: 600;
-            color: #ffffff;
+            color: var(--messenger-color);
             opacity: 0;
             transform: translateY(20px);
             animation: appear 0.5s 0.7s forwards;
@@ -191,7 +193,7 @@
             color: var(--accent);
         }
         .auth-logo-messenger {
-            color: white;
+            color: var(--messenger-color);
         }
         .auth-tabs {
             display: flex;
@@ -266,7 +268,7 @@
             color: var(--accent);
         }
         .logo-script { color: var(--accent); }
-        .logo-messenger { color: white; }
+        .logo-messenger { color: var(--messenger-color); }
         .user-info {
             display: flex;
             gap: 0.75rem;
@@ -393,16 +395,15 @@
         .section-content {
             flex: 1;
             overflow-y: auto;
-            padding: 1rem;
+            padding: 0.5rem 1rem;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
         #feedPosts, #profileContainer, #searchResults {
             width: 100%;
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
-            padding: 0 1rem;
         }
         .card {
             background: var(--bg-primary);
@@ -501,8 +502,23 @@
         .post:last-child { border-bottom: none; }
         .post-header {
             display: flex;
-            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
             margin-bottom: 0.5rem;
+            padding-left: 0.5rem;
+        }
+        .post-author-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            object-fit: cover;
         }
         .post-author {
             font-weight: 600;
@@ -513,14 +529,17 @@
         .post-time {
             color: var(--text-secondary);
             font-size: 0.85rem;
+            margin-left: auto;
         }
         .post-text {
             color: var(--text-primary);
-            margin-bottom: 0.75rem;
+            margin: 0.75rem auto;
             line-height: 1.4;
+            text-align: center;
+            max-width: 90%;
         }
         .post-image {
-            max-width: 100%;
+            max-width: 90%;
             max-height: 300px;
             border-radius: 1rem;
             margin: 0.5rem auto;
@@ -538,6 +557,7 @@
             display: flex;
             gap: 1rem;
             align-items: center;
+            padding-left: 0.5rem;
         }
         .like-btn, .comment-btn {
             background: none;
@@ -1119,13 +1139,41 @@
             max-width: none;
             border-radius: 0;
             padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         #sharedCanvas {
             background: white;
             width: 100%;
-            height: calc(100% - 120px);
+            flex: 1;
             touch-action: none;
             cursor: crosshair;
+        }
+        .shared-canvas-toolbar {
+            padding: 0.5rem;
+            background: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .shared-canvas-toolbar button {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--button-radius);
+            padding: 0.3rem 0.8rem;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+        .shared-canvas-toolbar button.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        .shared-canvas-toolbar input[type=range] {
+            width: 80px;
         }
     </style>
 </head>
@@ -1142,7 +1190,7 @@
                     <span class="splash-letter">P</span>
                     <span class="splash-letter">T</span>
                 </div>
-                <div class="splash-messenger">MESSENGER</div>
+                <div class="splash-messenger">Messenger</div>
             </div>
         </div>
 
@@ -1380,18 +1428,19 @@
     <!-- Совместный холст на весь экран -->
     <div id="sharedCanvasModal" class="modal">
         <div class="modal-content">
-            <div style="display: flex; flex-direction: column; height: 100%;">
-                <div style="padding: 0.5rem; background: var(--bg-sidebar); display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="font-weight: 600;">Совместный холст</span>
-                    <button id="closeSharedCanvas" class="btn-icon" style="margin-left: auto;">✕</button>
-                    <button id="clearSharedCanvas" class="btn-secondary">Очистить</button>
-                </div>
-                <canvas id="sharedCanvas" style="flex: 1; width: 100%; background: white; touch-action: none; cursor: crosshair;"></canvas>
-                <div class="color-palette" id="sharedCanvasPalette" style="justify-content: center; padding: 0.5rem;"></div>
-                <div class="color-picker-custom" style="justify-content: center;">
-                    <input type="color" id="sharedCanvasColorPicker" value="#000000">
-                    <label for="sharedCanvasColorPicker">Выбрать цвет</label>
-                </div>
+            <div class="shared-canvas-toolbar">
+                <span style="font-weight: 600;">Совместный холст</span>
+                <button id="closeSharedCanvas" class="btn-icon" style="margin-left: auto;">✕</button>
+                <button id="clearSharedCanvas" class="btn-secondary">Очистить</button>
+                <button id="eraserBtn" class="btn-secondary">Ластик</button>
+                <label>Толщина: <input type="range" id="lineWidthRange" min="1" max="20" value="4"></label>
+                <label>Прозрачность: <input type="range" id="lineAlphaRange" min="0" max="1" step="0.05" value="1"></label>
+            </div>
+            <canvas id="sharedCanvas" style="flex: 1; width: 100%; background: white; touch-action: none; cursor: crosshair;"></canvas>
+            <div class="color-palette" id="sharedCanvasPalette" style="justify-content: center; padding: 0.5rem;"></div>
+            <div class="color-picker-custom" style="justify-content: center;">
+                <input type="color" id="sharedCanvasColorPicker" value="#000000">
+                <label for="sharedCanvasColorPicker">Выбрать цвет</label>
             </div>
         </div>
     </div>
@@ -1519,6 +1568,9 @@
             const sharedCanvas = document.getElementById('sharedCanvas');
             const sharedCanvasPalette = document.getElementById('sharedCanvasPalette');
             const sharedCanvasColorPicker = document.getElementById('sharedCanvasColorPicker');
+            const eraserBtn = document.getElementById('eraserBtn');
+            const lineWidthRange = document.getElementById('lineWidthRange');
+            const lineAlphaRange = document.getElementById('lineAlphaRange');
 
             // ==================== Переменные мессенджера ====================
             let selectedFriendUid = null;
@@ -1542,9 +1594,18 @@
             let sharedDrawing = false;
             let sharedLastX, sharedLastY;
             let sharedColor = '#000000';
+            let sharedLineWidth = 4;
+            let sharedAlpha = 1.0;
+            let eraserMode = false;
             let sharedCanvasListener = null;
             let sharedCanvasThrottleTimer = null;
             let sharedCanvasCtx = null;
+
+            // Переменные для панорамирования и масштабирования
+            let scale = 1;
+            let offsetX = 0, offsetY = 0;
+            let isPanning = false;
+            let panStartX, panStartY;
 
             // Инициализация палитры для холста
             function initSharedPalette() {
@@ -1559,6 +1620,8 @@
                         div.classList.add('selected');
                         sharedColor = color;
                         sharedCanvasColorPicker.value = color;
+                        eraserMode = false;
+                        eraserBtn.classList.remove('active');
                     });
                     sharedCanvasPalette.appendChild(div);
                 });
@@ -1569,64 +1632,93 @@
             sharedCanvasColorPicker.addEventListener('input', (e) => {
                 sharedColor = e.target.value;
                 document.querySelectorAll('#sharedCanvasPalette .color').forEach(c => c.classList.remove('selected'));
+                eraserMode = false;
+                eraserBtn.classList.remove('active');
+            });
+
+            lineWidthRange.addEventListener('input', (e) => sharedLineWidth = parseInt(e.target.value));
+            lineAlphaRange.addEventListener('input', (e) => sharedAlpha = parseFloat(e.target.value));
+
+            eraserBtn.addEventListener('click', () => {
+                eraserMode = !eraserMode;
+                if (eraserMode) {
+                    eraserBtn.classList.add('active');
+                } else {
+                    eraserBtn.classList.remove('active');
+                }
             });
 
             function redrawAllLines(lines) {
                 if (!sharedCanvas || !sharedCanvasCtx) return;
+                // очищаем с учётом трансформации
+                sharedCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
                 sharedCanvasCtx.clearRect(0, 0, sharedCanvas.width, sharedCanvas.height);
                 sharedCanvasCtx.fillStyle = '#ffffff';
                 sharedCanvasCtx.fillRect(0, 0, sharedCanvas.width, sharedCanvas.height);
+                sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
                 lines.forEach(line => {
                     sharedCanvasCtx.beginPath();
                     sharedCanvasCtx.strokeStyle = line.color;
-                    sharedCanvasCtx.lineWidth = 4;
+                    sharedCanvasCtx.lineWidth = line.lineWidth || 4;
+                    sharedCanvasCtx.globalAlpha = line.alpha || 1;
                     sharedCanvasCtx.lineCap = 'round';
                     sharedCanvasCtx.moveTo(line.startX, line.startY);
                     sharedCanvasCtx.lineTo(line.endX, line.endY);
                     sharedCanvasCtx.stroke();
                 });
+                sharedCanvasCtx.globalAlpha = 1; // сброс
             }
 
             function startSharedDrawing(e) {
                 e.preventDefault();
                 sharedDrawing = true;
                 const rect = sharedCanvas.getBoundingClientRect();
-                const scaleX = sharedCanvas.width / rect.width;
-                const scaleY = sharedCanvas.height / rect.height;
                 const clientX = e.clientX ?? e.touches[0].clientX;
                 const clientY = e.clientY ?? e.touches[0].clientY;
-                sharedLastX = (clientX - rect.left) * scaleX;
-                sharedLastY = (clientY - rect.top) * scaleY;
+                // преобразуем координаты экрана в координаты холста с учётом масштаба и смещения
+                const x = (clientX - rect.left - offsetX) / scale;
+                const y = (clientY - rect.top - offsetY) / scale;
+                sharedLastX = x;
+                sharedLastY = y;
             }
 
             function drawShared(e) {
                 if (!sharedDrawing) return;
                 e.preventDefault();
                 const rect = sharedCanvas.getBoundingClientRect();
-                const scaleX = sharedCanvas.width / rect.width;
-                const scaleY = sharedCanvas.height / rect.height;
                 const clientX = e.clientX ?? e.touches[0].clientX;
                 const clientY = e.clientY ?? e.touches[0].clientY;
-                const x = (clientX - rect.left) * scaleX;
-                const y = (clientY - rect.top) * scaleY;
+                const x = (clientX - rect.left - offsetX) / scale;
+                const y = (clientY - rect.top - offsetY) / scale;
 
+                // рисуем локально
                 sharedCanvasCtx.beginPath();
                 sharedCanvasCtx.moveTo(sharedLastX, sharedLastY);
                 sharedCanvasCtx.lineTo(x, y);
-                sharedCanvasCtx.strokeStyle = sharedColor;
+                if (eraserMode) {
+                    sharedCanvasCtx.strokeStyle = '#ffffff';
+                } else {
+                    sharedCanvasCtx.strokeStyle = sharedColor;
+                }
+                sharedCanvasCtx.lineWidth = sharedLineWidth;
+                sharedCanvasCtx.globalAlpha = sharedAlpha;
+                sharedCanvasCtx.lineCap = 'round';
                 sharedCanvasCtx.stroke();
+                sharedCanvasCtx.globalAlpha = 1; // сброс
 
+                // отправляем данные с троттлингом (уменьшим до 20 мс для плавности)
                 if (!sharedCanvasThrottleTimer) {
                     sharedCanvasThrottleTimer = setTimeout(() => {
                         sharedCanvasThrottleTimer = null;
-                    }, 50);
+                    }, 20);
                     const line = {
                         startX: sharedLastX,
                         startY: sharedLastY,
                         endX: x,
                         endY: y,
-                        color: sharedColor
-                        // timestamp удалён, так как вызывает ошибку
+                        color: eraserMode ? '#ffffff' : sharedColor,
+                        lineWidth: sharedLineWidth,
+                        alpha: sharedAlpha
                     };
                     db.collection('sharedCanvas').doc(state.currentChatId).update({
                         lines: firebase.firestore.FieldValue.arrayUnion(line)
@@ -1639,6 +1731,63 @@
 
             function stopSharedDrawing() {
                 sharedDrawing = false;
+            }
+
+            // Обработчики для панорамирования и масштабирования
+            function handleWheel(e) {
+                e.preventDefault();
+                const rect = sharedCanvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const newScale = scale * delta;
+                // Ограничим масштаб
+                if (newScale < 0.5) return;
+                if (newScale > 5) return;
+                // Корректируем offset, чтобы масштабирование происходило относительно мыши
+                offsetX = mouseX - (mouseX - offsetX) * (newScale / scale);
+                offsetY = mouseY - (mouseY - offsetY) * (newScale / scale);
+                scale = newScale;
+                sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+                // Перерисовываем линии (заново получаем из базы, но можно просто redrawAllLines с последними данными)
+                // Для простоты перерисуем из глобального массива (если он хранится), но у нас нет массива всех линий, только слушатель.
+                // Можно попросить слушателя перерисовать, но он сам вызовет redrawAllLines при изменении.
+                // Поэтому просто вызовем redrawAllLines с последними известными данными.
+                if (sharedCanvasListenerData) {
+                    redrawAllLines(sharedCanvasListenerData.lines);
+                }
+            }
+
+            let sharedCanvasListenerData = null; // сохраняем последние данные
+
+            function startPan(e) {
+                if (e.button === 1 || (e.ctrlKey && e.button === 0)) { // средняя кнопка или Ctrl+левая
+                    e.preventDefault();
+                    isPanning = true;
+                    panStartX = e.clientX;
+                    panStartY = e.clientY;
+                }
+            }
+
+            function panMove(e) {
+                if (!isPanning) return;
+                e.preventDefault();
+                const dx = e.clientX - panStartX;
+                const dy = e.clientY - panStartY;
+                offsetX += dx;
+                offsetY += dy;
+                sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+                if (sharedCanvasListenerData) {
+                    redrawAllLines(sharedCanvasListenerData.lines);
+                }
+                panStartX = e.clientX;
+                panStartY = e.clientY;
+            }
+
+            function endPan(e) {
+                if (isPanning) {
+                    isPanning = false;
+                }
             }
 
             // ==================== Тема ====================
@@ -1746,9 +1895,13 @@
                     const commentsSnapshot = await db.collection('comments').where('postId', '==', post.id).get();
                     const commentsCount = commentsSnapshot.size;
                     const pixelClass = post.isPixelArt ? 'pixel-art' : '';
+                    const avatarHtml = author.avatar 
+                        ? `<img src="${author.avatar}" class="post-author-avatar">` 
+                        : `<div class="post-author-avatar">${(author.displayName?.[0] || '?').toUpperCase()}</div>`;
                     html += `
                         <div class="post card" data-post-id="${post.id}">
                             <div class="post-header">
+                                ${avatarHtml}
                                 <span class="post-author" data-author-id="${post.userId}">${author.displayName}</span>
                                 <span class="post-time">${time}</span>
                             </div>
@@ -2782,12 +2935,18 @@
                     sharedCanvasCtx = sharedCanvas.getContext('2d');
                     sharedCanvasCtx.fillStyle = '#ffffff';
                     sharedCanvasCtx.fillRect(0, 0, sharedCanvas.width, sharedCanvas.height);
+                    // сброс трансформации
+                    scale = 1;
+                    offsetX = 0;
+                    offsetY = 0;
+                    sharedCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
 
                     if (sharedCanvasListener) sharedCanvasListener();
                     const canvasRef = db.collection('sharedCanvas').doc(state.currentChatId);
                     sharedCanvasListener = canvasRef.onSnapshot((doc) => {
                         if (doc.exists) {
                             const data = doc.data();
+                            sharedCanvasListenerData = data; // сохраняем для перерисовки
                             if (data.lines) {
                                 redrawAllLines(data.lines);
                             }
@@ -2804,6 +2963,11 @@
                     sharedCanvas.addEventListener('touchmove', drawShared, { passive: false });
                     sharedCanvas.addEventListener('touchend', stopSharedDrawing);
                     sharedCanvas.addEventListener('touchcancel', stopSharedDrawing);
+                    sharedCanvas.addEventListener('wheel', handleWheel, { passive: false });
+                    sharedCanvas.addEventListener('mousedown', startPan);
+                    sharedCanvas.addEventListener('mousemove', panMove);
+                    sharedCanvas.addEventListener('mouseup', endPan);
+                    sharedCanvas.addEventListener('mouseleave', endPan);
                 });
             }
 
@@ -2814,6 +2978,10 @@
                         sharedCanvasListener();
                         sharedCanvasListener = null;
                     }
+                    sharedCanvas.removeEventListener('wheel', handleWheel);
+                    sharedCanvas.removeEventListener('mousedown', startPan);
+                    sharedCanvas.removeEventListener('mousemove', panMove);
+                    sharedCanvas.removeEventListener('mouseup', endPan);
                 });
             }
 
@@ -2822,8 +2990,10 @@
                     if (!state.currentChatId) return;
                     await db.collection('sharedCanvas').doc(state.currentChatId).set({ lines: [] });
                     if (sharedCanvasCtx) {
+                        sharedCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
                         sharedCanvasCtx.fillStyle = '#ffffff';
                         sharedCanvasCtx.fillRect(0, 0, sharedCanvas.width, sharedCanvas.height);
+                        sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
                     }
                 });
             }
