@@ -260,6 +260,8 @@
             font-weight: 600;
             color: var(--accent);
         }
+        .logo-script { color: var(--accent); }
+        .logo-messenger { color: white; }
         .user-info {
             display: flex;
             gap: 0.75rem;
@@ -871,6 +873,26 @@
             transition: width 0.1s;
         }
 
+        .emoji-picker {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0.25rem;
+            padding: 0.5rem;
+            background: var(--bg-sidebar);
+            border-radius: 1rem;
+            box-shadow: var(--shadow-md);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .emoji-item {
+            font-size: 1.8rem;
+            text-align: center;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.5rem;
+        }
+        .emoji-item:hover { background: var(--bg-secondary); }
+
         /* Комментарии (увеличенное окно) */
         #commentModal .modal-content {
             width: 90%;
@@ -1002,6 +1024,7 @@
             padding: 0 4px;
         }
 
+        /* Адаптивность */
         @media (max-width: 768px) {
             .chats-sidebar {
                 position: absolute;
@@ -1012,6 +1035,21 @@
             .chats-sidebar.hide-mobile { transform: translateX(-100%); }
             .back-button { display: inline-block; }
             .chat-input-area button { width: 36px; height: 36px; }
+            .desktop-only { display: none; }
+            .mobile-only { display: block; }
+            .user-info .logout-btn, .user-info .email-badge { display: none; }
+            .nav-drawer .nav-items {
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+            }
+            .nav-drawer .nav-items > .mobile-only:last-child {
+                margin-top: auto;
+                padding-bottom: 1rem;
+            }
+        }
+        @media (min-width: 769px) {
+            .mobile-only { display: none; }
         }
 
         /* Совместный холст на весь экран */
@@ -1026,7 +1064,7 @@
         #sharedCanvas {
             background: white;
             width: 100%;
-            height: calc(100% - 120px); /* примерно место под палитру */
+            height: calc(100% - 120px);
             touch-action: none;
             cursor: crosshair;
         }
@@ -1073,7 +1111,7 @@
             <div class="app-header">
                 <div class="header-left">
                     <button id="burgerMenu" class="burger-menu">☰</button>
-                    <span class="logo">SCRIPTMessenger</span>
+                    <span class="logo"><span class="logo-script">SCRIPT</span><span class="logo-messenger">Messenger</span></span>
                 </div>
                 <div class="user-info">
                     <span class="email-badge" id="headerEmail"></span>
@@ -1086,14 +1124,24 @@
             <div id="navDrawer" class="nav-drawer">
                 <div class="drawer-header">
                     <span class="logo">Меню</span>
+                    <span id="headerEmailMobile" class="mobile-only email-badge-mobile"></span>
                     <button id="closeDrawerBtn" class="close-drawer">✕</button>
                 </div>
                 <div class="nav-items">
+                    <!-- Для мобильных: имя и отдельная кнопка профиля -->
+                    <div class="mobile-only user-info-mobile" style="margin-bottom: 0.5rem;">
+                        <div class="nav-item" id="drawerProfileMobile" style="margin-top: 0.5rem;">Профиль</div>
+                    </div>
+                    <!-- Стандартные пункты меню -->
                     <div class="nav-item" id="drawerFeed">Лента</div>
                     <div class="nav-item" id="drawerProfile">Профиль</div>
                     <div class="nav-item" id="drawerSearch">Поиск</div>
                     <div class="nav-item" id="drawerChats">Чаты</div>
                     <div class="nav-item" id="drawerAr">Paint Camera</div>
+                    <!-- Кнопка выхода для мобильных -->
+                    <div class="mobile-only" style="margin-top: auto;">
+                        <button id="logoutBtnMobile" class="btn-secondary" style="width:100%;">Выйти</button>
+                    </div>
                 </div>
             </div>
             <div id="overlay" class="overlay"></div>
@@ -1160,7 +1208,8 @@
                                 <button id="cancelReplyBtn" class="reply-cancel">✕</button>
                             </div>
                             <div class="chat-input-area">
-                                <!-- Убрана кнопка эмодзи -->
+                                <!-- Кнопка эмодзи только для десктопа -->
+                                <button id="emojiBtn" class="btn-icon desktop-only">😊</button>
                                 <input type="text" id="messageInput" placeholder="Сообщение...">
                                 <button id="attachBtn" class="btn-icon">📎</button>
                                 <input type="file" id="fileInput" accept="image/*,video/*" style="display:none;">
@@ -1173,7 +1222,8 @@
                                 <button id="recordBtn" class="btn-icon">🎤</button>
                                 <button id="sendMessageBtn" class="btn-icon">➤</button>
                             </div>
-                            <!-- Эмодзи-пикер удалён -->
+                            <!-- Эмодзи-пикер -->
+                            <div id="emojiPicker" class="emoji-picker hidden"></div>
                         </div>
                     </div>
                 </div>
@@ -1261,7 +1311,7 @@
     <div id="commentModal" class="modal">
         <div class="modal-content">
             <h3>Комментарии</h3>
-            <div id="commentsList" style="max-height:300px; overflow-y:auto;"></div>
+            <div id="commentsList"></div>
             <textarea id="newComment" rows="2" placeholder="Ваш комментарий..."></textarea>
             <div class="flex-row" style="justify-content: center;">
                 <button id="addCommentBtn" class="btn-primary">Отправить</button>
@@ -1355,10 +1405,11 @@
             const messagesContainer = document.getElementById('messagesContainer');
             const messageInput = document.getElementById('messageInput');
             const sendMessageBtn = document.getElementById('sendMessageBtn');
-            // Убрана переменная emojiBtn, attachBtn и recordBtn остались
+            const emojiBtn = document.getElementById('emojiBtn');
             const attachBtn = document.getElementById('attachBtn');
             const fileInput = document.getElementById('fileInput');
             const recordBtn = document.getElementById('recordBtn');
+            const emojiPicker = document.getElementById('emojiPicker');
             const chatHeader = document.getElementById('chatHeader');
             const backFromChatBtn = document.getElementById('backFromChatBtn');
             const deleteChatBtn = document.getElementById('deleteChatBtn');
@@ -1399,7 +1450,12 @@
             const uploadPostImageBtn = document.getElementById('uploadPostImageBtn');
             const postImageInput = document.getElementById('postImageInput');
 
-            // Новые элементы для совместного холста
+            // Новые элементы для мобильной версии
+            const headerEmailMobile = document.getElementById('headerEmailMobile');
+            const logoutBtnMobile = document.getElementById('logoutBtnMobile');
+            const drawerProfileMobile = document.getElementById('drawerProfileMobile');
+
+            // Совместный холст
             const sharedCanvasBtn = document.getElementById('sharedCanvasBtn');
             const sharedCanvasModal = document.getElementById('sharedCanvasModal');
             const closeSharedCanvas = document.getElementById('closeSharedCanvas');
@@ -1432,6 +1488,7 @@
             let sharedColor = '#000000';
             let sharedCanvasListener = null;
             let sharedCanvasThrottleTimer = null;
+            let sharedCanvasCtx = null;
 
             // Инициализация палитры для холста
             function initSharedPalette() {
@@ -1581,6 +1638,7 @@
 
             drawerFeed.addEventListener('click', () => showSection('feedSection'));
             drawerProfile.addEventListener('click', () => { if (state.currentUser) showSection('profileSection'); loadProfile(state.currentUser.uid); });
+            drawerProfileMobile?.addEventListener('click', () => { if (state.currentUser) showSection('profileSection'); loadProfile(state.currentUser.uid); });
             drawerSearch.addEventListener('click', () => { showSection('searchSection'); searchResults.innerHTML = ''; });
             drawerChats.addEventListener('click', () => showSection('chatsSection'));
             drawerAr.addEventListener('click', () => showSection('arSection'));
@@ -1602,7 +1660,9 @@
                 userRef.onSnapshot((snap) => {
                     if (snap.exists) {
                         state.profile = snap.data();
-                        headerEmail.textContent = state.profile.displayName || state.currentUser.email;
+                        const displayName = state.profile.displayName || state.currentUser.email;
+                        headerEmail.textContent = displayName;
+                        if (headerEmailMobile) headerEmailMobile.textContent = displayName;
                     }
                 });
             }
@@ -1888,7 +1948,7 @@
                         window.tempAvatar = dataURL;
                     } else {
                         postImage = dataURL;
-                        window.isPixelArt = true; // помечаем как пиксель-арт
+                        window.isPixelArt = true;
                     }
                 } else {
                     const dataURL = freeCanvas.toDataURL();
@@ -1896,7 +1956,7 @@
                         window.tempAvatar = dataURL;
                     } else {
                         postImage = dataURL;
-                        window.isPixelArt = false; // обычное рисование
+                        window.isPixelArt = false;
                     }
                 }
                 drawingModal.classList.remove('show');
@@ -2581,6 +2641,27 @@
                 }, 100);
             }
 
+            // Эмодзи
+            const emojiList = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
+            emojiBtn.addEventListener('click', () => {
+                if (emojiPicker.classList.contains('hidden')) {
+                    emojiPicker.innerHTML = '';
+                    emojiList.forEach(e => {
+                        const span = document.createElement('span');
+                        span.className = 'emoji-item';
+                        span.textContent = e;
+                        span.onclick = () => {
+                            messageInput.value += e;
+                            emojiPicker.classList.add('hidden');
+                        };
+                        emojiPicker.appendChild(span);
+                    });
+                    emojiPicker.classList.remove('hidden');
+                } else {
+                    emojiPicker.classList.add('hidden');
+                }
+            });
+
             openPixelPostBtn.addEventListener('click', () => {
                 currentDrawingTarget = 'post';
                 openDrawingModal('post');
@@ -2597,7 +2678,7 @@
                     const reader = new FileReader();
                     reader.onload = () => {
                         postImage = reader.result;
-                        window.isPixelArt = false; // фото
+                        window.isPixelArt = false;
                         alert('Изображение загружено, теперь опубликуйте пост');
                     };
                     reader.readAsDataURL(file);
@@ -2642,7 +2723,7 @@
                     if (!state.currentChatId) return;
                     sharedCanvasModal.classList.add('show');
                     sharedCanvas.width = window.innerWidth;
-                    sharedCanvas.height = window.innerHeight - 150; // примерная высота
+                    sharedCanvas.height = window.innerHeight - 150;
                     sharedCanvasCtx = sharedCanvas.getContext('2d');
                     sharedCanvasCtx.fillStyle = '#ffffff';
                     sharedCanvasCtx.fillRect(0, 0, sharedCanvas.width, sharedCanvas.height);
@@ -2871,6 +2952,12 @@
                     appContainer.classList.add('hidden');
                 }
             });
+
+            // Обработчики выхода
+            logoutBtn.addEventListener('click', () => auth.signOut());
+            if (logoutBtnMobile) {
+                logoutBtnMobile.addEventListener('click', () => auth.signOut());
+            }
 
             window.addEventListener('resize', () => {
                 document.body.style.height = window.innerHeight + 'px';
