@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SCRIPTMessenger</title>
+    <title>SCRIPTMessenger + Paint Camera</title>
     <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <style>
         * {
             margin: 0;
@@ -176,6 +178,11 @@
             height: var(--header-height);
             flex-shrink: 0;
         }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
         .burger-menu {
             font-size: 1.8rem;
             background: none;
@@ -276,11 +283,13 @@
         .main-content {
             flex: 1;
             overflow: hidden;
+            position: relative;
         }
         .section {
             display: none;
             height: 100%;
             width: 100%;
+            position: relative;
         }
         .section.active { display: flex; flex-direction: column; }
         .section-content {
@@ -288,6 +297,74 @@
             overflow-y: auto;
             padding: 1rem;
         }
+
+        /* Секция AR (Paint Camera) */
+        #arSection {
+            background: black;
+        }
+        #arSection video, #arSection canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #arSection video {
+            transform: scaleX(-1);
+        }
+        #arDrawCanvas {
+            z-index: 2;
+        }
+        #arUiCanvas {
+            z-index: 3;
+            pointer-events: none;
+        }
+        #arToolbar {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5;
+        }
+        #arClearBtn {
+            background: #ff3b3b;
+            border: none;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 14px;
+            font-size: 14px;
+            cursor: default;
+        }
+        #arClearBtn.hover {
+            box-shadow: 0 0 15px #ff3b3b;
+        }
+        #arColorPanel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            padding: 10px 14px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+            z-index: 5;
+            backdrop-filter: blur(6px);
+        }
+        .ar-color {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: default;
+        }
+        .ar-color.active {
+            border-color: white;
+        }
+        .ar-color.hover {
+            box-shadow: 0 0 12px white;
+        }
+
         .app-footer {
             height: var(--footer-height);
             background: var(--bg-sidebar);
@@ -366,7 +443,6 @@
             border-color: #ff4d4d;
             color: #ff4d4d;
         }
-        /* Кнопка удаления поста */
         .delete-post-btn {
             background: none;
             border: none;
@@ -376,9 +452,7 @@
             margin-left: auto;
             transition: color 0.2s;
         }
-        .delete-post-btn:hover {
-            color: #ff4d4d;
-        }
+        .delete-post-btn:hover { color: #ff4d4d; }
 
         /* Профиль */
         .profile-header {
@@ -417,7 +491,7 @@
         }
         .stats span:hover { text-decoration: underline; }
 
-        /* Рисование */
+        /* Рисование (обычное, не AR) */
         .drawing-editor {
             background: var(--bg-primary);
             border-radius: 1rem;
@@ -482,7 +556,6 @@
         }
         .color:hover { transform: scale(1.1); }
         .color.selected { border-color: var(--accent); }
-        /* Кастомный выбор цвета */
         .color-picker-custom {
             display: flex;
             align-items: center;
@@ -497,10 +570,6 @@
             border-radius: 50%;
             cursor: pointer;
             background: transparent;
-        }
-        .color-picker-custom label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
         }
 
         /* Модальные окна */
@@ -624,7 +693,6 @@
         }
         .message:hover .delete-msg { display: block; }
 
-        /* НОВЫЕ СТИЛИ ДЛЯ ПАНЕЛИ ОТВЕТА И ОТОБРАЖЕНИЯ ОТВЕТОВ */
         .reply-panel {
             background: var(--bg-secondary);
             border-top: 1px solid var(--border-light);
@@ -658,9 +726,7 @@
             color: var(--text-secondary);
             padding: 0 0.5rem;
         }
-        .reply-cancel:hover {
-            color: var(--accent);
-        }
+        .reply-cancel:hover { color: var(--accent); }
 
         .message-reply {
             background: rgba(0,0,0,0.05);
@@ -681,9 +747,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .message-reply:hover {
-            background: rgba(0,0,0,0.1);
-        }
+        .message-reply:hover { background: rgba(0,0,0,0.1); }
 
         .chat-input-area {
             display: flex;
@@ -716,7 +780,6 @@
         }
         .chat-input-area button:hover { background: var(--bg-secondary); }
 
-        /* Голосовая запись */
         .voice-recording-panel {
             display: none;
             align-items: center;
@@ -742,7 +805,6 @@
             transition: width 0.1s;
         }
 
-        /* Эмодзи-пикер */
         .emoji-picker {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
@@ -763,7 +825,6 @@
         }
         .emoji-item:hover { background: var(--bg-secondary); }
 
-        /* Стили для комментариев (обновлённые) */
         .comment-item {
             display: flex;
             gap: 12px;
@@ -784,9 +845,7 @@
             font-weight: 500;
             flex-shrink: 0;
         }
-        .comment-content {
-            flex: 1;
-        }
+        .comment-content { flex: 1; }
         .comment-header {
             display: flex;
             justify-content: space-between;
@@ -797,9 +856,7 @@
             color: var(--accent);
             cursor: pointer;
         }
-        .comment-author:hover {
-            text-decoration: underline;
-        }
+        .comment-author:hover { text-decoration: underline; }
         .comment-time {
             color: var(--text-secondary);
             font-size: 0.75rem;
@@ -809,19 +866,13 @@
             line-height: 1.4;
             word-break: break-word;
         }
-        .no-comments {
-            text-align: center;
-            color: var(--text-secondary);
-            padding: 2rem;
-        }
+        .no-comments { text-align: center; color: var(--text-secondary); padding: 2rem; }
 
         .hidden { display: none !important; }
         .info-message { padding: 2rem; text-align: center; color: var(--text-secondary); }
         .flex-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 
-        /* Стилизованные поля ввода */
-        .search-box,
-        .sidebar-search {
+        .search-box, .sidebar-search {
             display: flex;
             align-items: center;
             background: var(--bg-secondary);
@@ -831,12 +882,8 @@
             margin: 1rem;
             transition: border-color 0.2s;
         }
-        .search-box:focus-within,
-        .sidebar-search:focus-within {
-            border-color: var(--accent);
-        }
-        .search-box input,
-        .sidebar-search input {
+        .search-box:focus-within, .sidebar-search:focus-within { border-color: var(--accent); }
+        .search-box input, .sidebar-search input {
             flex: 1;
             padding: 0.8rem 0.5rem;
             background: transparent;
@@ -845,23 +892,9 @@
             color: var(--text-primary);
             font-size: 1rem;
         }
-        .search-box::before {
-            content: '🔍';
-            margin-right: 0.5rem;
-            opacity: 0.6;
-        }
-        .sidebar-search::before {
-            content: '🔍';
-            margin-right: 0.5rem;
-            opacity: 0.6;
-        }
-        @media (max-width: 768px) {
-            .search-box, .sidebar-search {
-                margin: 0.5rem;
-            }
-        }
+        .search-box::before { content: '🔍'; margin-right: 0.5rem; opacity: 0.6; }
+        .sidebar-search::before { content: '🔍'; margin-right: 0.5rem; opacity: 0.6; }
 
-        /* Бейдж непрочитанных в списке чатов */
         .unread-badge {
             display: inline-block;
             background: var(--accent);
@@ -877,10 +910,6 @@
             padding: 0 4px;
         }
 
-        /* Бейдж на пункте меню "Чаты" */
-        #drawerChats {
-            position: relative;
-        }
         .menu-unread {
             position: absolute;
             right: 10px;
@@ -907,35 +936,6 @@
             .chats-sidebar.hide-mobile { transform: translateX(-100%); }
             .back-button { display: inline-block; }
             .chat-input-area button { width: 36px; height: 36px; }
-        }
-
-        /* Стили для модалки редактирования профиля (добавлено) */
-        #editProfileModal .modal-content {
-            max-width: 400px;
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            background: var(--bg-primary);
-        }
-        #editProfileModal input,
-        #editProfileModal textarea {
-            width: 100%;
-            margin-bottom: 1rem;
-            padding: 0.8rem 1rem;
-            border: 1px solid var(--border-light);
-            border-radius: 12px;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            font-size: 1rem;
-            box-sizing: border-box;
-        }
-        #editProfileModal .flex-row {
-            justify-content: space-around;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        #editProfileModal button {
-            min-width: 120px;
         }
     </style>
 </head>
@@ -985,6 +985,7 @@
                     <div class="nav-item" id="drawerProfile">Профиль</div>
                     <div class="nav-item" id="drawerSearch">Поиск</div>
                     <div class="nav-item" id="drawerChats">Чаты</div>
+                    <div class="nav-item" id="drawerAr">Paint Camera</div>
                 </div>
             </div>
             <div id="overlay" class="overlay"></div>
@@ -1039,11 +1040,9 @@
                             <div class="chat-header">
                                 <button id="backFromChatBtn" class="back-button btn-icon">←</button>
                                 <span id="chatHeader" class="contact-name" style="cursor:pointer; color:var(--accent);"></span>
-                                <!-- Кнопка удаления чата -->
                                 <button id="deleteChatBtn" class="btn-icon" style="margin-left:auto;">🗑️</button>
                             </div>
                             <div id="messagesContainer"></div>
-                            <!-- НОВАЯ ПАНЕЛЬ ОТВЕТА -->
                             <div id="replyPanel" class="reply-panel hidden">
                                 <div class="reply-info">
                                     <span class="reply-sender"></span>
@@ -1066,6 +1065,26 @@
                                 <button id="sendMessageBtn" class="btn-icon">➤</button>
                             </div>
                             <div id="emojiPicker" class="emoji-picker hidden"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AR Рисование жестами (Paint Camera) -->
+                <div id="arSection" class="section">
+                    <div style="position:relative; width:100%; height:100%; background:black;">
+                        <video id="arVideo" autoplay muted playsinline></video>
+                        <canvas id="arDrawCanvas"></canvas>
+                        <canvas id="arUiCanvas"></canvas>
+                        <div id="arToolbar">
+                            <button id="arClearBtn">Очистить</button>
+                        </div>
+                        <div id="arColorPanel">
+                            <div class="ar-color active" data-color="red" style="background:red;"></div>
+                            <div class="ar-color" data-color="lime" style="background:lime;"></div>
+                            <div class="ar-color" data-color="cyan" style="background:cyan;"></div>
+                            <div class="ar-color" data-color="yellow" style="background:yellow;"></div>
+                            <div class="ar-color" data-color="white" style="background:white;"></div>
+                            <div class="ar-color" data-color="magenta" style="background:magenta;"></div>
                         </div>
                     </div>
                 </div>
@@ -1092,7 +1111,7 @@
         </div>
     </div>
 
-    <!-- Модалка рисования -->
+    <!-- Модалка рисования (обычного) -->
     <div id="drawingModal" class="modal">
         <div class="modal-content">
             <h3 id="drawingModalTitle">Рисование</h3>
@@ -1108,7 +1127,6 @@
                     <canvas id="freeCanvas" class="free-canvas" width="300" height="300"></canvas>
                 </div>
                 <div class="color-palette" id="colorPalette"></div>
-                <!-- Кастомный выбор цвета -->
                 <div class="color-picker-custom">
                     <input type="color" id="customColorPicker" value="#000000">
                     <label for="customColorPicker">Выбрать цвет</label>
@@ -1145,6 +1163,7 @@
 
     <script>
         (function() {
+            // ==================== Firebase ====================
             const firebaseConfig = {
                 apiKey: "AIzaSyBw-Jv_Kp6UijGT4giu1DCO-kAXtlU-y5w",
                 authDomain: "webs-a50d2.firebaseapp.com",
@@ -1157,7 +1176,7 @@
             const auth = firebase.auth();
             const db = firebase.firestore();
 
-            // Состояние
+            // ==================== Состояние ====================
             let state = {
                 currentUser: null,
                 profile: null,
@@ -1168,7 +1187,7 @@
                 listeners: {}
             };
 
-            // DOM элементы
+            // ==================== DOM элементы ====================
             const authContainer = document.getElementById('authContainer');
             const appContainer = document.getElementById('appContainer');
             const loginTab = document.getElementById('loginTab');
@@ -1188,10 +1207,12 @@
             const drawerProfile = document.getElementById('drawerProfile');
             const drawerSearch = document.getElementById('drawerSearch');
             const drawerChats = document.getElementById('drawerChats');
+            const drawerAr = document.getElementById('drawerAr');
             const feedSection = document.getElementById('feedSection');
             const profileSection = document.getElementById('profileSection');
             const searchSection = document.getElementById('searchSection');
             const chatsSection = document.getElementById('chatsSection');
+            const arSection = document.getElementById('arSection');
             const postText = document.getElementById('postText');
             const createPostBtn = document.getElementById('createPostBtn');
             const feedPosts = document.getElementById('feedPosts');
@@ -1213,7 +1234,7 @@
             const emojiPicker = document.getElementById('emojiPicker');
             const chatHeader = document.getElementById('chatHeader');
             const backFromChatBtn = document.getElementById('backFromChatBtn');
-            const deleteChatBtn = document.getElementById('deleteChatBtn'); // новая кнопка
+            const deleteChatBtn = document.getElementById('deleteChatBtn');
             const voicePanel = document.getElementById('voicePanel');
             const voiceTimer = document.getElementById('voiceTimer');
             const voiceLevel = document.getElementById('voiceLevel');
@@ -1251,6 +1272,7 @@
             const uploadPostImageBtn = document.getElementById('uploadPostImageBtn');
             const postImageInput = document.getElementById('postImageInput');
 
+            // ==================== Переменные мессенджера ====================
             let selectedFriendUid = null;
             let currentDrawingMode = 'pixel';
             let pixelGrid = Array(256).fill('#ffffff');
@@ -1261,13 +1283,11 @@
             let currentPostIdForComment = null;
             let currentDrawingTarget = 'avatar';
             let postImage = null;
-
-            // НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ОТВЕТА
             let replyToMessageId = null;
             let replyToSender = '';
             let replyToText = '';
 
-            // Тема
+            // ==================== Тема ====================
             function applyTheme() {
                 if (state.darkTheme) {
                     document.body.classList.add('dark-theme');
@@ -1284,21 +1304,27 @@
                 applyTheme();
             });
 
-            // Бургер
+            // ==================== Бургер ====================
             function openDrawer() { navDrawer.classList.add('open'); overlay.classList.add('show'); }
             function closeDrawer() { navDrawer.classList.remove('open'); overlay.classList.remove('show'); }
             burgerMenu.addEventListener('click', openDrawer);
             closeDrawerBtn.addEventListener('click', closeDrawer);
             overlay.addEventListener('click', closeDrawer);
 
-            // Секции
+            // ==================== Переключение секций ====================
+            let currentSectionId = 'feedSection';
             function showSection(sectionId) {
-                feedSection.classList.remove('active');
-                profileSection.classList.remove('active');
-                searchSection.classList.remove('active');
-                chatsSection.classList.remove('active');
+                // Остановка AR при уходе с AR секции
+                if (currentSectionId === 'arSection' && sectionId !== 'arSection') {
+                    if (arModule) arModule.stopAR();
+                }
+                // Скрываем все секции
+                [feedSection, profileSection, searchSection, chatsSection, arSection].forEach(sec => sec.classList.remove('active'));
                 document.getElementById(sectionId).classList.add('active');
+                currentSectionId = sectionId;
                 closeDrawer();
+
+                // Специфичные действия для секций
                 if (sectionId === 'chatsSection') {
                     if (window.innerWidth <= 768) chatsSidebar.classList.remove('hide-mobile');
                     chatWindowContainer.classList.add('hidden');
@@ -1308,14 +1334,21 @@
                         state.currentChatId = null;
                     }
                     loadChats();
-                } else if (sectionId === 'feedSection') loadFeed();
+                } else if (sectionId === 'feedSection') {
+                    loadFeed();
+                } else if (sectionId === 'arSection') {
+                    // Запуск AR при входе
+                    arModule.startAR();
+                }
             }
+
             drawerFeed.addEventListener('click', () => showSection('feedSection'));
             drawerProfile.addEventListener('click', () => { if (state.currentUser) showSection('profileSection'); loadProfile(state.currentUser.uid); });
             drawerSearch.addEventListener('click', () => { showSection('searchSection'); searchResults.innerHTML = ''; });
             drawerChats.addEventListener('click', () => showSection('chatsSection'));
+            drawerAr.addEventListener('click', () => showSection('arSection'));
 
-            // Профиль
+            // ==================== Профиль ====================
             async function ensureUserProfile(user) {
                 if (!user) return;
                 const userRef = db.collection('users').doc(user.uid);
@@ -1337,7 +1370,7 @@
                 });
             }
 
-            // Лента
+            // ==================== Лента ====================
             function loadFeed() {
                 if (state.listeners.feed) state.listeners.feed();
                 const postsQuery = db.collection('posts').orderBy('timestamp', 'desc');
@@ -1384,18 +1417,15 @@
                     showSection('profileSection');
                     loadProfile(uid);
                 }));
-                // Обработчики удаления поста
                 document.querySelectorAll('.delete-post-btn').forEach(btn => {
                     btn.addEventListener('click', async e => {
                         e.stopPropagation();
                         const postId = btn.dataset.postId;
                         if (!confirm('Удалить пост? Это действие нельзя отменить.')) return;
                         try {
-                            // Удаляем комментарии к посту
                             const commentsQuery = await db.collection('comments').where('postId', '==', postId).get();
                             const batch = db.batch();
                             commentsQuery.docs.forEach(doc => batch.delete(doc.ref));
-                            // Удаляем сам пост
                             batch.delete(db.collection('posts').doc(postId));
                             await batch.commit();
                         } catch (error) {
@@ -1419,12 +1449,10 @@
                 }
             }
 
-            // Комментарии
+            // ==================== Комментарии ====================
             async function openComments(postId) {
                 currentPostIdForComment = postId;
                 const commentsSnap = await db.collection('comments').where('postId', '==', postId).orderBy('timestamp').get();
-                
-                // Получаем данные комментаторов (для аватарок)
                 const commentDocs = commentsSnap.docs;
                 const authorIds = [...new Set(commentDocs.map(d => d.data().authorId))];
                 const authorSnaps = await Promise.all(authorIds.map(id => db.collection('users').doc(id).get()));
@@ -1437,7 +1465,6 @@
                     const avatarHtml = author.avatar 
                         ? `<img src="${author.avatar}" class="comment-avatar">` 
                         : `<div class="comment-avatar-placeholder">${(author.displayName?.[0] || '?').toUpperCase()}</div>`;
-                    
                     return `
                         <div class="comment-item">
                             ${avatarHtml}
@@ -1452,7 +1479,6 @@
                     `;
                 }).join('') || '<p class="no-comments">Нет комментариев</p>';
 
-                // Добавляем возможность перехода в профиль комментатора
                 commentsList.querySelectorAll('.comment-author').forEach(el => {
                     el.addEventListener('click', () => {
                         commentModal.classList.remove('show');
@@ -1460,7 +1486,6 @@
                         loadProfile(el.dataset.authorId);
                     });
                 });
-
                 commentModal.classList.add('show');
             }
 
@@ -1476,10 +1501,9 @@
                 newComment.value = '';
                 openComments(currentPostIdForComment);
             });
-
             closeCommentModal.addEventListener('click', () => commentModal.classList.remove('show'));
 
-            // Рисование
+            // ==================== Рисование (обычное) ====================
             function initPalette() {
                 const colors = ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#888888', '#ff8800', '#88ff00', '#0088ff'];
                 colorPalette.innerHTML = '';
@@ -1604,13 +1628,10 @@
                 drawingModal.classList.add('show');
             }
 
-            // Обработчик кастомного выбора цвета
-            if (customColorPicker) {
-                customColorPicker.addEventListener('input', (e) => {
-                    selectedColor = e.target.value;
-                    document.querySelectorAll('.color').forEach(c => c.classList.remove('selected'));
-                });
-            }
+            customColorPicker.addEventListener('input', (e) => {
+                selectedColor = e.target.value;
+                document.querySelectorAll('.color').forEach(c => c.classList.remove('selected'));
+            });
 
             saveDrawingBtn.addEventListener('click', () => {
                 if (currentDrawingMode === 'pixel') {
@@ -1643,7 +1664,7 @@
 
             cancelDrawingBtn.addEventListener('click', () => drawingModal.classList.remove('show'));
 
-            // Редактирование профиля
+            // ==================== Редактирование профиля ====================
             function showEditForm() {
                 editName.value = state.profile?.displayName || '';
                 editBio.value = state.profile?.bio || '';
@@ -1659,12 +1680,10 @@
                 editProfileModal.classList.remove('show');
                 openDrawingModal('avatar');
             });
-
             cancelEditBtn.addEventListener('click', () => {
                 window.tempAvatar = null;
                 editProfileModal.classList.remove('show');
             });
-
             saveProfileBtn.addEventListener('click', async () => {
                 const newName = editName.value.trim();
                 const newBio = editBio.value.trim();
@@ -1689,7 +1708,7 @@
                 loadProfile(state.currentUser.uid);
             });
 
-            // Подписчики/подписки
+            // ==================== Подписчики/подписки ====================
             async function showUserList(type, uid) {
                 const title = type === 'followers' ? 'Подписчики' : 'Подписки';
                 userListTitle.textContent = title;
@@ -1718,10 +1737,9 @@
                 });
                 userListModal.classList.add('show');
             }
-
             closeUserList.addEventListener('click', () => userListModal.classList.remove('show'));
 
-            // Загрузка профиля
+            // ==================== Загрузка профиля ====================
             async function loadProfile(uid) {
                 const container = document.getElementById('profileContainer');
                 container.innerHTML = '<div class="info-message">Загрузка...</div>';
@@ -1787,7 +1805,7 @@
                 else await db.collection('follows').doc(id).set({ followerId: state.currentUser.uid, followeeId: targetUid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             }
 
-            // Поиск
+            // ==================== Поиск ====================
             searchBtn.addEventListener('click', () => searchUsers(searchInput.value));
             searchInput.addEventListener('keyup', e => e.key === 'Enter' && searchUsers(searchInput.value));
 
@@ -1829,9 +1847,7 @@
                 }));
             }
 
-            // Чаты
-
-            // Новая функция для пометки чата прочитанным
+            // ==================== Чаты ====================
             async function markChatAsRead(chatId) {
                 if (!state.currentUser) return;
                 const chatRef = db.collection('chats').doc(chatId);
@@ -1854,7 +1870,6 @@
                         lastMessage: '',
                         lastMessageTimestamp: null,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        // Добавляем счётчики непрочитанных сообщений
                         unreadCounts: {
                             [currentUid]: 0,
                             [otherUid]: 0
@@ -1879,28 +1894,21 @@
                     showSection('profileSection');
                     loadProfile(otherUid);
                 };
-                // Помечаем чат как прочитанный
                 markChatAsRead(chat.id);
                 loadMessages(chat.id);
                 loadChats();
 
-                // Назначаем обработчик удаления чата
                 deleteChatBtn.onclick = async () => {
                     if (!state.currentChatId) return;
                     if (!confirm('Удалить этот чат? Все сообщения будут безвозвратно удалены.')) return;
                     try {
-                        // Удаляем все сообщения чата
                         const messagesQuery = await db.collection('messages')
                             .where('chatId', '==', state.currentChatId)
                             .get();
                         const batch = db.batch();
                         messagesQuery.docs.forEach(doc => batch.delete(doc.ref));
                         await batch.commit();
-
-                        // Удаляем сам документ чата
                         await db.collection('chats').doc(state.currentChatId).delete();
-
-                        // Закрываем окно чата
                         backFromChatBtn.click();
                     } catch (error) {
                         console.error('Ошибка удаления чата:', error);
@@ -1959,13 +1967,11 @@
                             showSection('profileSection');
                             loadProfile(otherUid);
                         };
-                        // Помечаем чат как прочитанный при клике
                         markChatAsRead(chatId);
                         loadMessages(chatId);
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         item.classList.add('active');
 
-                        // Переназначаем обработчик удаления чата
                         deleteChatBtn.onclick = async () => {
                             if (!state.currentChatId) return;
                             if (!confirm('Удалить этот чат? Все сообщения будут безвозвратно удалены.')) return;
@@ -1986,16 +1992,10 @@
                     });
                 });
 
-                // Обновляем общий бейдж непрочитанных в меню
-                updateUnreadTotal(chats);
-            }
-
-            function updateUnreadTotal(chats) {
                 const totalUnread = chats.reduce((sum, chat) => {
                     return sum + (chat.unreadCounts?.[state.currentUser.uid] || 0);
                 }, 0);
                 const menuItem = document.getElementById('drawerChats');
-                // Удалим старый бейдж, если есть
                 const oldBadge = menuItem.querySelector('.menu-unread');
                 if (oldBadge) oldBadge.remove();
                 if (totalUnread > 0) {
@@ -2008,7 +2008,6 @@
 
             function loadMessages(chatId) {
                 if (state.listeners.messages) state.listeners.messages();
-                // Помечаем чат как прочитанный при открытии (уже вызвано выше, но на всякий случай)
                 markChatAsRead(chatId);
                 const q = db.collection('messages').where('chatId', '==', chatId).orderBy('timestamp', 'asc');
                 state.listeners.messages = q.onSnapshot(snap => {
@@ -2017,7 +2016,6 @@
                 });
             }
 
-            // НОВАЯ ФУНКЦИЯ ОТОБРАЖЕНИЯ СООБЩЕНИЙ С ПОДДЕРЖКОЙ ОТВЕТОВ И УЛУЧШЕННЫМ СВАЙПОМ
             function renderMessages(msgs) {
                 if (!msgs.length) { messagesContainer.innerHTML = '<div class="info-message">Нет сообщений</div>'; return; }
                 let html = '';
@@ -2054,7 +2052,6 @@
                 });
                 messagesContainer.innerHTML = html;
 
-                // Обработчики удаления
                 document.querySelectorAll('.delete-msg').forEach(btn => {
                     btn.addEventListener('click', async e => {
                         e.stopPropagation();
@@ -2065,7 +2062,6 @@
                     });
                 });
 
-                // Обработчики для ответа: улучшенный свайп + двойной клик
                 document.querySelectorAll('.message').forEach(msgEl => {
                     const msgId = msgEl.dataset.msgId;
                     const senderEl = msgEl.querySelector('.message-sender');
@@ -2073,13 +2069,11 @@
                     const textEl = msgEl.querySelector('div:not(.message-sender):not(.message-reply):not(.message-time)');
                     const text = textEl ? textEl.textContent : '';
 
-                    // Двойной клик (ПК)
                     msgEl.addEventListener('dblclick', (e) => {
                         e.preventDefault();
                         setReply(msgId, sender, text);
                     });
 
-                    // Свайп влево с анимацией
                     let touchStartX = 0;
                     let touchStartY = 0;
                     let swiping = false;
@@ -2133,7 +2127,6 @@
                     });
                 });
 
-                // Клик на блоке ответа для перехода к исходному сообщению
                 document.querySelectorAll('.message-reply').forEach(replyEl => {
                     replyEl.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -2151,7 +2144,6 @@
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
 
-            // НОВЫЕ ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ОТВЕТОМ
             function setReply(messageId, sender, text) {
                 replyToMessageId = messageId;
                 replyToSender = sender;
@@ -2170,7 +2162,6 @@
                 document.getElementById('replyPanel').classList.add('hidden');
             }
 
-            // Обработчик кнопки отмены ответа
             document.getElementById('cancelReplyBtn').addEventListener('click', clearReply);
 
             async function deleteMessage(msgId) {
@@ -2206,7 +2197,6 @@
                 }
             }
 
-            // ИЗМЕНЁННАЯ ФУНКЦИЯ sendMessage С ПОДДЕРЖКОЙ replyTo И ОБНОВЛЕНИЕМ СЧЁТЧИКОВ
             async function sendMessage(text, media, mediaType) {
                 const msgText = text !== undefined ? text : messageInput.value.trim();
                 if (!msgText && !media) return;
@@ -2227,7 +2217,6 @@
                 }
                 await db.collection('messages').add(msg);
 
-                // Получаем список участников чата, чтобы увеличить счётчик у получателя
                 const chatDoc = await db.collection('chats').doc(state.currentChatId).get();
                 const chatData = chatDoc.data();
                 const participants = chatData.participants;
@@ -2252,7 +2241,6 @@
             sendMessageBtn.addEventListener('click', () => sendMessage());
             messageInput.addEventListener('keyup', e => e.key === 'Enter' && sendMessage());
 
-            // Медиа
             attachBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', e => {
                 const file = e.target.files[0];
@@ -2265,7 +2253,6 @@
                 fileInput.value = '';
             });
 
-            // Голос
             let mediaRecorder, audioChunks, isRecording = false;
             let recordingStartTime, timerInterval, analyser, dataArray, audioContext, source, stream;
 
@@ -2354,7 +2341,6 @@
                 }, 100);
             }
 
-            // Эмодзи-пикер (большой список)
             const emojiList = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
             emojiBtn.addEventListener('click', () => {
                 if (emojiPicker.classList.contains('hidden')) {
@@ -2375,7 +2361,6 @@
                 }
             });
 
-            // Посты с рисованием
             openPixelPostBtn.addEventListener('click', () => {
                 currentDrawingTarget = 'post';
                 openDrawingModal('post');
@@ -2412,7 +2397,6 @@
                 postImage = null;
             });
 
-            // Назад из чата
             backFromChatBtn.addEventListener('click', () => {
                 chatsSidebar.classList.remove('hide-mobile');
                 chatWindowContainer.classList.add('hidden');
@@ -2429,7 +2413,7 @@
                 });
             });
 
-            // Аутентификация
+            // ==================== Аутентификация ====================
             function handleLogin() {
                 const email = document.getElementById('loginEmail').value;
                 const pass = document.getElementById('loginPassword').value;
@@ -2453,6 +2437,167 @@
                 registerForm.classList.remove('hidden'); loginForm.classList.add('hidden');
             });
 
+            // ==================== AR Module (Paint Camera) ====================
+            function initARModule() {
+                const arVideo = document.getElementById('arVideo');
+                const arDrawCanvas = document.getElementById('arDrawCanvas');
+                const arUiCanvas = document.getElementById('arUiCanvas');
+                const arDrawCtx = arDrawCanvas.getContext('2d');
+                const arUiCtx = arUiCanvas.getContext('2d');
+                const arClearBtn = document.getElementById('arClearBtn');
+                const arColorEls = document.querySelectorAll('.ar-color');
+
+                let arCurrentColor = 'red';
+                let arDrawing = false;
+                let arLastX = null, arLastY = null;
+                let arWasPinch = false;
+                let arSmooth = null;
+                const SMOOTH = 0.6;
+
+                function resize() {
+                    arDrawCanvas.width = arUiCanvas.width = window.innerWidth;
+                    arDrawCanvas.height = arUiCanvas.height = window.innerHeight;
+                }
+                window.addEventListener('resize', resize);
+                resize();
+
+                function lerp(a, b, t) { return a + (b - a) * t; }
+                function smoothPoints(src) {
+                    if (!arSmooth) { arSmooth = src.map(p => ({ ...p })); return arSmooth; }
+                    src.forEach((p, i) => {
+                        arSmooth[i].x = lerp(arSmooth[i].x, p.x, SMOOTH);
+                        arSmooth[i].y = lerp(arSmooth[i].y, p.y, SMOOTH);
+                    });
+                    return arSmooth;
+                }
+
+                const arHands = new Hands({
+                    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+                });
+                arHands.setOptions({
+                    maxNumHands: 1,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.7,
+                    minTrackingConfidence: 0.7
+                });
+
+                arHands.onResults(results => {
+                    arUiCtx.clearRect(0, 0, arUiCanvas.width, arUiCanvas.height);
+
+                    if (!results.multiHandLandmarks?.length) {
+                        arDrawing = false; arSmooth = null; arWasPinch = false;
+                        return;
+                    }
+
+                    const lm = smoothPoints(results.multiHandLandmarks[0]);
+                    const i = lm[8], t = lm[4];
+                    const dist = Math.hypot(i.x - t.x, i.y - t.y);
+                    const pinch = dist < 0.045;
+
+                    const cx = (i.x + t.x) / 2;
+                    const cy = (i.y + t.y) / 2;
+                    const px = (1 - cx) * arDrawCanvas.width;
+                    const py = cy * arDrawCanvas.height;
+
+                    // UI hit test
+                    let hoverColor = null;
+                    arColorEls.forEach(el => {
+                        el.classList.remove('hover');
+                        const r = el.getBoundingClientRect();
+                        if (px > r.left && px < r.right && py > r.top && py < r.bottom) {
+                            el.classList.add('hover');
+                            hoverColor = el;
+                        }
+                    });
+
+                    arClearBtn.classList.remove('hover');
+                    const cr = arClearBtn.getBoundingClientRect();
+                    const hoverClear = px > cr.left && px < cr.right && py > cr.top && py < cr.bottom;
+                    if (hoverClear) arClearBtn.classList.add('hover');
+
+                    if (arWasPinch && !pinch) {
+                        if (hoverColor) {
+                            arCurrentColor = hoverColor.dataset.color;
+                            arColorEls.forEach(c => c.classList.remove('active'));
+                            hoverColor.classList.add('active');
+                        }
+                        if (hoverClear) {
+                            arDrawCtx.clearRect(0, 0, arDrawCanvas.width, arDrawCanvas.height);
+                        }
+                    }
+
+                    if (pinch && !hoverColor && !hoverClear) {
+                        if (!arDrawing) {
+                            arDrawing = true;
+                            arLastX = px; arLastY = py;
+                        } else {
+                            arDrawCtx.strokeStyle = arCurrentColor;
+                            arDrawCtx.lineWidth = 5;
+                            arDrawCtx.lineCap = 'round';
+                            arDrawCtx.beginPath();
+                            arDrawCtx.moveTo(arLastX, arLastY);
+                            arDrawCtx.lineTo(px, py);
+                            arDrawCtx.stroke();
+                            arLastX = px; arLastY = py;
+                        }
+                    } else {
+                        arDrawing = false;
+                    }
+
+                    arUiCtx.fillStyle = pinch ? 'lime' : 'white';
+                    arUiCtx.beginPath();
+                    arUiCtx.arc(px, py, pinch ? 10 : 6, 0, Math.PI * 2);
+                    arUiCtx.fill();
+
+                    arWasPinch = pinch;
+                });
+
+                let arStream = null;
+                let arAnimationFrame = null;
+
+                async function startAR() {
+                    if (!arStream) {
+                        try {
+                            arStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                            arVideo.srcObject = arStream;
+                            await arVideo.play();
+                        } catch (err) {
+                            console.error('AR camera error:', err);
+                            return;
+                        }
+                    }
+
+                    async function processFrame() {
+                        if (!arVideo.videoWidth) {
+                            arAnimationFrame = requestAnimationFrame(processFrame);
+                            return;
+                        }
+                        await arHands.send({ image: arVideo });
+                        arAnimationFrame = requestAnimationFrame(processFrame);
+                    }
+                    processFrame();
+                }
+
+                function stopAR() {
+                    if (arAnimationFrame) {
+                        cancelAnimationFrame(arAnimationFrame);
+                        arAnimationFrame = null;
+                    }
+                    if (arStream) {
+                        arStream.getTracks().forEach(t => t.stop());
+                        arStream = null;
+                    }
+                    if (arVideo) arVideo.srcObject = null;
+                    // Очистка canvas при желании
+                    arDrawCtx.clearRect(0, 0, arDrawCanvas.width, arDrawCanvas.height);
+                    arUiCtx.clearRect(0, 0, arUiCanvas.width, arUiCanvas.height);
+                }
+
+                return { startAR, stopAR };
+            }
+
+            const arModule = initARModule();
+
             auth.onAuthStateChanged(async user => {
                 if (user) {
                     state.currentUser = user;
@@ -2473,7 +2618,6 @@
                 document.getElementById('app').style.height = window.innerHeight + 'px';
             });
 
-            // Инициализация
             initPalette();
         })();
     </script>
