@@ -1197,24 +1197,6 @@
             display: none;
             transform: translate(-50%, -50%);
         }
-
-        /* Стили для модалки разработчика */
-        #developerModal .modal-content {
-            max-width: 400px;
-        }
-        #developerModal input {
-            width: 100%;
-            padding: 0.8rem;
-            border-radius: 2rem;
-            border: 1px solid var(--border-light);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            margin-bottom: 1rem;
-        }
-        #developerModal button {
-            width: 100%;
-            margin-bottom: 0.5rem;
-        }
     </style>
 </head>
 <body>
@@ -1284,7 +1266,6 @@
                     <div class="nav-item" id="drawerSearch">Поиск</div>
                     <div class="nav-item" id="drawerChats">Чаты</div>
                     <div class="nav-item" id="drawerAr">Paint Camera</div>
-                    <div class="nav-item" id="drawerDeveloper">🔧 Разработчик</div>
                     <button id="logoutBtnMobile" class="mobile-only mobile-logout-btn">Выйти</button>
                 </div>
             </div>
@@ -1487,30 +1468,6 @@
         </div>
     </div>
 
-    <!-- Модалка панели разработчика -->
-    <div id="developerModal" class="modal">
-        <div class="modal-content">
-            <h3>🔐 Панель разработчика</h3>
-            <div id="developerAuth" style="display: block;">
-                <input type="password" id="devPassword" placeholder="Введите код доступа">
-                <button id="devLoginBtn" class="btn-primary">Войти</button>
-            </div>
-            <div id="developerPanel" style="display: none;">
-                <div style="margin-bottom:1rem;">
-                    <label>Назначить администратора (email)</label>
-                    <input type="email" id="devAdminEmail" placeholder="email">
-                    <button id="devAddAdminBtn" class="btn-secondary" style="margin-top:0.5rem;">➕ Добавить админа</button>
-                </div>
-                <div style="margin-bottom:1rem;">
-                    <label>Скрыть пользователя из поиска (email)</label>
-                    <input type="email" id="devHideEmail" placeholder="email">
-                    <button id="devHideBtn" class="btn-secondary" style="margin-top:0.5rem;">🙈 Скрыть из поиска</button>
-                </div>
-                <button id="devCloseBtn" class="btn-secondary">Закрыть</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Курсор-ластик -->
     <div id="eraserCursor"></div>
 
@@ -1535,8 +1492,7 @@
                 currentChatId: null,
                 currentChatParticipant: null,
                 darkTheme: localStorage.getItem('theme') === 'dark',
-                listeners: {},
-                admins: new Set()          // множество email админов
+                listeners: {}
             };
 
             // DOM элементы
@@ -1560,7 +1516,6 @@
             const drawerSearch = document.getElementById('drawerSearch');
             const drawerChats = document.getElementById('drawerChats');
             const drawerAr = document.getElementById('drawerAr');
-            const drawerDeveloper = document.getElementById('drawerDeveloper');
             const feedSection = document.getElementById('feedSection');
             const profileSection = document.getElementById('profileSection');
             const searchSection = document.getElementById('searchSection');
@@ -1670,311 +1625,315 @@
             let sharedCanvasCtx = null;
             let scale = 1;
             let offsetX = 0, offsetY = 0;
-            let isPanning = false;
+            let isPanning = false;          // для средней кнопки мыши
             let panStartX, panStartY;
             let sharedCanvasListenerData = null;
+
+            // Для мультитач на холсте
             let touchZoomDistance = 0;
             let touchPanStart = { x: 0, y: 0 };
             let isTouchPanning = false;
+
+            // --- Буфер для линий (чтобы не отправлять каждое движение) ---
             let pendingLines = [];
             let sendBatchTimer = null;
 
-            // --- Переменные для панели разработчика ---
-            let isDeveloper = false; // флаг, что вошли в режим разработчика (по паролю)
-            // Хеш пароля "DevSecure2026!" (сгенерирован заранее)
-            const DEV_PASSWORD_HASH = '2b8f2b5c7f9f7b6d8a1b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f'; // Это пример, замените на реальный хеш своего пароля.
-            // Для удобства пароль можно установить прямо: "DevSecure2026!". Хеш нужно пересчитать.
-            // Внимание: в целях демонстрации мы будем сравнивать введённый пароль с фиксированной строкой.
-            // Но для большей безопасности можно использовать хеш. Здесь оставим простое сравнение.
-            const DEV_PASSWORD = 'DevSecure2026!'; // ЗАДАЙТЕ СВОЙ НАДЁЖНЫЙ ПАРОЛЬ
-
-            // Элементы модалки разработчика
-            const developerModal = document.getElementById('developerModal');
-            const developerAuth = document.getElementById('developerAuth');
-            const developerPanel = document.getElementById('developerPanel');
-            const devPassword = document.getElementById('devPassword');
-            const devLoginBtn = document.getElementById('devLoginBtn');
-            const devAdminEmail = document.getElementById('devAdminEmail');
-            const devAddAdminBtn = document.getElementById('devAddAdminBtn');
-            const devHideEmail = document.getElementById('devHideEmail');
-            const devHideBtn = document.getElementById('devHideBtn');
-            const devCloseBtn = document.getElementById('devCloseBtn');
-
-            // Функция для загрузки списка админов
-            async function loadAdmins() {
-                try {
-                    const snap = await db.collection('admins').get();
-                    state.admins = new Set(snap.docs.map(d => d.id)); // id документа = email
-                } catch (e) {
-                    console.error('Ошибка загрузки админов:', e);
-                }
-            }
-
-            // Обработчик кнопки разработчика в меню
-            if (drawerDeveloper) {
-                drawerDeveloper.addEventListener('click', () => {
-                    developerModal.classList.add('show');
-                    developerAuth.style.display = 'block';
-                    developerPanel.style.display = 'none';
-                    devPassword.value = '';
-                });
-            }
-
-            // Вход в панель разработчика
-            devLoginBtn.addEventListener('click', async () => {
-                // Простое сравнение с паролем (можно заменить на хеш)
-                if (devPassword.value === DEV_PASSWORD) {
-                    isDeveloper = true;
-                    developerAuth.style.display = 'none';
-                    developerPanel.style.display = 'block';
-                } else {
-                    alert('Неверный код');
-                }
-            });
-
-            // Добавление администратора
-            devAddAdminBtn.addEventListener('click', async () => {
-                const email = devAdminEmail.value.trim();
-                if (!email) return alert('Введите email');
-                // Проверим, есть ли пользователь с таким email
-                const userSnap = await db.collection('users').where('email', '==', email).get();
-                if (userSnap.empty) {
-                    return alert('Пользователь с таким email не найден');
-                }
-                await db.collection('admins').doc(email).set({ email });
-                alert(`Пользователь ${email} теперь администратор`);
-                devAdminEmail.value = '';
-                await loadAdmins(); // обновить список админов в state
-            });
-
-            // Скрытие пользователя из поиска
-            devHideBtn.addEventListener('click', async () => {
-                const email = devHideEmail.value.trim();
-                if (!email) return alert('Введите email');
-                // Проверим, есть ли пользователь с таким email
-                const userSnap = await db.collection('users').where('email', '==', email).get();
-                if (userSnap.empty) {
-                    return alert('Пользователь с таким email не найден');
-                }
-                await db.collection('hiddenUsers').doc(email).set({ email });
-                alert(`Пользователь ${email} скрыт из поиска`);
-                devHideEmail.value = '';
-            });
-
-            // Закрытие модалки
-            devCloseBtn.addEventListener('click', () => {
-                developerModal.classList.remove('show');
-                isDeveloper = false; // сбрасываем флаг при закрытии (опционально)
-            });
-
-            // --- Модифицированная функция поиска (исключает скрытых) ---
-            async function searchUsers(query) {
-                if (!query.trim()) return;
-                searchResults.innerHTML = '<div class="info-message">Поиск...</div>';
-                
-                // Получаем список скрытых пользователей
-                const hiddenSnap = await db.collection('hiddenUsers').get();
-                const hiddenEmails = new Set(hiddenSnap.docs.map(d => d.id));
-                
-                const nameQuery = db.collection('users').orderBy('displayName').startAt(query).endAt(query + '\uf8ff').get();
-                const emailQuery = db.collection('users').orderBy('email').startAt(query).endAt(query + '\uf8ff').get();
-                const [nameSnap, emailSnap] = await Promise.all([nameQuery, emailQuery]);
-                
-                const users = new Map();
-                nameSnap.docs.forEach(d => {
-                    if (!hiddenEmails.has(d.data().email)) users.set(d.id, d.data());
-                });
-                emailSnap.docs.forEach(d => {
-                    if (!hiddenEmails.has(d.data().email)) users.set(d.id, d.data());
-                });
-                
-                if (!users.size) { searchResults.innerHTML = '<div class="info-message">Ничего не найдено</div>'; return; }
-                let html = '';
-                for (let [uid, data] of users.entries()) {
-                    if (uid === state.currentUser.uid) continue;
-                    const isFollowing = state.followees.includes(uid);
-                    html += `<div class="user-card" style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--border-light);">
-                        <div class="info" style="display:flex; align-items:center; gap:1rem;">
-                            <div style="width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;">${data.avatar ? `<img src="${data.avatar}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">` : (data.displayName?.[0] || '?')}</div>
-                            <div><h4 class="user-name-link" data-uid="${uid}" style="cursor:pointer;color:var(--accent);">${data.displayName || data.email}</h4><small>${data.email}</small></div>
-                        </div>
-                        <div>
-                            <button class="follow-btn ${isFollowing ? 'btn-secondary' : 'btn-primary'}" data-follow-uid="${uid}">${isFollowing ? 'Отписаться' : 'Подписаться'}</button>
-                            <button class="btn-secondary" data-message-uid="${uid}">✉</button>
-                        </div>
-                    </div>`;
-                }
-                searchResults.innerHTML = html;
-                document.querySelectorAll('.follow-btn').forEach(b => b.addEventListener('click', async e => {
-                    const uid = b.dataset.followUid;
-                    await toggleFollow(uid, b.classList.contains('btn-secondary'));
-                    searchUsers(searchInput.value);
-                }));
-                document.querySelectorAll('[data-message-uid]').forEach(b => b.addEventListener('click', e => openChatWithUser(b.dataset.messageUid)));
-                document.querySelectorAll('.user-name-link').forEach(span => span.addEventListener('click', e => {
-                    showSection('profileSection');
-                    loadProfile(span.dataset.uid);
-                }));
-            }
-
-            // --- Модифицированная функция renderFeed с проверкой прав на удаление ---
-            async function renderFeed(posts) {
-                if (!posts.length) { feedPosts.innerHTML = '<div class="info-message">Нет постов</div>'; return; }
-                const authorIds = [...new Set(posts.map(p => p.userId))];
-                const authorSnaps = await Promise.all(authorIds.map(id => db.collection('users').doc(id).get()));
-                const authors = Object.fromEntries(authorSnaps.map(snap => [snap.id, snap.data()]));
-                let html = '';
-                for (let post of posts) {
-                    const author = authors[post.userId] || { displayName: 'Неизвестно', avatar: '' };
-                    const time = post.timestamp ? new Date(post.timestamp.toDate()).toLocaleString() : '';
-                    const likes = post.likes?.length || 0;
-                    const userLiked = post.likes?.includes(state.currentUser.uid);
-                    const commentsSnapshot = await db.collection('comments').where('postId', '==', post.id).get();
-                    const commentsCount = commentsSnapshot.size;
-                    const pixelClass = post.isPixelArt ? 'pixel-art' : '';
-                    const avatarHtml = author.avatar 
-                        ? `<img src="${author.avatar}" class="post-author-avatar">` 
-                        : `<div class="post-author-avatar">${(author.displayName?.[0] || '?').toUpperCase()}</div>`;
-                    
-                    // Проверяем, может ли текущий пользователь удалить этот пост
-                    const canDelete = state.admins.has(state.currentUser.email) || post.userId === state.currentUser.uid;
-                    
-                    html += `
-                        <div class="post card" data-post-id="${post.id}">
-                            <div class="post-header">
-                                ${avatarHtml}
-                                <span class="post-author" data-author-id="${post.userId}">${author.displayName}</span>
-                                <span class="post-time">${time}</span>
-                            </div>
-                            ${post.image ? `<img src="${post.image}" class="post-image ${pixelClass}">` : ''}
-                            <div class="post-text">${post.text.replace(/</g, '&lt;')}</div>
-                            <div class="post-actions">
-                                <button class="like-btn ${userLiked ? 'liked' : ''}" data-post-id="${post.id}">❤️ <span class="likes-count">${likes}</span></button>
-                                <button class="comment-btn" data-post-id="${post.id}">💬 ${commentsCount}</button>
-                                ${canDelete ? `<button class="delete-post-btn" data-post-id="${post.id}">🗑️</button>` : ''}
-                            </div>
-                        </div>
-                    `;
-                }
-                feedPosts.innerHTML = html;
-                document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', e => toggleLike(btn.dataset.postId)));
-                document.querySelectorAll('.comment-btn').forEach(btn => btn.addEventListener('click', e => openComments(btn.dataset.postId)));
-                document.querySelectorAll('.post-author').forEach(span => span.addEventListener('click', e => {
-                    const uid = span.dataset.authorId;
-                    showSection('profileSection');
-                    loadProfile(uid);
-                }));
-                document.querySelectorAll('.delete-post-btn').forEach(btn => {
-                    btn.addEventListener('click', async e => {
-                        e.stopPropagation();
-                        const postId = btn.dataset.postId;
-                        // Дополнительная проверка прав (на случай рассинхронизации)
-                        const postDoc = await db.collection('posts').doc(postId).get();
-                        if (!postDoc.exists) return;
-                        const postData = postDoc.data();
-                        const isAdmin = state.admins.has(state.currentUser.email);
-                        const isOwner = postData.userId === state.currentUser.uid;
-                        if (!isAdmin && !isOwner) {
-                            alert('Вы не можете удалить этот пост');
-                            return;
-                        }
-                        if (!confirm('Удалить пост? Это действие нельзя отменить.')) return;
-                        try {
-                            const commentsQuery = await db.collection('comments').where('postId', '==', postId).get();
-                            const batch = db.batch();
-                            commentsQuery.docs.forEach(doc => batch.delete(doc.ref));
-                            batch.delete(db.collection('posts').doc(postId));
-                            await batch.commit();
-                        } catch (error) {
-                            console.error('Ошибка удаления поста:', error);
-                            alert('Не удалось удалить пост.');
-                        }
+            // Палитра для холста
+            function initSharedPalette() {
+                const colors = ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#888888', '#ff8800', '#88ff00', '#0088ff'];
+                sharedCanvasPalette.innerHTML = '';
+                colors.forEach(color => {
+                    const div = document.createElement('div');
+                    div.className = 'color';
+                    div.style.backgroundColor = color;
+                    div.addEventListener('click', () => {
+                        document.querySelectorAll('#sharedCanvasPalette .color').forEach(c => c.classList.remove('selected'));
+                        div.classList.add('selected');
+                        sharedColor = color;
+                        sharedCanvasColorPicker.value = color;
+                        eraserMode = false;
+                        eraserBtn.classList.remove('active');
+                        updateEraserCursor();
                     });
+                    sharedCanvasPalette.appendChild(div);
                 });
+                sharedCanvasPalette.firstChild?.classList.add('selected');
+            }
+            initSharedPalette();
+
+            sharedCanvasColorPicker.addEventListener('input', (e) => {
+                sharedColor = e.target.value;
+                document.querySelectorAll('#sharedCanvasPalette .color').forEach(c => c.classList.remove('selected'));
+                eraserMode = false;
+                eraserBtn.classList.remove('active');
+                updateEraserCursor();
+            });
+
+            lineWidthRange.addEventListener('input', (e) => {
+                sharedLineWidth = parseInt(e.target.value);
+                updateEraserCursor();
+            });
+            lineAlphaRange.addEventListener('input', (e) => sharedAlpha = parseFloat(e.target.value));
+
+            function updateEraserCursor() {
+                if (eraserMode && sharedCanvasModal.classList.contains('show')) {
+                    eraserCursor.style.display = 'block';
+                    eraserCursor.style.width = (sharedLineWidth * scale) + 'px';
+                    eraserCursor.style.height = (sharedLineWidth * scale) + 'px';
+                    eraserCursor.style.backgroundColor = 'rgba(255,255,255,0.3)';
+                    eraserCursor.style.border = '2px solid black';
+                } else {
+                    eraserCursor.style.display = 'none';
+                }
             }
 
-            // --- Функция генерации иконки PWA (облачко с буквой S) ---
-            function generateIconAndManifest() {
-                const drawIcon = (size) => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = size;
-                    canvas.height = size;
-                    const ctx = canvas.getContext('2d');
-                    
-                    // Радиальный градиент фона
-                    const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-                    gradient.addColorStop(0, '#6a11cb');
-                    gradient.addColorStop(1, '#2575fc');
-                    ctx.fillStyle = gradient;
-                    ctx.beginPath();
-                    ctx.arc(size/2, size/2, size/2 * 0.9, 0, Math.PI*2);
-                    ctx.fill();
-                    
-                    // Тень
-                    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-                    ctx.shadowBlur = size * 0.05;
-                    ctx.shadowOffsetY = size * 0.02;
-                    
-                    // Рисуем облачко (белые овалы, образующие облако)
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath();
-                    ctx.ellipse(size/2, size/2 - size*0.05, size*0.3, size*0.2, 0, 0, Math.PI*2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.ellipse(size/2 + size*0.15, size/2 - size*0.1, size*0.2, size*0.15, 0, 0, Math.PI*2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.ellipse(size/2 - size*0.15, size/2 - size*0.1, size*0.2, size*0.15, 0, 0, Math.PI*2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.ellipse(size/2, size/2 + size*0.05, size*0.35, size*0.22, 0, 0, Math.PI*2);
-                    ctx.fill();
-                    
-                    // Хвостик облака
-                    ctx.beginPath();
-                    ctx.moveTo(size/2 + size*0.25, size/2 - size*0.05);
-                    ctx.quadraticCurveTo(size/2 + size*0.4, size/2 + size*0.1, size/2 + size*0.3, size/2 + size*0.15);
-                    ctx.lineTo(size/2 + size*0.2, size/2 + size*0.1);
-                    ctx.fill();
-                    
-                    // Буква "S" в центре
-                    ctx.shadowBlur = size * 0.02;
-                    ctx.shadowOffsetY = size * 0.01;
-                    ctx.font = `bold ${size * 0.4}px "Segoe UI", "Helvetica Neue", sans-serif`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillStyle = '#2575fc';
-                    ctx.fillText('S', size/2, size/2 - size*0.02);
-                    
-                    return canvas.toDataURL('image/png');
-                };
+            eraserBtn.addEventListener('click', () => {
+                eraserMode = !eraserMode;
+                if (eraserMode) {
+                    eraserBtn.classList.add('active');
+                } else {
+                    eraserBtn.classList.remove('active');
+                }
+                updateEraserCursor();
+            });
 
-                const icon192 = drawIcon(192);
-                const icon512 = drawIcon(512);
-
-                const manifest = {
-                    name: 'SCRIPTMessenger',
-                    short_name: 'SCRIPT',
-                    start_url: window.location.href,
-                    display: 'standalone',
-                    background_color: '#6a11cb',
-                    theme_color: '#6a11cb',
-                    icons: [
-                        { src: icon192, sizes: '192x192', type: 'image/png' },
-                        { src: icon512, sizes: '512x512', type: 'image/png' }
-                    ]
-                };
-
-                const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-                const manifestURL = URL.createObjectURL(manifestBlob);
-                const link = document.createElement('link');
-                link.rel = 'manifest';
-                link.href = manifestURL;
-                document.head.appendChild(link);
+            function redrawAllLines(lines) {
+                if (!sharedCanvas || !sharedCanvasCtx) return;
+                sharedCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
+                sharedCanvasCtx.clearRect(0, 0, sharedCanvas.width, sharedCanvas.height);
+                sharedCanvasCtx.fillStyle = '#ffffff';
+                sharedCanvasCtx.fillRect(0, 0, sharedCanvas.width, sharedCanvas.height);
+                sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+                lines.forEach(line => {
+                    sharedCanvasCtx.beginPath();
+                    sharedCanvasCtx.strokeStyle = line.color;
+                    sharedCanvasCtx.lineWidth = line.lineWidth || 4;
+                    sharedCanvasCtx.globalAlpha = line.alpha || 1;
+                    sharedCanvasCtx.lineCap = 'round';
+                    sharedCanvasCtx.moveTo(line.startX, line.startY);
+                    sharedCanvasCtx.lineTo(line.endX, line.endY);
+                    sharedCanvasCtx.stroke();
+                });
+                sharedCanvasCtx.globalAlpha = 1;
             }
 
-            // Вызываем функцию генерации иконки
-            generateIconAndManifest();
+            function startSharedDrawing(e) {
+                // Не начинаем рисование, если зажата средняя кнопка мыши или если это мультитач
+                if (e.button === 1) return;
+                if (e.touches && e.touches.length > 1) return;
+                e.preventDefault();
+                sharedDrawing = true;
+                const rect = sharedCanvas.getBoundingClientRect();
+                const clientX = e.clientX ?? e.touches[0].clientX;
+                const clientY = e.clientY ?? e.touches[0].clientY;
+                const x = (clientX - rect.left - offsetX) / scale;
+                const y = (clientY - rect.top - offsetY) / scale;
+                sharedLastX = x;
+                sharedLastY = y;
+            }
+
+            function drawShared(e) {
+                if (!sharedDrawing) return;
+                e.preventDefault();
+                const rect = sharedCanvas.getBoundingClientRect();
+                const clientX = e.clientX ?? e.touches[0].clientX;
+                const clientY = e.clientY ?? e.touches[0].clientY;
+                const x = (clientX - rect.left - offsetX) / scale;
+                const y = (clientY - rect.top - offsetY) / scale;
+
+                sharedCanvasCtx.beginPath();
+                sharedCanvasCtx.moveTo(sharedLastX, sharedLastY);
+                sharedCanvasCtx.lineTo(x, y);
+                if (eraserMode) {
+                    sharedCanvasCtx.strokeStyle = '#ffffff';
+                } else {
+                    sharedCanvasCtx.strokeStyle = sharedColor;
+                }
+                sharedCanvasCtx.lineWidth = sharedLineWidth;
+                sharedCanvasCtx.globalAlpha = sharedAlpha;
+                sharedCanvasCtx.lineCap = 'round';
+                sharedCanvasCtx.stroke();
+                sharedCanvasCtx.globalAlpha = 1;
+
+                // Добавляем линию в буфер
+                pendingLines.push({
+                    startX: sharedLastX,
+                    startY: sharedLastY,
+                    endX: x,
+                    endY: y,
+                    color: eraserMode ? '#ffffff' : sharedColor,
+                    lineWidth: sharedLineWidth,
+                    alpha: sharedAlpha
+                });
+
+                // Запускаем таймер для отправки, если ещё не запущен
+                if (!sendBatchTimer) {
+                    sendBatchTimer = setTimeout(() => {
+                        if (pendingLines.length > 0 && state.currentChatId) {
+                            const linesToSend = [...pendingLines];
+                            pendingLines = [];
+                            db.collection('sharedCanvas').doc(state.currentChatId).update({
+                                lines: firebase.firestore.FieldValue.arrayUnion(...linesToSend)
+                            }).catch(err => console.log('Firestore batch error', err));
+                        }
+                        sendBatchTimer = null;
+                    }, 50); // отправка раз в 50 мс
+                }
+
+                sharedLastX = x;
+                sharedLastY = y;
+            }
+
+            function stopSharedDrawing() {
+                sharedDrawing = false;
+                // Принудительно отправляем оставшиеся линии
+                if (sendBatchTimer) {
+                    clearTimeout(sendBatchTimer);
+                    sendBatchTimer = null;
+                }
+                if (pendingLines.length > 0 && state.currentChatId) {
+                    const linesToSend = [...pendingLines];
+                    pendingLines = [];
+                    db.collection('sharedCanvas').doc(state.currentChatId).update({
+                        lines: firebase.firestore.FieldValue.arrayUnion(...linesToSend)
+                    }).catch(err => console.log('Firestore final batch error', err));
+                }
+            }
+
+            function handleWheel(e) {
+                e.preventDefault();
+                const rect = sharedCanvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const newScale = scale * delta;
+                if (newScale < 0.5) return;
+                if (newScale > 5) return;
+                offsetX = mouseX - (mouseX - offsetX) * (newScale / scale);
+                offsetY = mouseY - (mouseY - offsetY) * (newScale / scale);
+                scale = newScale;
+                sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+                if (sharedCanvasListenerData) {
+                    redrawAllLines(sharedCanvasListenerData.lines);
+                }
+                updateEraserCursor();
+            }
+
+            function startPan(e) {
+                if (e.button === 1) { // средняя кнопка мыши
+                    e.preventDefault();
+                    isPanning = true;
+                    panStartX = e.clientX;
+                    panStartY = e.clientY;
+                }
+            }
+
+            function panMove(e) {
+                if (!isPanning) return;
+                e.preventDefault();
+                const dx = e.clientX - panStartX;
+                const dy = e.clientY - panStartY;
+                offsetX += dx;
+                offsetY += dy;
+                sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+                if (sharedCanvasListenerData) {
+                    redrawAllLines(sharedCanvasListenerData.lines);
+                }
+                panStartX = e.clientX;
+                panStartY = e.clientY;
+                updateEraserCursor();
+            }
+
+            function endPan() {
+                isPanning = false;
+            }
+
+            function moveEraserCursor(e) {
+                if (!eraserMode) return;
+                const rect = sharedCanvas.getBoundingClientRect();
+                const clientX = e.clientX ?? (e.touches ? e.touches[0].clientX : 0);
+                const clientY = e.clientY ?? (e.touches ? e.touches[0].clientY : 0);
+                if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+                    eraserCursor.style.left = clientX + 'px';
+                    eraserCursor.style.top = clientY + 'px';
+                }
+            }
+
+            // Обработчики мультитач
+            function handleTouchStart(e) {
+                e.preventDefault();
+                if (e.touches.length === 2) {
+                    // Начало жеста двумя пальцами
+                    const touch1 = e.touches[0];
+                    const touch2 = e.touches[1];
+                    const dx = touch1.clientX - touch2.clientX;
+                    const dy = touch1.clientY - touch2.clientY;
+                    touchZoomDistance = Math.hypot(dx, dy);
+                    touchPanStart.x = (touch1.clientX + touch2.clientX) / 2;
+                    touchPanStart.y = (touch1.clientY + touch2.clientY) / 2;
+                    isTouchPanning = true;
+                    sharedDrawing = false; // отключаем рисование
+                } else if (e.touches.length === 1) {
+                    // Один палец — рисование
+                    startSharedDrawing(e);
+                }
+            }
+
+            function handleTouchMove(e) {
+                e.preventDefault();
+                if (isTouchPanning && e.touches.length === 2) {
+                    const touch1 = e.touches[0];
+                    const touch2 = e.touches[1];
+                    const dx = touch1.clientX - touch2.clientX;
+                    const dy = touch1.clientY - touch2.clientY;
+                    const newDist = Math.hypot(dx, dy);
+                    const scaleFactor = newDist / touchZoomDistance;
+                    const newScale = scale * scaleFactor;
+                    if (newScale >= 0.5 && newScale <= 5) {
+                        // Масштабирование относительно центра между пальцами
+                        const centerX = (touch1.clientX + touch2.clientX) / 2;
+                        const centerY = (touch1.clientY + touch2.clientY) / 2;
+                        const rect = sharedCanvas.getBoundingClientRect();
+                        const prevCenterCanvasX = (centerX - rect.left - offsetX) / scale;
+                        const prevCenterCanvasY = (centerY - rect.top - offsetY) / scale;
+                        scale = newScale;
+                        offsetX = centerX - rect.left - prevCenterCanvasX * scale;
+                        offsetY = centerY - rect.top - prevCenterCanvasY * scale;
+                        sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+                        if (sharedCanvasListenerData) {
+                            redrawAllLines(sharedCanvasListenerData.lines);
+                        }
+                        updateEraserCursor();
+                    }
+                    touchZoomDistance = newDist;
+
+                    // Панорамирование (смещение средней точки)
+                    const newCenterX = (touch1.clientX + touch2.clientX) / 2;
+                    const newCenterY = (touch1.clientY + touch2.clientY) / 2;
+                    const deltaX = newCenterX - touchPanStart.x;
+                    const deltaY = newCenterY - touchPanStart.y;
+                    offsetX += deltaX;
+                    offsetY += deltaY;
+                    sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+                    if (sharedCanvasListenerData) {
+                        redrawAllLines(sharedCanvasListenerData.lines);
+                    }
+                    touchPanStart.x = newCenterX;
+                    touchPanStart.y = newCenterY;
+                    updateEraserCursor();
+                } else if (!isTouchPanning && e.touches.length === 1) {
+                    drawShared(e);
+                }
+            }
+
+            function handleTouchEnd(e) {
+                if (e.touches.length < 2) {
+                    isTouchPanning = false;
+                }
+                if (e.touches.length === 0) {
+                    stopSharedDrawing();
+                }
+            }
 
             // Тема
             function applyTheme() {
@@ -2066,6 +2025,80 @@
                     const posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     renderFeed(posts);
                 });
+            }
+
+            async function renderFeed(posts) {
+                if (!posts.length) { feedPosts.innerHTML = '<div class="info-message">Нет постов</div>'; return; }
+                const authorIds = [...new Set(posts.map(p => p.userId))];
+                const authorSnaps = await Promise.all(authorIds.map(id => db.collection('users').doc(id).get()));
+                const authors = Object.fromEntries(authorSnaps.map(snap => [snap.id, snap.data()]));
+                let html = '';
+                for (let post of posts) {
+                    const author = authors[post.userId] || { displayName: 'Неизвестно', avatar: '' };
+                    const time = post.timestamp ? new Date(post.timestamp.toDate()).toLocaleString() : '';
+                    const likes = post.likes?.length || 0;
+                    const userLiked = post.likes?.includes(state.currentUser.uid);
+                    const commentsSnapshot = await db.collection('comments').where('postId', '==', post.id).get();
+                    const commentsCount = commentsSnapshot.size;
+                    const pixelClass = post.isPixelArt ? 'pixel-art' : '';
+                    const avatarHtml = author.avatar 
+                        ? `<img src="${author.avatar}" class="post-author-avatar">` 
+                        : `<div class="post-author-avatar">${(author.displayName?.[0] || '?').toUpperCase()}</div>`;
+                    html += `
+                        <div class="post card" data-post-id="${post.id}">
+                            <div class="post-header">
+                                ${avatarHtml}
+                                <span class="post-author" data-author-id="${post.userId}">${author.displayName}</span>
+                                <span class="post-time">${time}</span>
+                            </div>
+                            ${post.image ? `<img src="${post.image}" class="post-image ${pixelClass}">` : ''}
+                            <div class="post-text">${post.text.replace(/</g, '&lt;')}</div>
+                            <div class="post-actions">
+                                <button class="like-btn ${userLiked ? 'liked' : ''}" data-post-id="${post.id}">❤️ <span class="likes-count">${likes}</span></button>
+                                <button class="comment-btn" data-post-id="${post.id}">💬 ${commentsCount}</button>
+                                <button class="delete-post-btn" data-post-id="${post.id}">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                feedPosts.innerHTML = html;
+                document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', e => toggleLike(btn.dataset.postId)));
+                document.querySelectorAll('.comment-btn').forEach(btn => btn.addEventListener('click', e => openComments(btn.dataset.postId)));
+                document.querySelectorAll('.post-author').forEach(span => span.addEventListener('click', e => {
+                    const uid = span.dataset.authorId;
+                    showSection('profileSection');
+                    loadProfile(uid);
+                }));
+                document.querySelectorAll('.delete-post-btn').forEach(btn => {
+                    btn.addEventListener('click', async e => {
+                        e.stopPropagation();
+                        const postId = btn.dataset.postId;
+                        if (!confirm('Удалить пост? Это действие нельзя отменить.')) return;
+                        try {
+                            const commentsQuery = await db.collection('comments').where('postId', '==', postId).get();
+                            const batch = db.batch();
+                            commentsQuery.docs.forEach(doc => batch.delete(doc.ref));
+                            batch.delete(db.collection('posts').doc(postId));
+                            await batch.commit();
+                        } catch (error) {
+                            console.error('Ошибка удаления поста:', error);
+                            alert('Не удалось удалить пост.');
+                        }
+                    });
+                });
+            }
+
+            async function toggleLike(postId) {
+                if (!state.currentUser) return;
+                const postRef = db.collection('posts').doc(postId);
+                const post = await postRef.get();
+                if (!post.exists) return;
+                const likes = post.data().likes || [];
+                if (likes.includes(state.currentUser.uid)) {
+                    await postRef.update({ likes: firebase.firestore.FieldValue.arrayRemove(state.currentUser.uid) });
+                } else {
+                    await postRef.update({ likes: firebase.firestore.FieldValue.arrayUnion(state.currentUser.uid) });
+                }
             }
 
             // Комментарии
@@ -2430,6 +2463,44 @@
             searchBtn.addEventListener('click', () => searchUsers(searchInput.value));
             searchInput.addEventListener('keyup', e => e.key === 'Enter' && searchUsers(searchInput.value));
 
+            async function searchUsers(query) {
+                if (!query.trim()) return;
+                searchResults.innerHTML = '<div class="info-message">Поиск...</div>';
+                const nameQuery = db.collection('users').orderBy('displayName').startAt(query).endAt(query + '\uf8ff').get();
+                const emailQuery = db.collection('users').orderBy('email').startAt(query).endAt(query + '\uf8ff').get();
+                const [nameSnap, emailSnap] = await Promise.all([nameQuery, emailQuery]);
+                const users = new Map();
+                nameSnap.docs.forEach(d => users.set(d.id, d.data()));
+                emailSnap.docs.forEach(d => users.set(d.id, d.data()));
+                if (!users.size) { searchResults.innerHTML = '<div class="info-message">Ничего не найдено</div>'; return; }
+                let html = '';
+                for (let [uid, data] of users.entries()) {
+                    if (uid === state.currentUser.uid) continue;
+                    const isFollowing = state.followees.includes(uid);
+                    html += `<div class="user-card" style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--border-light);">
+                        <div class="info" style="display:flex; align-items:center; gap:1rem;">
+                            <div style="width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;">${data.avatar ? `<img src="${data.avatar}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">` : (data.displayName?.[0] || '?')}</div>
+                            <div><h4 class="user-name-link" data-uid="${uid}" style="cursor:pointer;color:var(--accent);">${data.displayName || data.email}</h4><small>${data.email}</small></div>
+                        </div>
+                        <div>
+                            <button class="follow-btn ${isFollowing ? 'btn-secondary' : 'btn-primary'}" data-follow-uid="${uid}">${isFollowing ? 'Отписаться' : 'Подписаться'}</button>
+                            <button class="btn-secondary" data-message-uid="${uid}">✉</button>
+                        </div>
+                    </div>`;
+                }
+                searchResults.innerHTML = html;
+                document.querySelectorAll('.follow-btn').forEach(b => b.addEventListener('click', async e => {
+                    const uid = b.dataset.followUid;
+                    await toggleFollow(uid, b.classList.contains('btn-secondary'));
+                    searchUsers(searchInput.value);
+                }));
+                document.querySelectorAll('[data-message-uid]').forEach(b => b.addEventListener('click', e => openChatWithUser(b.dataset.messageUid)));
+                document.querySelectorAll('.user-name-link').forEach(span => span.addEventListener('click', e => {
+                    showSection('profileSection');
+                    loadProfile(span.dataset.uid);
+                }));
+            }
+
             // Чаты
             async function markChatAsRead(chatId) {
                 if (!state.currentUser) return;
@@ -2515,6 +2586,7 @@
                 });
             }
 
+            // ИСПРАВЛЕННАЯ ФУНКЦИЯ renderChatsList
             function renderChatsList(chats) {
                 if (!chats.length) { chatsList.innerHTML = '<div class="info-message">Нет чатов</div>'; return; }
                 let html = '';
@@ -2524,6 +2596,7 @@
                     const activeClass = chat.id === state.currentChatId ? 'active' : '';
                     const unreadCount = chat.unreadCounts?.[state.currentUser.uid] || 0;
                     const unreadBadge = unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : '';
+                    // Добавляем data-атрибуты с именем и аватаром собеседника
                     html += `<div class="chat-item ${activeClass}" data-chat-id="${chat.id}" data-other-uid="${chat.otherUser.uid}" data-other-name="${chat.otherUser.displayName || chat.otherUser.email}" data-other-avatar="${chat.otherUser.avatar || ''}">
                         <div class="chat-avatar">${chat.otherUser.avatar ? `<img src="${chat.otherUser.avatar}" style="width:54px;height:54px;border-radius:50%;object-fit:cover;">` : (chat.otherUser.displayName?.[0] || '?')}</div>
                         <div class="chat-info">
@@ -2546,13 +2619,14 @@
                             uid: otherUid, 
                             displayName: otherName,
                             avatar: otherAvatar,
-                            email: otherName
+                            email: otherName // если displayName не задан, в otherName уже лежит email
                         };
 
                         if (window.innerWidth <= 768) chatsSidebar.classList.add('hide-mobile');
                         chatWindowContainer.classList.remove('hidden');
                         noChatSelected.classList.add('hidden');
                         
+                        // Устанавливаем имя сразу
                         chatHeader.textContent = otherName;
                         chatHeader.onclick = () => {
                             showSection('profileSection');
@@ -2562,6 +2636,7 @@
                         markChatAsRead(chatId);
                         loadMessages(chatId);
                         
+                        // Убираем активный класс у других
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         item.classList.add('active');
 
@@ -2599,13 +2674,16 @@
                 }
             }
 
+            // loadMessages уже вызывает markChatAsRead при каждом обновлении
             function loadMessages(chatId) {
                 if (state.listeners.messages) state.listeners.messages();
                 
+                // Сразу помечаем как прочитанные при открытии
                 markChatAsRead(chatId);
                 
                 const q = db.collection('messages').where('chatId', '==', chatId).orderBy('timestamp', 'asc');
                 state.listeners.messages = q.onSnapshot(async snap => {
+                    // При каждом обновлении сообщений, если это тот же чат, сбрасываем счётчик
                     if (state.currentChatId === chatId) {
                         await markChatAsRead(chatId);
                     }
@@ -2762,6 +2840,7 @@
 
             document.getElementById('cancelReplyBtn').addEventListener('click', clearReply);
 
+            // Удаление сообщения с корректировкой unreadCounts для всех участников
             async function deleteMessage(msgId) {
                 if (!state.currentChatId) return;
                 try {
@@ -2771,8 +2850,10 @@
                     const msgData = msgSnap.data();
                     const isOwn = msgData.senderId === state.currentUser.uid;
 
+                    // Удаляем сообщение
                     await msgRef.delete();
 
+                    // Обновляем unreadCounts в транзакции
                     const chatRef = db.collection('chats').doc(state.currentChatId);
                     await db.runTransaction(async (transaction) => {
                         const chatDoc = await transaction.get(chatRef);
@@ -2781,6 +2862,7 @@
                         const unreadCounts = chatDoc.data().unreadCounts || {};
 
                         if (isOwn) {
+                            // Удаляем своё сообщение — уменьшаем счётчик для другого участника (получателя)
                             const otherUid = participants.find(uid => uid !== state.currentUser.uid);
                             if (otherUid && (unreadCounts[otherUid] || 0) > 0) {
                                 transaction.update(chatRef, {
@@ -2788,6 +2870,7 @@
                                 });
                             }
                         } else {
+                            // Удаляем чужое сообщение — уменьшаем счётчик для текущего пользователя
                             if ((unreadCounts[state.currentUser.uid] || 0) > 0) {
                                 transaction.update(chatRef, {
                                     [`unreadCounts.${state.currentUser.uid}`]: (unreadCounts[state.currentUser.uid] || 0) - 1
@@ -2796,6 +2879,7 @@
                         }
                     });
 
+                    // Обновляем последнее сообщение в чате
                     const messagesQuery = await db.collection('messages')
                         .where('chatId', '==', state.currentChatId)
                         .orderBy('timestamp', 'desc')
@@ -2879,7 +2963,7 @@
                 fileInput.value = '';
             });
 
-            // Голосовые сообщения
+            // Голосовые сообщения (сокращено для компактности, функционал остаётся)
             let mediaRecorder, audioChunks, isRecording = false;
             let recordingStartTime, timerInterval, analyser, dataArray, audioContext, source, stream;
 
@@ -3075,6 +3159,7 @@
                     sharedCanvas.addEventListener('mouseleave', endPan);
                     sharedCanvas.addEventListener('mousemove', moveEraserCursor);
 
+                    // Мультитач
                     sharedCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
                     sharedCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
                     sharedCanvas.addEventListener('touchend', handleTouchEnd);
@@ -3304,36 +3389,47 @@
                 logoutBtnMobile.addEventListener('click', () => auth.signOut());
             }
 
-            // Основной обработчик аутентификации
+            // ========== ИЗМЕНЁННЫЙ ОБРАБОТЧИК ==========
             auth.onAuthStateChanged(async user => {
                 const splash = document.getElementById('splash-screen');
                 const authContainer = document.getElementById('authContainer');
                 const appContainer = document.getElementById('appContainer');
 
                 if (user) {
+                    // Пользователь уже вошёл
                     state.currentUser = user;
 
+                    // Гарантируем, что splash виден (на случай, если он был скрыт ранее)
                     splash.classList.remove('hidden');
+                    // Скрываем форму входа (на всякий случай)
                     authContainer.classList.add('hidden');
+                    // Приложение пока не показываем
 
-                    // Загружаем список админов
-                    await loadAdmins();
+                    // Сразу начинаем загружать данные (профиль, подписки и т.д.)
+                    // Не ждём 2 секунды, чтобы ускорить загрузку
+                    ensureUserProfile(user).then(() => {
+                        // Профиль загружен, можно активировать слушатели (если они ещё не активны)
+                        // Но финальный показ приложения произойдёт через 2 секунды (для анимации)
+                    });
 
-                    ensureUserProfile(user).then(() => {});
-
+                    // Через 2 секунды скрываем splash и показываем приложение
                     setTimeout(() => {
                         appContainer.classList.remove('hidden');
                         splash.classList.add('hidden');
+                        // Активируем подписки (лента, чаты) и переходим в нужный раздел
                         Object.values(state.listeners).forEach(fn => fn && fn());
                         showSection('chatsSection');
                     }, 2000);
                 } else {
-                    splash.classList.add('hidden');
-                    authContainer.classList.remove('hidden');
-                    appContainer.classList.add('hidden');
+                    // Пользователь не авторизован
+                    splash.classList.add('hidden');          // убираем splash
+                    authContainer.classList.remove('hidden'); // показываем форму входа
+                    appContainer.classList.add('hidden');    // скрываем приложение
                     state.currentUser = null;
+                    // Здесь можно сбросить слушатели, если необходимо
                 }
             });
+            // ===========================================
 
             window.addEventListener('resize', () => {
                 document.body.style.height = window.innerHeight + 'px';
@@ -3342,7 +3438,7 @@
 
             initPalette();
 
-            // Кнопка установки приложения (PWA)
+            // ---------- Кнопка установки приложения (PWA) ----------
             const installAppBtn = document.getElementById('installAppBtn');
             if (installAppBtn) {
                 installAppBtn.addEventListener('click', showInstallInstructions);
@@ -3362,296 +3458,109 @@
                 } else {
                     message = 'Для установки нажмите соответствующую иконку в адресной строке.';
                 }
-                alert(message);
+                alert(message); // В продакшене заменить на красивое модальное окно
             }
 
-            // Функции для совместного холста (дополнительно, не меняем)
-            function initSharedPalette() {
-                const colors = ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#888888', '#ff8800', '#88ff00', '#0088ff'];
-                sharedCanvasPalette.innerHTML = '';
-                colors.forEach(color => {
-                    const div = document.createElement('div');
-                    div.className = 'color';
-                    div.style.backgroundColor = color;
-                    div.addEventListener('click', () => {
-                        document.querySelectorAll('#sharedCanvasPalette .color').forEach(c => c.classList.remove('selected'));
-                        div.classList.add('selected');
-                        sharedColor = color;
-                        sharedCanvasColorPicker.value = color;
-                        eraserMode = false;
-                        eraserBtn.classList.remove('active');
-                        updateEraserCursor();
-                    });
-                    sharedCanvasPalette.appendChild(div);
-                });
-                sharedCanvasPalette.firstChild?.classList.add('selected');
-            }
-            initSharedPalette();
+            // ---------- НОВАЯ ФУНКЦИЯ ДЛЯ КРАСИВОЙ PWA ИКОНКИ ----------
+            function generateIconAndManifest() {
+                // Создаём иконку 192x192
+                const canvas192 = document.createElement('canvas');
+                canvas192.width = 192;
+                canvas192.height = 192;
+                const ctx192 = canvas192.getContext('2d');
+                
+                // Рисуем фон – радиальный градиент от голубого к синему
+                const gradient = ctx192.createRadialGradient(96, 96, 0, 96, 96, 96);
+                gradient.addColorStop(0, '#4facfe');
+                gradient.addColorStop(1, '#00f2fe');
+                ctx192.fillStyle = gradient;
+                ctx192.beginPath();
+                ctx192.arc(96, 96, 90, 0, Math.PI * 2);
+                ctx192.fill();
+                
+                // Тень для объёма
+                ctx192.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx192.shadowBlur = 10;
+                ctx192.shadowOffsetY = 4;
+                
+                // Белая буква S с обводкой
+                ctx192.font = 'bold 100px "Segoe UI", "Helvetica Neue", sans-serif';
+                ctx192.textAlign = 'center';
+                ctx192.textBaseline = 'middle';
+                ctx192.fillStyle = '#ffffff';
+                ctx192.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx192.shadowBlur = 8;
+                ctx192.shadowOffsetY = 2;
+                ctx192.fillText('S', 96, 96);
+                
+                // Лёгкая обводка буквы
+                ctx192.strokeStyle = '#ffffff';
+                ctx192.lineWidth = 2;
+                ctx192.shadowBlur = 0; // убираем тень для обводки, чтобы не смазывать
+                ctx192.strokeText('S', 96, 96);
+                
+                const iconDataURL192 = canvas192.toDataURL('image/png');
+                
+                // Создаём иконку 512x512 (для больших экранов)
+                const canvas512 = document.createElement('canvas');
+                canvas512.width = 512;
+                canvas512.height = 512;
+                const ctx512 = canvas512.getContext('2d');
+                const gradient512 = ctx512.createRadialGradient(256, 256, 0, 256, 256, 256);
+                gradient512.addColorStop(0, '#4facfe');
+                gradient512.addColorStop(1, '#00f2fe');
+                ctx512.fillStyle = gradient512;
+                ctx512.beginPath();
+                ctx512.arc(256, 256, 240, 0, Math.PI * 2);
+                ctx512.fill();
+                ctx512.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx512.shadowBlur = 20;
+                ctx512.shadowOffsetY = 8;
+                ctx512.font = 'bold 280px "Segoe UI", "Helvetica Neue", sans-serif';
+                ctx512.textAlign = 'center';
+                ctx512.textBaseline = 'middle';
+                ctx512.fillStyle = '#ffffff';
+                ctx512.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx512.shadowBlur = 16;
+                ctx512.shadowOffsetY = 4;
+                ctx512.fillText('S', 256, 256);
+                ctx512.strokeStyle = '#ffffff';
+                ctx512.lineWidth = 4;
+                ctx512.shadowBlur = 0;
+                ctx512.strokeText('S', 256, 256);
+                const iconDataURL512 = canvas512.toDataURL('image/png');
 
-            sharedCanvasColorPicker.addEventListener('input', (e) => {
-                sharedColor = e.target.value;
-                document.querySelectorAll('#sharedCanvasPalette .color').forEach(c => c.classList.remove('selected'));
-                eraserMode = false;
-                eraserBtn.classList.remove('active');
-                updateEraserCursor();
-            });
-
-            lineWidthRange.addEventListener('input', (e) => {
-                sharedLineWidth = parseInt(e.target.value);
-                updateEraserCursor();
-            });
-            lineAlphaRange.addEventListener('input', (e) => sharedAlpha = parseFloat(e.target.value));
-
-            function updateEraserCursor() {
-                if (eraserMode && sharedCanvasModal.classList.contains('show')) {
-                    eraserCursor.style.display = 'block';
-                    eraserCursor.style.width = (sharedLineWidth * scale) + 'px';
-                    eraserCursor.style.height = (sharedLineWidth * scale) + 'px';
-                    eraserCursor.style.backgroundColor = 'rgba(255,255,255,0.3)';
-                    eraserCursor.style.border = '2px solid black';
-                } else {
-                    eraserCursor.style.display = 'none';
-                }
-            }
-
-            eraserBtn.addEventListener('click', () => {
-                eraserMode = !eraserMode;
-                if (eraserMode) {
-                    eraserBtn.classList.add('active');
-                } else {
-                    eraserBtn.classList.remove('active');
-                }
-                updateEraserCursor();
-            });
-
-            function redrawAllLines(lines) {
-                if (!sharedCanvas || !sharedCanvasCtx) return;
-                sharedCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
-                sharedCanvasCtx.clearRect(0, 0, sharedCanvas.width, sharedCanvas.height);
-                sharedCanvasCtx.fillStyle = '#ffffff';
-                sharedCanvasCtx.fillRect(0, 0, sharedCanvas.width, sharedCanvas.height);
-                sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-                lines.forEach(line => {
-                    sharedCanvasCtx.beginPath();
-                    sharedCanvasCtx.strokeStyle = line.color;
-                    sharedCanvasCtx.lineWidth = line.lineWidth || 4;
-                    sharedCanvasCtx.globalAlpha = line.alpha || 1;
-                    sharedCanvasCtx.lineCap = 'round';
-                    sharedCanvasCtx.moveTo(line.startX, line.startY);
-                    sharedCanvasCtx.lineTo(line.endX, line.endY);
-                    sharedCanvasCtx.stroke();
-                });
-                sharedCanvasCtx.globalAlpha = 1;
-            }
-
-            function startSharedDrawing(e) {
-                if (e.button === 1) return;
-                if (e.touches && e.touches.length > 1) return;
-                e.preventDefault();
-                sharedDrawing = true;
-                const rect = sharedCanvas.getBoundingClientRect();
-                const clientX = e.clientX ?? e.touches[0].clientX;
-                const clientY = e.clientY ?? e.touches[0].clientY;
-                const x = (clientX - rect.left - offsetX) / scale;
-                const y = (clientY - rect.top - offsetY) / scale;
-                sharedLastX = x;
-                sharedLastY = y;
-            }
-
-            function drawShared(e) {
-                if (!sharedDrawing) return;
-                e.preventDefault();
-                const rect = sharedCanvas.getBoundingClientRect();
-                const clientX = e.clientX ?? e.touches[0].clientX;
-                const clientY = e.clientY ?? e.touches[0].clientY;
-                const x = (clientX - rect.left - offsetX) / scale;
-                const y = (clientY - rect.top - offsetY) / scale;
-
-                sharedCanvasCtx.beginPath();
-                sharedCanvasCtx.moveTo(sharedLastX, sharedLastY);
-                sharedCanvasCtx.lineTo(x, y);
-                if (eraserMode) {
-                    sharedCanvasCtx.strokeStyle = '#ffffff';
-                } else {
-                    sharedCanvasCtx.strokeStyle = sharedColor;
-                }
-                sharedCanvasCtx.lineWidth = sharedLineWidth;
-                sharedCanvasCtx.globalAlpha = sharedAlpha;
-                sharedCanvasCtx.lineCap = 'round';
-                sharedCanvasCtx.stroke();
-                sharedCanvasCtx.globalAlpha = 1;
-
-                pendingLines.push({
-                    startX: sharedLastX,
-                    startY: sharedLastY,
-                    endX: x,
-                    endY: y,
-                    color: eraserMode ? '#ffffff' : sharedColor,
-                    lineWidth: sharedLineWidth,
-                    alpha: sharedAlpha
-                });
-
-                if (!sendBatchTimer) {
-                    sendBatchTimer = setTimeout(() => {
-                        if (pendingLines.length > 0 && state.currentChatId) {
-                            const linesToSend = [...pendingLines];
-                            pendingLines = [];
-                            db.collection('sharedCanvas').doc(state.currentChatId).update({
-                                lines: firebase.firestore.FieldValue.arrayUnion(...linesToSend)
-                            }).catch(err => console.log('Firestore batch error', err));
+                // Манифест с двумя иконками
+                const manifest = {
+                    name: 'SCRIPTMessenger',
+                    short_name: 'SCRIPT',
+                    start_url: window.location.href,
+                    display: 'standalone',
+                    background_color: '#4facfe',
+                    theme_color: '#4facfe',
+                    icons: [
+                        {
+                            src: iconDataURL192,
+                            sizes: '192x192',
+                            type: 'image/png'
+                        },
+                        {
+                            src: iconDataURL512,
+                            sizes: '512x512',
+                            type: 'image/png'
                         }
-                        sendBatchTimer = null;
-                    }, 50);
-                }
+                    ]
+                };
 
-                sharedLastX = x;
-                sharedLastY = y;
+                const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+                const manifestURL = URL.createObjectURL(manifestBlob);
+                const link = document.createElement('link');
+                link.rel = 'manifest';
+                link.href = manifestURL;
+                document.head.appendChild(link);
             }
 
-            function stopSharedDrawing() {
-                sharedDrawing = false;
-                if (sendBatchTimer) {
-                    clearTimeout(sendBatchTimer);
-                    sendBatchTimer = null;
-                }
-                if (pendingLines.length > 0 && state.currentChatId) {
-                    const linesToSend = [...pendingLines];
-                    pendingLines = [];
-                    db.collection('sharedCanvas').doc(state.currentChatId).update({
-                        lines: firebase.firestore.FieldValue.arrayUnion(...linesToSend)
-                    }).catch(err => console.log('Firestore final batch error', err));
-                }
-            }
-
-            function handleWheel(e) {
-                e.preventDefault();
-                const rect = sharedCanvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-                const delta = e.deltaY > 0 ? 0.9 : 1.1;
-                const newScale = scale * delta;
-                if (newScale < 0.5) return;
-                if (newScale > 5) return;
-                offsetX = mouseX - (mouseX - offsetX) * (newScale / scale);
-                offsetY = mouseY - (mouseY - offsetY) * (newScale / scale);
-                scale = newScale;
-                sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-                if (sharedCanvasListenerData) {
-                    redrawAllLines(sharedCanvasListenerData.lines);
-                }
-                updateEraserCursor();
-            }
-
-            function startPan(e) {
-                if (e.button === 1) {
-                    e.preventDefault();
-                    isPanning = true;
-                    panStartX = e.clientX;
-                    panStartY = e.clientY;
-                }
-            }
-
-            function panMove(e) {
-                if (!isPanning) return;
-                e.preventDefault();
-                const dx = e.clientX - panStartX;
-                const dy = e.clientY - panStartY;
-                offsetX += dx;
-                offsetY += dy;
-                sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-                if (sharedCanvasListenerData) {
-                    redrawAllLines(sharedCanvasListenerData.lines);
-                }
-                panStartX = e.clientX;
-                panStartY = e.clientY;
-                updateEraserCursor();
-            }
-
-            function endPan() {
-                isPanning = false;
-            }
-
-            function moveEraserCursor(e) {
-                if (!eraserMode) return;
-                const rect = sharedCanvas.getBoundingClientRect();
-                const clientX = e.clientX ?? (e.touches ? e.touches[0].clientX : 0);
-                const clientY = e.clientY ?? (e.touches ? e.touches[0].clientY : 0);
-                if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
-                    eraserCursor.style.left = clientX + 'px';
-                    eraserCursor.style.top = clientY + 'px';
-                }
-            }
-
-            function handleTouchStart(e) {
-                e.preventDefault();
-                if (e.touches.length === 2) {
-                    const touch1 = e.touches[0];
-                    const touch2 = e.touches[1];
-                    const dx = touch1.clientX - touch2.clientX;
-                    const dy = touch1.clientY - touch2.clientY;
-                    touchZoomDistance = Math.hypot(dx, dy);
-                    touchPanStart.x = (touch1.clientX + touch2.clientX) / 2;
-                    touchPanStart.y = (touch1.clientY + touch2.clientY) / 2;
-                    isTouchPanning = true;
-                    sharedDrawing = false;
-                } else if (e.touches.length === 1) {
-                    startSharedDrawing(e);
-                }
-            }
-
-            function handleTouchMove(e) {
-                e.preventDefault();
-                if (isTouchPanning && e.touches.length === 2) {
-                    const touch1 = e.touches[0];
-                    const touch2 = e.touches[1];
-                    const dx = touch1.clientX - touch2.clientX;
-                    const dy = touch1.clientY - touch2.clientY;
-                    const newDist = Math.hypot(dx, dy);
-                    const scaleFactor = newDist / touchZoomDistance;
-                    const newScale = scale * scaleFactor;
-                    if (newScale >= 0.5 && newScale <= 5) {
-                        const centerX = (touch1.clientX + touch2.clientX) / 2;
-                        const centerY = (touch1.clientY + touch2.clientY) / 2;
-                        const rect = sharedCanvas.getBoundingClientRect();
-                        const prevCenterCanvasX = (centerX - rect.left - offsetX) / scale;
-                        const prevCenterCanvasY = (centerY - rect.top - offsetY) / scale;
-                        scale = newScale;
-                        offsetX = centerX - rect.left - prevCenterCanvasX * scale;
-                        offsetY = centerY - rect.top - prevCenterCanvasY * scale;
-                        sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-                        if (sharedCanvasListenerData) {
-                            redrawAllLines(sharedCanvasListenerData.lines);
-                        }
-                        updateEraserCursor();
-                    }
-                    touchZoomDistance = newDist;
-
-                    const newCenterX = (touch1.clientX + touch2.clientX) / 2;
-                    const newCenterY = (touch1.clientY + touch2.clientY) / 2;
-                    const deltaX = newCenterX - touchPanStart.x;
-                    const deltaY = newCenterY - touchPanStart.y;
-                    offsetX += deltaX;
-                    offsetY += deltaY;
-                    sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-                    if (sharedCanvasListenerData) {
-                        redrawAllLines(sharedCanvasListenerData.lines);
-                    }
-                    touchPanStart.x = newCenterX;
-                    touchPanStart.y = newCenterY;
-                    updateEraserCursor();
-                } else if (!isTouchPanning && e.touches.length === 1) {
-                    drawShared(e);
-                }
-            }
-
-            function handleTouchEnd(e) {
-                if (e.touches.length < 2) {
-                    isTouchPanning = false;
-                }
-                if (e.touches.length === 0) {
-                    stopSharedDrawing();
-                }
-            }
+            generateIconAndManifest();
         })();
     </script>
 </body>
