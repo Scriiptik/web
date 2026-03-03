@@ -1599,12 +1599,12 @@
                 currentUser: null,
                 profile: null,
                 followees: [],
-                friends: [], // массив uid взаимных подписок (включая себя)
+                friends: [],
                 currentChatId: null,
                 currentChatParticipant: null,
                 darkTheme: localStorage.getItem('theme') === 'dark',
                 listeners: {},
-                isDev: false // статус разработчика
+                isDev: false
             };
 
             // DOM элементы
@@ -1766,11 +1766,9 @@
             let touchPanStart = { x: 0, y: 0 };
             let isTouchPanning = false;
 
-            // --- Буфер для линий (чтобы не отправлять каждое движение) ---
             let pendingLines = [];
             let sendBatchTimer = null;
 
-            // Палитра для холста
             function initSharedPalette() {
                 const colors = ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#888888', '#ff8800', '#88ff00', '#0088ff'];
                 sharedCanvasPalette.innerHTML = '';
@@ -2058,7 +2056,6 @@
                 }
             }
 
-            // Тема
             function applyTheme() {
                 if (state.darkTheme) {
                     document.body.classList.add('dark-theme');
@@ -2075,14 +2072,12 @@
                 applyTheme();
             });
 
-            // Бургер
             function openDrawer() { navDrawer.classList.add('open'); overlay.classList.add('show'); }
             function closeDrawer() { navDrawer.classList.remove('open'); overlay.classList.remove('show'); }
             burgerMenu.addEventListener('click', openDrawer);
             closeDrawerBtn.addEventListener('click', closeDrawer);
             overlay.addEventListener('click', closeDrawer);
 
-            // Переключение секций
             let currentSectionId = 'feedSection';
             let arModule = null;
             function showSection(sectionId) {
@@ -2116,13 +2111,11 @@
             drawerChats.addEventListener('click', () => showSection('chatsSection'));
             drawerAr.addEventListener('click', () => showSection('arSection'));
 
-            // Профиль
             async function ensureUserProfile(user) {
                 if (!user) return;
                 const userRef = db.collection('users').doc(user.uid);
                 const doc = await userRef.get();
                 if (!doc.exists) {
-                    // Генерация уникального username
                     let username = user.email.split('@')[0];
                     let counter = 1;
                     let baseUsername = username;
@@ -2151,7 +2144,6 @@
                 });
             }
 
-            // Функция загрузки друзей (взаимные подписки)
             async function loadFriends() {
                 if (!state.currentUser) return;
                 const uid = state.currentUser.uid;
@@ -2164,15 +2156,13 @@
                         friends.push(followee);
                     }
                 }
-                friends.push(uid); // добавляем себя
+                friends.push(uid);
                 state.friends = friends;
-                // Если мы на ленте, обновляем её
                 if (currentSectionId === 'feedSection') {
                     loadFeed();
                 }
             }
 
-            // Обновление статуса разработчика
             async function updateDevStatus() {
                 if (state.currentUser) {
                     const devDoc = await db.collection('developers').doc(state.currentUser.uid).get();
@@ -2180,7 +2170,6 @@
                 }
             }
 
-            // Лента (только друзья, если не разработчик)
             function loadFeed() {
                 if (state.listeners.feed) state.listeners.feed();
                 const postsQuery = db.collection('posts').orderBy('timestamp', 'desc');
@@ -2271,7 +2260,6 @@
                 }
             }
 
-            // Комментарии
             async function openComments(postId) {
                 currentPostIdForComment = postId;
                 const commentsSnap = await db.collection('comments').where('postId', '==', postId).orderBy('timestamp').get();
@@ -2325,7 +2313,6 @@
             });
             closeCommentModal.addEventListener('click', () => commentModal.classList.remove('show'));
 
-            // Рисование обычное
             function initPalette() {
                 const colors = ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#888888', '#ff8800', '#88ff00', '#0088ff'];
                 colorPalette.innerHTML = '';
@@ -2488,7 +2475,6 @@
 
             cancelDrawingBtn.addEventListener('click', () => drawingModal.classList.remove('show'));
 
-            // Редактирование профиля
             function showEditForm() {
                 editName.value = state.profile?.displayName || '';
                 if (editUsername) editUsername.value = state.profile?.username || '';
@@ -2515,7 +2501,6 @@
                 const newBio = editBio.value.trim();
                 if (!newName) { alert('Имя не может быть пустым'); return; }
                 if (!newUsername) { alert('ID не может быть пустым'); return; }
-                // Проверить уникальность username (кроме самого себя)
                 const existing = await db.collection('users').where('username', '==', newUsername).get();
                 if (!existing.empty && existing.docs[0].id !== state.currentUser.uid) {
                     alert('Этот ID уже занят');
@@ -2541,7 +2526,6 @@
                 loadProfile(state.currentUser.uid);
             });
 
-            // Подписчики/подписки
             async function showUserList(type, uid) {
                 const title = type === 'followers' ? 'Подписчики' : 'Подписки';
                 userListTitle.textContent = title;
@@ -2572,7 +2556,6 @@
             }
             closeUserList.addEventListener('click', () => userListModal.classList.remove('show'));
 
-            // Загрузка профиля
             window.currentProfileUid = null;
             async function loadProfile(uid) {
                 window.currentProfileUid = uid;
@@ -2602,7 +2585,6 @@
                 const followBtn = !isOwn ? `<button class="follow-btn ${isFollowing ? 'btn-secondary' : 'btn-primary'}" data-uid="${uid}">${isFollowing ? 'Отписаться' : 'Подписаться'}</button>` : '';
                 const messageBtn = !isOwn ? `<button class="btn-secondary" data-message-uid="${uid}">✉ Написать</button>` : '';
                 const editBtn = isOwn ? '<button id="editProfileBtn" class="btn-secondary">✎ Редактировать</button>' : '';
-                // Проверка, показывать ли статистику
                 const showStats = isOwn || isFollowing || state.isDev;
                 const statsHtml = showStats ? `
                     <div class="stats">
@@ -2653,13 +2635,11 @@
                 if (currently) await db.collection('follows').doc(id).delete();
                 else await db.collection('follows').doc(id).set({ followerId: state.currentUser.uid, followeeId: targetUid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
                 await loadFriends();
-                // Если открыт профиль этого пользователя – обновляем его
                 if (currentSectionId === 'profileSection' && window.currentProfileUid === targetUid) {
                     loadProfile(targetUid);
                 }
             }
 
-            // Поиск
             searchBtn.addEventListener('click', () => searchUsers(searchInput.value));
             searchInput.addEventListener('keyup', e => e.key === 'Enter' && searchUsers(searchInput.value));
 
@@ -2702,7 +2682,6 @@
                 }));
             }
 
-            // Чаты
             async function markChatAsRead(chatId) {
                 if (!state.currentUser) return;
                 const chatRef = db.collection('chats').doc(chatId);
@@ -3162,7 +3141,6 @@
                 fileInput.value = '';
             });
 
-            // Голосовые сообщения
             let mediaRecorder, audioChunks, isRecording = false;
             let recordingStartTime, timerInterval, analyser, dataArray, audioContext, source, stream;
 
@@ -3242,7 +3220,6 @@
                 }, 100);
             }
 
-            // Эмодзи
             const emojiList = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
             emojiBtn.addEventListener('click', () => {
                 if (emojiPicker.classList.contains('hidden')) {
@@ -3318,7 +3295,6 @@
                 });
             });
 
-            // Совместный холст
             if (sharedCanvasBtn) {
                 sharedCanvasBtn.addEventListener('click', () => {
                     if (!state.currentChatId) return;
@@ -3358,7 +3334,6 @@
                     sharedCanvas.addEventListener('mouseleave', endPan);
                     sharedCanvas.addEventListener('mousemove', moveEraserCursor);
 
-                    // Мультитач
                     sharedCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
                     sharedCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
                     sharedCanvas.addEventListener('touchend', handleTouchEnd);
@@ -3400,7 +3375,6 @@
                 });
             }
 
-            // AR Module
             function initARModule() {
                 const arVideo = document.getElementById('arVideo');
                 const arDrawCanvas = document.getElementById('arDrawCanvas');
@@ -3559,7 +3533,6 @@
 
             arModule = initARModule();
 
-            // Аутентификация
             function handleLogin() {
                 const email = document.getElementById('loginEmail').value;
                 const pass = document.getElementById('loginPassword').value;
@@ -3588,7 +3561,6 @@
                 logoutBtnMobile.addEventListener('click', () => auth.signOut());
             }
 
-            // ========== ОБРАБОТЧИК АУТЕНТИФИКАЦИИ ==========
             auth.onAuthStateChanged(async user => {
                 const splash = document.getElementById('splash-screen');
                 const authContainer = document.getElementById('authContainer');
@@ -3600,7 +3572,7 @@
                     authContainer.classList.add('hidden');
 
                     await ensureUserProfile(user);
-                    await updateDevStatus(); // загружаем статус разработчика
+                    await updateDevStatus();
                     await loadFriends();
 
                     setTimeout(() => {
@@ -3625,7 +3597,6 @@
 
             initPalette();
 
-            // Кнопка установки приложения (PWA)
             const installAppBtn = document.getElementById('installAppBtn');
             if (installAppBtn) {
                 installAppBtn.addEventListener('click', showInstallInstructions);
@@ -3648,7 +3619,6 @@
                 alert(message);
             }
 
-            // Функция генерации PWA иконки и манифеста
             function generateIconAndManifest() {
                 const canvas192 = document.createElement('canvas');
                 canvas192.width = 192;
@@ -3736,7 +3706,6 @@
 
             generateIconAndManifest();
 
-            // ====== Кнопка разработчика ======
             function openDevPasswordModal() {
                 devPasswordModal.classList.add('show');
                 document.getElementById('devPassword').value = '';
@@ -3793,7 +3762,7 @@
                 const uid = userDoc.id;
                 await db.collection('developers').doc(uid).set({ email: email });
                 await loadDevList();
-                await updateDevStatus(); // обновляем статус текущего пользователя
+                await updateDevStatus();
             });
 
             removeAllDevsBtn.addEventListener('click', async () => {
@@ -3803,12 +3772,11 @@
                 snap.docs.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
                 await loadDevList();
-                await updateDevStatus(); // обновляем статус текущего пользователя
+                await updateDevStatus();
             });
 
             closeDevPanel.addEventListener('click', () => devPanelModal.classList.remove('show'));
 
-            // ====== Просмотр изображений ======
             function openImage(src) {
                 imageViewImg.src = src;
                 imageViewModal.classList.add('show');
