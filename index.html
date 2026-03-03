@@ -8,11 +8,14 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <!-- Firebase Storage (добавлено для загрузки музыки) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <!-- MediaPipe Hands -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <!-- Lamejs для сжатия аудио (NEW) -->
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.all.js"></script>
     <style>
+        /* Все стили без изменений (полностью сохранены из исходного кода) */
         * {
             margin: 0;
             padding: 0;
@@ -1651,6 +1654,7 @@
             firebase.initializeApp(firebaseConfig);
             const auth = firebase.auth();
             const db = firebase.firestore();
+            // Firebase Storage инициализируется автоматически после подключения скрипта
 
             let state = {
                 currentUser: null,
@@ -3880,6 +3884,7 @@
             // Загрузка трека с конвертацией в MP3 и fallback
             musicUploadBtn.addEventListener('click', () => musicFileInput.click());
 
+            // ========== ИСПРАВЛЕННЫЙ ОБРАБОТЧИК ЗАГРУЗКИ ==========
             musicFileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file || !state.music.currentChatId) return;
@@ -3905,38 +3910,47 @@
 
                     const channels = audioBuffer.numberOfChannels;
                     const sampleRate = audioBuffer.sampleRate;
-                    const left = audioBuffer.getChannelData(0);
-                    let samples;
+                    const leftChannel = audioBuffer.getChannelData(0); // Float32Array
+                    let rightChannel = null;
                     if (channels === 2) {
-                        const right = audioBuffer.getChannelData(1);
-                        samples = new Float32Array(left.length * 2);
-                        for (let i = 0; i < left.length; i++) {
-                            samples[i * 2] = left[i];
-                            samples[i * 2 + 1] = right[i];
+                        rightChannel = audioBuffer.getChannelData(1);
+                    }
+
+                    // Функция для конвертации Float32Array в Int16Array
+                    const floatToInt16 = (float32) => {
+                        const int16 = new Int16Array(float32.length);
+                        for (let i = 0; i < float32.length; i++) {
+                            let s = Math.max(-1, Math.min(1, float32[i]));
+                            int16[i] = s < 0 ? s * 32768 : s * 32767;
                         }
-                    } else {
-                        samples = left;
-                    }
+                        return int16;
+                    };
 
-                    const int16 = new Int16Array(samples.length);
-                    for (let i = 0; i < samples.length; i++) {
-                        let s = Math.max(-1, Math.min(1, samples[i]));
-                        int16[i] = s < 0 ? s * 32768 : s * 32767;
-                    }
+                    const leftInt16 = floatToInt16(leftChannel);
+                    const rightInt16 = rightChannel ? floatToInt16(rightChannel) : null;
 
-                    if (int16.length === 0) {
-                        throw new Error('Не удалось извлечь аудиоданные');
-                    }
-
+                    // Создаём MP3-энкодер
                     const mp3Encoder = new lamejs.Mp3Encoder(channels, sampleRate, 96);
                     const mp3Data = [];
                     const sampleBlockSize = 1152;
 
-                    for (let i = 0; i < int16.length; i += sampleBlockSize) {
-                        const chunk = int16.subarray(i, i + sampleBlockSize);
-                        const mp3Chunk = mp3Encoder.encodeBuffer(chunk);
-                        if (mp3Chunk.length > 0) mp3Data.push(mp3Chunk);
+                    // Кодирование
+                    if (channels === 1) {
+                        for (let i = 0; i < leftInt16.length; i += sampleBlockSize) {
+                            const chunk = leftInt16.subarray(i, i + sampleBlockSize);
+                            const mp3Chunk = mp3Encoder.encodeBuffer(chunk);
+                            if (mp3Chunk.length > 0) mp3Data.push(mp3Chunk);
+                        }
+                    } else {
+                        // Стерео: передаём оба канала отдельно
+                        for (let i = 0; i < leftInt16.length; i += sampleBlockSize) {
+                            const leftChunk = leftInt16.subarray(i, i + sampleBlockSize);
+                            const rightChunk = rightInt16.subarray(i, i + sampleBlockSize);
+                            const mp3Chunk = mp3Encoder.encodeBuffer(leftChunk, rightChunk);
+                            if (mp3Chunk.length > 0) mp3Data.push(mp3Chunk);
+                        }
                     }
+
                     const lastChunk = mp3Encoder.flush();
                     if (lastChunk.length > 0) mp3Data.push(lastChunk);
 
@@ -3955,6 +3969,7 @@
 
                 musicFileInput.value = '';
             });
+            // ========== КОНЕЦ ИСПРАВЛЕННОГО ОБРАБОТЧИКА ==========
 
             // Подписка на сессию воспроизведения
             function subscribeToMusicSession(chatId) {
