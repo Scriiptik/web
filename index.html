@@ -68,6 +68,28 @@
             overflow: hidden;
         }
 
+        /* Единый стиль для всех полей ввода, кроме range и color */
+        input:not([type="range"]):not([type="color"]),
+        textarea,
+        select {
+            padding: 0.9rem 1.2rem;
+            border: 1px solid var(--border-light);
+            border-radius: var(--input-radius);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        input:not([type="range"]):not([type="color"]):focus,
+        textarea:focus,
+        select:focus {
+            border-color: var(--accent);
+        }
+
         .btn-primary {
             background: var(--accent);
             color: white;
@@ -220,16 +242,6 @@
             flex-direction: column;
             gap: 1rem;
         }
-        .auth-form input {
-            padding: 0.9rem 1.2rem;
-            border: 1px solid var(--border-light);
-            border-radius: var(--input-radius);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .auth-form input:focus { border-color: var(--accent); }
 
         /* Шапка */
         .app-header {
@@ -619,6 +631,10 @@
             cursor: pointer;
         }
         .stats span:hover { text-decoration: underline; }
+        .stats-disabled {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
 
         /* Рисование обычное */
         .drawing-editor {
@@ -901,12 +917,6 @@
         .chat-input-area input {
             flex: 1;
             min-width: 150px;
-            padding: 0.8rem 1.2rem;
-            border: 1px solid var(--border-light);
-            border-radius: var(--input-radius);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            outline: none;
         }
         .chat-input-area button {
             background: none;
@@ -975,19 +985,10 @@
         }
         #commentModal textarea {
             width: 100%;
-            padding: 0.8rem 1.2rem;
-            border: 1px solid var(--border-light);
-            border-radius: 2rem;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            outline: none;
             margin: 1rem 0;
             resize: vertical;
             font-family: inherit;
-            font-size: 1rem;
-            transition: border-color 0.2s;
         }
-        #commentModal textarea:focus { border-color: var(--accent); }
         #commentsList {
             max-height: 400px;
             overflow-y: auto;
@@ -1128,20 +1129,6 @@
             .mobile-logout-btn:hover {
                 background: #ff1f1f;
             }
-            .mobile-dev-btn {
-                background: #ffaa00;
-                color: black;
-                border: none;
-                margin-top: 0.5rem;
-                padding: 1rem;
-                border-radius: 0.8rem;
-                font-weight: 600;
-                cursor: pointer;
-                width: 100%;
-            }
-            .mobile-dev-btn:hover {
-                background: #ffc34d;
-            }
 
             /* Скрываем предустановленную палитру цветов на телефоне в совместном холсте */
             #sharedCanvasPalette {
@@ -1163,21 +1150,6 @@
         }
         @media (min-width: 769px) {
             .mobile-only { display: none; }
-            /* Десктопная кнопка разработчика в самом низу меню */
-            #devButtonDesktop {
-                margin-top: auto;
-                margin-bottom: 20px;
-                background: #ffaa00;
-                border: none;
-                padding: 10px;
-                border-radius: 8px;
-                font-weight: 600;
-                cursor: pointer;
-                color: black;
-            }
-            #devButtonDesktop:hover {
-                background: #ffc34d;
-            }
         }
 
         /* Совместный холст */
@@ -1341,11 +1313,10 @@
                     <div class="nav-item" id="drawerSearch">Поиск</div>
                     <div class="nav-item" id="drawerChats">Чаты</div>
                     <div class="nav-item" id="drawerAr">Paint Camera</div>
-                    <!-- Кнопка разработчика для мобильных (над выходом) -->
-                    <button id="devButton" class="mobile-only mobile-dev-btn">🔧 Разработчик</button>
+                    <!-- Кнопки разработчика теперь используют btn-secondary -->
+                    <button id="devButton" class="mobile-only btn-secondary">🔧 Разработчик</button>
                     <button id="logoutBtnMobile" class="mobile-only mobile-logout-btn">Выйти</button>
-                    <!-- Кнопка разработчика для десктопа (будет внизу через CSS) -->
-                    <button id="devButtonDesktop" class="desktop-only">🔧 Разработчик</button>
+                    <button id="devButtonDesktop" class="desktop-only btn-secondary">🔧 Разработчик</button>
                 </div>
             </div>
             <div id="overlay" class="overlay"></div>
@@ -1356,7 +1327,7 @@
                     <div class="section-content">
                         <div class="card">
                             <h3>Новый пост</h3>
-                            <textarea id="postText" rows="3" placeholder="Что у вас нового?" style="width:100%; padding:0.8rem; border-radius:1rem; border:1px solid var(--border-light); background:var(--bg-secondary); color:var(--text-primary);"></textarea>
+                            <textarea id="postText" rows="3" placeholder="Что у вас нового?"></textarea>
                             <div class="flex-row" style="margin: 0.5rem 0;">
                                 <button id="openPixelPostBtn" class="btn-secondary">🎨 Пиксель-арт</button>
                                 <button id="openFreePostBtn" class="btn-secondary">🖌️ Рисование</button>
@@ -1381,7 +1352,7 @@
                 <div id="searchSection" class="section">
                     <div class="section-content">
                         <div class="search-box">
-                            <input type="text" id="searchInput" placeholder="Имя или email...">
+                            <input type="text" id="searchInput" placeholder="Введите ID пользователя...">
                         </div>
                         <button id="searchBtn" class="btn-primary" style="margin: 0 1rem 1rem;">Найти</button>
                         <div id="searchResults"></div>
@@ -1462,6 +1433,7 @@
         <div class="modal-content">
             <h3>Редактировать профиль</h3>
             <input type="text" id="editName" placeholder="Имя">
+            <input type="text" id="editUserTag" placeholder="Уникальный ID">
             <textarea id="editBio" rows="3" placeholder="О себе"></textarea>
             <input type="file" id="editAvatar" accept="image/*">
             <div class="flex-row" style="justify-content: center;">
@@ -1567,7 +1539,7 @@
         <div class="modal-content" style="max-width: 500px;">
             <h3>Панель разработчика</h3>
             <div id="devStatus"></div>
-            <input type="email" id="devEmail" placeholder="Ваш email">
+            <input type="email" id="devEmail" placeholder="Email пользователя">
             <button id="makeDevBtn" class="btn-primary">Стать разработчиком</button>
             <hr>
             <h4>Список разработчиков</h4>
@@ -1607,7 +1579,8 @@
                 currentChatId: null,
                 currentChatParticipant: null,
                 darkTheme: localStorage.getItem('theme') === 'dark',
-                listeners: {}
+                listeners: {},
+                isDev: false // добавлено для разработчика
             };
 
             // DOM элементы
@@ -1663,6 +1636,7 @@
             const voiceLevel = document.getElementById('voiceLevel');
             const editProfileModal = document.getElementById('editProfileModal');
             const editName = document.getElementById('editName');
+            const editUserTag = document.getElementById('editUserTag'); // новое поле
             const editBio = document.getElementById('editBio');
             const editAvatar = document.getElementById('editAvatar');
             const openPixelAvatarBtn = document.getElementById('openPixelAvatarBtn');
@@ -2133,13 +2107,39 @@
                 const userRef = db.collection('users').doc(user.uid);
                 const doc = await userRef.get();
                 if (!doc.exists) {
+                    // Генерируем userTag из email (часть до @) или uid
+                    const base = user.email.split('@')[0] || user.uid.slice(0, 8);
+                    let userTag = base;
+                    let counter = 1;
+                    // Проверяем уникальность
+                    while (true) {
+                        const existing = await db.collection('users').where('userTag', '==', userTag).get();
+                        if (existing.empty) break;
+                        userTag = `${base}${counter}`;
+                        counter++;
+                    }
                     await userRef.set({
                         email: user.email,
                         displayName: user.email.split('@')[0],
                         bio: '',
                         avatar: '',
+                        userTag: userTag,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
+                } else {
+                    // Если у старого пользователя нет поля userTag, добавим его
+                    if (!doc.data().userTag) {
+                        const base = user.email.split('@')[0] || user.uid.slice(0, 8);
+                        let userTag = base;
+                        let counter = 1;
+                        while (true) {
+                            const existing = await db.collection('users').where('userTag', '==', userTag).get();
+                            if (existing.empty) break;
+                            userTag = `${base}${counter}`;
+                            counter++;
+                        }
+                        await userRef.update({ userTag });
+                    }
                 }
                 userRef.onSnapshot((snap) => {
                     if (snap.exists) {
@@ -2172,14 +2172,18 @@
                 }
             }
 
-            // Лента (только друзья)
+            // Лента: для разработчика все посты, иначе только друзья
             function loadFeed() {
                 if (state.listeners.feed) state.listeners.feed();
                 const postsQuery = db.collection('posts').orderBy('timestamp', 'desc');
                 state.listeners.feed = postsQuery.onSnapshot(async (snap) => {
                     const allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    // фильтруем только друзей
-                    const filtered = allPosts.filter(post => state.friends.includes(post.userId));
+                    let filtered;
+                    if (state.isDev) {
+                        filtered = allPosts; // разработчик видит все
+                    } else {
+                        filtered = allPosts.filter(post => state.friends.includes(post.userId));
+                    }
                     renderFeed(filtered);
                 });
             }
@@ -2482,6 +2486,7 @@
             // Редактирование профиля
             function showEditForm() {
                 editName.value = state.profile?.displayName || '';
+                editUserTag.value = state.profile?.userTag || '';
                 editBio.value = state.profile?.bio || '';
                 editAvatar.value = '';
                 editProfileModal.classList.add('show');
@@ -2502,8 +2507,22 @@
             saveProfileBtn.addEventListener('click', async () => {
                 const newName = editName.value.trim();
                 const newBio = editBio.value.trim();
+                const newUserTag = editUserTag.value.trim();
+
                 if (!newName) { alert('Имя не может быть пустым'); return; }
-                const updates = { displayName: newName, bio: newBio };
+                if (!newUserTag) { alert('ID не может быть пустым'); return; }
+
+                // Проверяем уникальность userTag (кроме текущего пользователя)
+                const existing = await db.collection('users')
+                    .where('userTag', '==', newUserTag)
+                    .get();
+                if (!existing.empty && existing.docs[0].id !== state.currentUser.uid) {
+                    alert('Этот ID уже занят, выберите другой');
+                    return;
+                }
+
+                const updates = { displayName: newName, bio: newBio, userTag: newUserTag };
+
                 if (editAvatar.files.length > 0) {
                     const file = editAvatar.files[0];
                     const reader = new FileReader();
@@ -2525,6 +2544,12 @@
 
             // Подписчики/подписки
             async function showUserList(type, uid) {
+                // Проверка доступа
+                if (uid !== state.currentUser.uid && !state.isDev && !state.friends.includes(uid)) {
+                    alert('Вы не можете просматривать подписки этого пользователя');
+                    return;
+                }
+
                 const title = type === 'followers' ? 'Подписчики' : 'Подписки';
                 userListTitle.textContent = title;
                 let list;
@@ -2582,6 +2607,16 @@
                 const followBtn = !isOwn ? `<button class="follow-btn ${isFollowing ? 'btn-secondary' : 'btn-primary'}" data-uid="${uid}">${isFollowing ? 'Отписаться' : 'Подписаться'}</button>` : '';
                 const messageBtn = !isOwn ? `<button class="btn-secondary" data-message-uid="${uid}">✉ Написать</button>` : '';
                 const editBtn = isOwn ? '<button id="editProfileBtn" class="btn-secondary">✎ Редактировать</button>' : '';
+
+                // Проверка на доступ к просмотру подписок
+                const canViewStats = isOwn || state.isDev || state.friends.includes(uid);
+                const statsHtml = canViewStats 
+                    ? `<div class="stats">
+                        <span class="followers-stats" data-uid="${uid}">${followers} подписчиков</span>
+                        <span class="following-stats" data-uid="${uid}">${following} подписок</span>
+                       </div>`
+                    : '<p class="stats-disabled">Подписки скрыты</p>';
+
                 let postsHtml = postsDocs.map(doc => {
                     const p = doc.data();
                     const time = p.timestamp ? new Date(p.timestamp.toDate()).toLocaleString() : '';
@@ -2593,22 +2628,25 @@
                             <div class="avatar">${avatarHtml}</div>
                             <div class="profile-info">
                                 <h2>${userData.displayName || 'Без имени'}</h2>
+                                <p><strong>ID:</strong> ${userData.userTag || 'не задан'}</p>
                                 <p>${userData.bio || ''}</p>
-                                <div class="stats">
-                                    <span class="followers-stats" data-uid="${uid}">${followers} подписчиков</span>
-                                    <span class="following-stats" data-uid="${uid}">${following} подписок</span>
-                                </div>
+                                ${statsHtml}
                                 <div class="flex-row" style="margin-top:1rem;">${followBtn} ${messageBtn} ${editBtn}</div>
                             </div>
                         </div>
                     </div>
                     <div class="card"><h3>Посты</h3>${postsHtml}</div>
                 `;
-                document.querySelector('.followers-stats')?.addEventListener('click', () => showUserList('followers', uid));
-                document.querySelector('.following-stats')?.addEventListener('click', () => showUserList('following', uid));
+                if (canViewStats) {
+                    document.querySelector('.followers-stats')?.addEventListener('click', () => showUserList('followers', uid));
+                    document.querySelector('.following-stats')?.addEventListener('click', () => showUserList('following', uid));
+                }
                 if (!isOwn) {
                     document.querySelector('[data-message-uid]')?.addEventListener('click', () => openChatWithUser(uid));
-                    document.querySelector('.follow-btn')?.addEventListener('click', e => toggleFollow(uid, isFollowing));
+                    document.querySelector('.follow-btn')?.addEventListener('click', async (e) => {
+                        await toggleFollow(uid, isFollowing);
+                        loadProfile(uid); // обновляем профиль сразу
+                    });
                 } else {
                     document.getElementById('editProfileBtn')?.addEventListener('click', showEditForm);
                 }
@@ -2629,19 +2667,17 @@
                 await loadFriends();
             }
 
-            // Поиск
+            // Поиск по userTag
             searchBtn.addEventListener('click', () => searchUsers(searchInput.value));
             searchInput.addEventListener('keyup', e => e.key === 'Enter' && searchUsers(searchInput.value));
 
             async function searchUsers(query) {
                 if (!query.trim()) return;
                 searchResults.innerHTML = '<div class="info-message">Поиск...</div>';
-                const nameQuery = db.collection('users').orderBy('displayName').startAt(query).endAt(query + '\uf8ff').get();
-                const emailQuery = db.collection('users').orderBy('email').startAt(query).endAt(query + '\uf8ff').get();
-                const [nameSnap, emailSnap] = await Promise.all([nameQuery, emailQuery]);
+                const tagQuery = db.collection('users').orderBy('userTag').startAt(query).endAt(query + '\uf8ff').get();
+                const tagSnap = await tagQuery;
                 const users = new Map();
-                nameSnap.docs.forEach(d => users.set(d.id, d.data()));
-                emailSnap.docs.forEach(d => users.set(d.id, d.data()));
+                tagSnap.docs.forEach(d => users.set(d.id, d.data()));
                 if (!users.size) { searchResults.innerHTML = '<div class="info-message">Ничего не найдено</div>'; return; }
                 let html = '';
                 for (let [uid, data] of users.entries()) {
@@ -2650,7 +2686,7 @@
                     html += `<div class="user-card" style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--border-light);">
                         <div class="info" style="display:flex; align-items:center; gap:1rem;">
                             <div style="width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;">${data.avatar ? `<img src="${data.avatar}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">` : (data.displayName?.[0] || '?')}</div>
-                            <div><h4 class="user-name-link" data-uid="${uid}" style="cursor:pointer;color:var(--accent);">${data.displayName || data.email}</h4><small>${data.email}</small></div>
+                            <div><h4 class="user-name-link" data-uid="${uid}" style="cursor:pointer;color:var(--accent);">${data.displayName || data.email}</h4><small>${data.userTag}</small></div>
                         </div>
                         <div>
                             <button class="follow-btn ${isFollowing ? 'btn-secondary' : 'btn-primary'}" data-follow-uid="${uid}">${isFollowing ? 'Отписаться' : 'Подписаться'}</button>
@@ -3571,6 +3607,10 @@
                     splash.classList.remove('hidden');
                     authContainer.classList.add('hidden');
 
+                    // Проверяем, является ли пользователь разработчиком
+                    const devDoc = await db.collection('developers').doc(user.uid).get();
+                    state.isDev = devDoc.exists;
+
                     ensureUserProfile(user).then(() => {
                         // После загрузки профиля загружаем друзей
                         loadFriends();
@@ -3587,6 +3627,7 @@
                     authContainer.classList.remove('hidden');
                     appContainer.classList.add('hidden');
                     state.currentUser = null;
+                    state.isDev = false;
                 }
             });
 
