@@ -3668,7 +3668,7 @@
                 alert(message); // В продакшене заменить на красивое модальное окно
             }
 
-            // ---------- НОВЫЙ КОД ДЛЯ МУЗЫКАЛЬНОГО ПЛЕЕРА ----------
+            // ---------- НОВЫЙ КОД ДЛЯ МУЗЫКАЛЬНОГО ПЛЕЕРА (ИСПРАВЛЕННЫЙ) ----------
 
             // Инициализация Web Audio API и визуализатора
             function initMusicAudio() {
@@ -3678,18 +3678,24 @@
                     state.music.analyser.fftSize = 256;
                 }
 
-                // Если уже есть источник, отключаем его
+                // Если уже есть источник, отключаем его и обнуляем
                 if (state.music.source) {
-                    try { state.music.source.disconnect(); } catch (e) {}
+                    try { 
+                        state.music.source.disconnect(); 
+                    } catch (e) {}
+                    state.music.source = null;
                 }
 
-                // Создаём источник из аудиоэлемента
-                const track = state.music.audioContext.createMediaElementSource(state.music.audioElement);
-                track.connect(state.music.analyser);
-                state.music.analyser.connect(state.music.audioContext.destination);
-                state.music.source = track;
+                // Создаём новый источник
+                try {
+                    const track = state.music.audioContext.createMediaElementSource(state.music.audioElement);
+                    track.connect(state.music.analyser);
+                    state.music.analyser.connect(state.music.audioContext.destination);
+                    state.music.source = track;
+                } catch (e) {
+                    console.warn('Ошибка подключения аудио:', e);
+                }
 
-                // Запускаем визуализацию
                 visualize();
             }
 
@@ -3748,7 +3754,7 @@
                 initMusicAudio();
             });
 
-            // Закрытие музыкального плеера
+            // Закрытие музыкального плеера (исправлено)
             closeMusicPlayer.addEventListener('click', () => {
                 musicPlayerModal.classList.remove('show');
 
@@ -3762,9 +3768,21 @@
                     state.music.animationFrame = null;
                 }
 
+                // Отключаем источник
+                if (state.music.source) {
+                    try { state.music.source.disconnect(); } catch (e) {}
+                    state.music.source = null;
+                }
+                if (state.music.audioContext && state.music.audioContext.state === 'running') {
+                    state.music.audioContext.suspend();
+                }
+
                 // Сбрасываем состояние
                 state.music.currentChatId = null;
                 state.music.tracks = [];
+                state.music.currentTrackId = null;
+                state.music.currentTrackIndex = -1;
+                state.music.isPlaying = false;
             });
 
             // Подписка на треки из Firestore
@@ -3841,28 +3859,53 @@
                 if (e.key === 'Enter') renderMusicTracks(state.music.tracks);
             });
 
-            // Загрузка трека с конвертацией в MP3
+            // Вспомогательная функция загрузки в Firebase
+            async function uploadToFirebase(blob, fileName, duration) {
+                const storageRef = firebase.storage().ref();
+                const fileRef = storageRef.child(`chat_music/${state.music.currentChatId}/${Date.now()}_${fileName}.mp3`);
+                await fileRef.put(blob);
+                const downloadUrl = await fileRef.getDownloadURL();
+
+                await db.collection('musicTracks').add({
+                    chatId: state.music.currentChatId,
+                    name: fileName,
+                    artist: 'Неизвестно',
+                    duration: duration || 0,
+                    url: downloadUrl,
+                    uploadedBy: state.currentUser.uid,
+                    uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+
+            // Загрузка трека с конвертацией в MP3 и fallback
             musicUploadBtn.addEventListener('click', () => musicFileInput.click());
 
             musicFileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file || !state.music.currentChatId) return;
 
-                // Показываем индикатор
-                musicTracksList.innerHTML = '<div class="info-message">Конвертация и загрузка...</div>';
+                musicTracksList.innerHTML = '<div class="info-message">Обработка файла...</div>';
 
                 try {
-                    // 1. Декодируем аудиофайл в PCM с помощью Web Audio API
+                    // Проверка наличия lamejs
+                    if (typeof lamejs === 'undefined') {
+                        throw new Error('Библиотека сжатия не загружена');
+                    }
+
                     const arrayBuffer = await file.arrayBuffer();
                     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-                    // 2. Получаем каналы (стерео)
+                    if (!audioBuffer || audioBuffer.duration === 0) {
+                        throw new Error('Аудиофайл пуст или повреждён');
+                    }
+                    if (audioBuffer.numberOfChannels === 0) {
+                        throw new Error('Аудиофайл не содержит звуковых каналов');
+                    }
+
                     const channels = audioBuffer.numberOfChannels;
                     const sampleRate = audioBuffer.sampleRate;
-                    const left = audioBuffer.getChannelData(0); // Float32Array
-
-                    // Если стерео, нужно интерливить
+                    const left = audioBuffer.getChannelData(0);
                     let samples;
                     if (channels === 2) {
                         const right = audioBuffer.getChannelData(1);
@@ -3872,20 +3915,22 @@
                             samples[i * 2 + 1] = right[i];
                         }
                     } else {
-                        samples = left; // моно
+                        samples = left;
                     }
 
-                    // 3. Конвертируем Float32 (-1..1) в Int16 (-32768..32767)
                     const int16 = new Int16Array(samples.length);
                     for (let i = 0; i < samples.length; i++) {
                         let s = Math.max(-1, Math.min(1, samples[i]));
                         int16[i] = s < 0 ? s * 32768 : s * 32767;
                     }
 
-                    // 4. Кодируем в MP3 с помощью lamejs
-                    const mp3Encoder = new lamejs.Mp3Encoder(channels, sampleRate, 96); // 96 kbps
+                    if (int16.length === 0) {
+                        throw new Error('Не удалось извлечь аудиоданные');
+                    }
+
+                    const mp3Encoder = new lamejs.Mp3Encoder(channels, sampleRate, 96);
                     const mp3Data = [];
-                    const sampleBlockSize = 1152; // размер блока для LAME
+                    const sampleBlockSize = 1152;
 
                     for (let i = 0; i < int16.length; i += sampleBlockSize) {
                         const chunk = int16.subarray(i, i + sampleBlockSize);
@@ -3896,33 +3941,19 @@
                     if (lastChunk.length > 0) mp3Data.push(lastChunk);
 
                     const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
-
-                    // 5. Извлекаем метаданные (имя файла без расширения)
                     const fileName = file.name.replace(/\.[^/.]+$/, "");
 
-                    // 6. Загружаем в Firebase Storage
-                    const storageRef = firebase.storage().ref();
-                    const fileRef = storageRef.child(`chat_music/${state.music.currentChatId}/${Date.now()}_${file.name.replace(/\.[^/.]+$/, ".mp3")}`);
-                    await fileRef.put(mp3Blob);
-                    const downloadUrl = await fileRef.getDownloadURL();
+                    await uploadToFirebase(mp3Blob, fileName, audioBuffer.duration);
 
-                    // 7. Сохраняем информацию в Firestore
-                    await db.collection('musicTracks').add({
-                        chatId: state.music.currentChatId,
-                        name: fileName,
-                        artist: 'Неизвестно', // можно попробовать из метаданных, но для простоты так
-                        duration: Math.round(audioBuffer.duration),
-                        url: downloadUrl,
-                        uploadedBy: state.currentUser.uid,
-                        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-
-                    // Очищаем input
-                    musicFileInput.value = '';
-                } catch (error) {
-                    console.error('Ошибка загрузки/конвертации:', error);
-                    alert('Не удалось загрузить трек. Попробуйте другой файл.');
+                } catch (conversionError) {
+                    console.warn('Конвертация не удалась, загружаем оригинал:', conversionError);
+                    // Fallback: загружаем исходный файл без сжатия
+                    const originalBlob = file.slice(0, file.size, file.type);
+                    const fileName = file.name.replace(/\.[^/.]+$/, "");
+                    await uploadToFirebase(originalBlob, fileName, null);
                 }
+
+                musicFileInput.value = '';
             });
 
             // Подписка на сессию воспроизведения
