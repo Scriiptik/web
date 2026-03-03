@@ -2586,6 +2586,7 @@
                 });
             }
 
+            // ИСПРАВЛЕННАЯ ФУНКЦИЯ renderChatsList
             function renderChatsList(chats) {
                 if (!chats.length) { chatsList.innerHTML = '<div class="info-message">Нет чатов</div>'; return; }
                 let html = '';
@@ -2595,7 +2596,8 @@
                     const activeClass = chat.id === state.currentChatId ? 'active' : '';
                     const unreadCount = chat.unreadCounts?.[state.currentUser.uid] || 0;
                     const unreadBadge = unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : '';
-                    html += `<div class="chat-item ${activeClass}" data-chat-id="${chat.id}" data-other-uid="${chat.otherUser.uid}">
+                    // Добавляем data-атрибуты с именем и аватаром собеседника
+                    html += `<div class="chat-item ${activeClass}" data-chat-id="${chat.id}" data-other-uid="${chat.otherUser.uid}" data-other-name="${chat.otherUser.displayName || chat.otherUser.email}" data-other-avatar="${chat.otherUser.avatar || ''}">
                         <div class="chat-avatar">${chat.otherUser.avatar ? `<img src="${chat.otherUser.avatar}" style="width:54px;height:54px;border-radius:50%;object-fit:cover;">` : (chat.otherUser.displayName?.[0] || '?')}</div>
                         <div class="chat-info">
                             <div class="chat-name">${chat.otherUser.displayName || chat.otherUser.email} ${unreadBadge}</div>
@@ -2609,20 +2611,32 @@
                     item.addEventListener('click', () => {
                         const chatId = item.dataset.chatId;
                         const otherUid = item.dataset.otherUid;
+                        const otherName = item.dataset.otherName;
+                        const otherAvatar = item.dataset.otherAvatar;
+                        
                         state.currentChatId = chatId;
-                        db.collection('users').doc(otherUid).get().then(doc => {
-                            state.currentChatParticipant = { uid: otherUid, ...doc.data() };
-                        });
+                        state.currentChatParticipant = { 
+                            uid: otherUid, 
+                            displayName: otherName,
+                            avatar: otherAvatar,
+                            email: otherName // если displayName не задан, в otherName уже лежит email
+                        };
+
                         if (window.innerWidth <= 768) chatsSidebar.classList.add('hide-mobile');
                         chatWindowContainer.classList.remove('hidden');
                         noChatSelected.classList.add('hidden');
-                        chatHeader.textContent = state.currentChatParticipant?.displayName || '';
+                        
+                        // Устанавливаем имя сразу
+                        chatHeader.textContent = otherName;
                         chatHeader.onclick = () => {
                             showSection('profileSection');
                             loadProfile(otherUid);
                         };
+                        
                         markChatAsRead(chatId);
                         loadMessages(chatId);
+                        
+                        // Убираем активный класс у других
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         item.classList.add('active');
 
@@ -2660,14 +2674,18 @@
                 }
             }
 
+            // loadMessages уже вызывает markChatAsRead при каждом обновлении
             function loadMessages(chatId) {
                 if (state.listeners.messages) state.listeners.messages();
+                
+                // Сразу помечаем как прочитанные при открытии
                 markChatAsRead(chatId);
+                
                 const q = db.collection('messages').where('chatId', '==', chatId).orderBy('timestamp', 'asc');
-                state.listeners.messages = q.onSnapshot(snap => {
-                    // Если чат открыт, сбрасываем счётчик при любом обновлении
+                state.listeners.messages = q.onSnapshot(async snap => {
+                    // При каждом обновлении сообщений, если это тот же чат, сбрасываем счётчик
                     if (state.currentChatId === chatId) {
-                        markChatAsRead(chatId);
+                        await markChatAsRead(chatId);
                     }
                     const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     renderMessages(msgs);
@@ -3443,40 +3461,97 @@
                 alert(message); // В продакшене заменить на красивое модальное окно
             }
 
-            // ---------- Генерация манифеста и иконки для PWA ----------
+            // ---------- НОВАЯ ФУНКЦИЯ ДЛЯ КРАСИВОЙ PWA ИКОНКИ ----------
             function generateIconAndManifest() {
-                // Создаём иконку на canvas (синий фон, белая буква S)
-                const canvas = document.createElement('canvas');
-                canvas.width = 192;
-                canvas.height = 192;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#2a7bde'; // синий
-                ctx.fillRect(0, 0, 192, 192);
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 120px "Segoe UI", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('S', 96, 96);
-                const iconDataURL = canvas.toDataURL('image/png');
+                // Создаём иконку 192x192
+                const canvas192 = document.createElement('canvas');
+                canvas192.width = 192;
+                canvas192.height = 192;
+                const ctx192 = canvas192.getContext('2d');
+                
+                // Рисуем фон – радиальный градиент от голубого к синему
+                const gradient = ctx192.createRadialGradient(96, 96, 0, 96, 96, 96);
+                gradient.addColorStop(0, '#4facfe');
+                gradient.addColorStop(1, '#00f2fe');
+                ctx192.fillStyle = gradient;
+                ctx192.beginPath();
+                ctx192.arc(96, 96, 90, 0, Math.PI * 2);
+                ctx192.fill();
+                
+                // Тень для объёма
+                ctx192.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx192.shadowBlur = 10;
+                ctx192.shadowOffsetY = 4;
+                
+                // Белая буква S с обводкой
+                ctx192.font = 'bold 100px "Segoe UI", "Helvetica Neue", sans-serif';
+                ctx192.textAlign = 'center';
+                ctx192.textBaseline = 'middle';
+                ctx192.fillStyle = '#ffffff';
+                ctx192.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx192.shadowBlur = 8;
+                ctx192.shadowOffsetY = 2;
+                ctx192.fillText('S', 96, 96);
+                
+                // Лёгкая обводка буквы
+                ctx192.strokeStyle = '#ffffff';
+                ctx192.lineWidth = 2;
+                ctx192.shadowBlur = 0; // убираем тень для обводки, чтобы не смазывать
+                ctx192.strokeText('S', 96, 96);
+                
+                const iconDataURL192 = canvas192.toDataURL('image/png');
+                
+                // Создаём иконку 512x512 (для больших экранов)
+                const canvas512 = document.createElement('canvas');
+                canvas512.width = 512;
+                canvas512.height = 512;
+                const ctx512 = canvas512.getContext('2d');
+                const gradient512 = ctx512.createRadialGradient(256, 256, 0, 256, 256, 256);
+                gradient512.addColorStop(0, '#4facfe');
+                gradient512.addColorStop(1, '#00f2fe');
+                ctx512.fillStyle = gradient512;
+                ctx512.beginPath();
+                ctx512.arc(256, 256, 240, 0, Math.PI * 2);
+                ctx512.fill();
+                ctx512.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx512.shadowBlur = 20;
+                ctx512.shadowOffsetY = 8;
+                ctx512.font = 'bold 280px "Segoe UI", "Helvetica Neue", sans-serif';
+                ctx512.textAlign = 'center';
+                ctx512.textBaseline = 'middle';
+                ctx512.fillStyle = '#ffffff';
+                ctx512.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx512.shadowBlur = 16;
+                ctx512.shadowOffsetY = 4;
+                ctx512.fillText('S', 256, 256);
+                ctx512.strokeStyle = '#ffffff';
+                ctx512.lineWidth = 4;
+                ctx512.shadowBlur = 0;
+                ctx512.strokeText('S', 256, 256);
+                const iconDataURL512 = canvas512.toDataURL('image/png');
 
-                // Создаём манифест
+                // Манифест с двумя иконками
                 const manifest = {
                     name: 'SCRIPTMessenger',
                     short_name: 'SCRIPT',
                     start_url: window.location.href,
                     display: 'standalone',
-                    background_color: '#2a7bde',
-                    theme_color: '#2a7bde',
+                    background_color: '#4facfe',
+                    theme_color: '#4facfe',
                     icons: [
                         {
-                            src: iconDataURL,
+                            src: iconDataURL192,
                             sizes: '192x192',
+                            type: 'image/png'
+                        },
+                        {
+                            src: iconDataURL512,
+                            sizes: '512x512',
                             type: 'image/png'
                         }
                     ]
                 };
 
-                // Создаём Blob и ссылку
                 const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
                 const manifestURL = URL.createObjectURL(manifestBlob);
                 const link = document.createElement('link');
