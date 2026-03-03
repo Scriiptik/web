@@ -1129,18 +1129,8 @@
                 background: #ff1f1f;
             }
             .mobile-dev-btn {
-                background: #ffaa00;
-                color: black;
-                border: none;
                 margin-top: 0.5rem;
-                padding: 1rem;
-                border-radius: 0.8rem;
-                font-weight: 600;
-                cursor: pointer;
                 width: 100%;
-            }
-            .mobile-dev-btn:hover {
-                background: #ffc34d;
             }
 
             /* Скрываем предустановленную палитру цветов на телефоне в совместном холсте */
@@ -1163,20 +1153,9 @@
         }
         @media (min-width: 769px) {
             .mobile-only { display: none; }
-            /* Десктопная кнопка разработчика в самом низу меню */
             #devButtonDesktop {
                 margin-top: auto;
                 margin-bottom: 20px;
-                background: #ffaa00;
-                border: none;
-                padding: 10px;
-                border-radius: 8px;
-                font-weight: 600;
-                cursor: pointer;
-                color: black;
-            }
-            #devButtonDesktop:hover {
-                background: #ffc34d;
             }
         }
 
@@ -1272,6 +1251,22 @@
             justify-content: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
+
+        /* Поля ввода единого стиля */
+        .input-field {
+            padding: 0.9rem 1.2rem;
+            border: 1px solid var(--border-light);
+            border-radius: var(--input-radius);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        .input-field:focus {
+            border-color: var(--accent);
+        }
     </style>
 </head>
 <body>
@@ -1342,10 +1337,10 @@
                     <div class="nav-item" id="drawerChats">Чаты</div>
                     <div class="nav-item" id="drawerAr">Paint Camera</div>
                     <!-- Кнопка разработчика для мобильных (над выходом) -->
-                    <button id="devButton" class="mobile-only mobile-dev-btn">🔧 Разработчик</button>
+                    <button id="devButton" class="mobile-only btn-secondary mobile-dev-btn">🔧 Разработчик</button>
                     <button id="logoutBtnMobile" class="mobile-only mobile-logout-btn">Выйти</button>
-                    <!-- Кнопка разработчика для десктопа (будет внизу через CSS) -->
-                    <button id="devButtonDesktop" class="desktop-only">🔧 Разработчик</button>
+                    <!-- Кнопка разработчика для десктопа -->
+                    <button id="devButtonDesktop" class="desktop-only btn-secondary">🔧 Разработчик</button>
                 </div>
             </div>
             <div id="overlay" class="overlay"></div>
@@ -1381,7 +1376,7 @@
                 <div id="searchSection" class="section">
                     <div class="section-content">
                         <div class="search-box">
-                            <input type="text" id="searchInput" placeholder="Имя или email...">
+                            <input type="text" id="searchInput" placeholder="ID пользователя...">
                         </div>
                         <button id="searchBtn" class="btn-primary" style="margin: 0 1rem 1rem;">Найти</button>
                         <div id="searchResults"></div>
@@ -1461,9 +1456,10 @@
     <div id="editProfileModal" class="modal">
         <div class="modal-content">
             <h3>Редактировать профиль</h3>
-            <input type="text" id="editName" placeholder="Имя">
-            <textarea id="editBio" rows="3" placeholder="О себе"></textarea>
-            <input type="file" id="editAvatar" accept="image/*">
+            <input type="text" id="editName" class="input-field" placeholder="Имя">
+            <input type="text" id="editUsername" class="input-field" placeholder="Ваш ID (уникальный)">
+            <textarea id="editBio" rows="3" class="input-field" placeholder="О себе"></textarea>
+            <input type="file" id="editAvatar" accept="image/*" class="input-field">
             <div class="flex-row" style="justify-content: center;">
                 <button id="openPixelAvatarBtn" class="btn-secondary">🎨 Пиксель-арт</button>
                 <button id="openFreeAvatarBtn" class="btn-secondary">🖌️ Рисовать</button>
@@ -1517,7 +1513,7 @@
         <div class="modal-content">
             <h3>Комментарии</h3>
             <div id="commentsList"></div>
-            <textarea id="newComment" rows="2" placeholder="Ваш комментарий..."></textarea>
+            <textarea id="newComment" rows="2" class="input-field" placeholder="Ваш комментарий..."></textarea>
             <div class="flex-row" style="justify-content: center;">
                 <button id="addCommentBtn" class="btn-primary">Отправить</button>
                 <button id="closeCommentModal" class="btn-secondary">Закрыть</button>
@@ -1554,7 +1550,7 @@
     <div id="devPasswordModal" class="modal">
         <div class="modal-content">
             <h3>Доступ разработчика</h3>
-            <input type="password" id="devPassword" placeholder="Пароль">
+            <input type="password" id="devPassword" class="input-field" placeholder="Пароль">
             <div class="flex-row" style="justify-content: center;">
                 <button id="submitDevPassword" class="btn-primary">Войти</button>
                 <button id="closeDevPassword" class="btn-secondary">Отмена</button>
@@ -1567,7 +1563,7 @@
         <div class="modal-content" style="max-width: 500px;">
             <h3>Панель разработчика</h3>
             <div id="devStatus"></div>
-            <input type="email" id="devEmail" placeholder="Ваш email">
+            <input type="email" id="devEmail" class="input-field" placeholder="Ваш email">
             <button id="makeDevBtn" class="btn-primary">Стать разработчиком</button>
             <hr>
             <h4>Список разработчиков</h4>
@@ -1607,7 +1603,8 @@
                 currentChatId: null,
                 currentChatParticipant: null,
                 darkTheme: localStorage.getItem('theme') === 'dark',
-                listeners: {}
+                listeners: {},
+                isDev: false // статус разработчика
             };
 
             // DOM элементы
@@ -1663,6 +1660,7 @@
             const voiceLevel = document.getElementById('voiceLevel');
             const editProfileModal = document.getElementById('editProfileModal');
             const editName = document.getElementById('editName');
+            const editUsername = document.getElementById('editUsername');
             const editBio = document.getElementById('editBio');
             const editAvatar = document.getElementById('editAvatar');
             const openPixelAvatarBtn = document.getElementById('openPixelAvatarBtn');
@@ -1759,7 +1757,7 @@
             let sharedCanvasCtx = null;
             let scale = 1;
             let offsetX = 0, offsetY = 0;
-            let isPanning = false;          // для средней кнопки мыши
+            let isPanning = false;
             let panStartX, panStartY;
             let sharedCanvasListenerData = null;
 
@@ -1852,7 +1850,6 @@
             }
 
             function startSharedDrawing(e) {
-                // Не начинаем рисование, если зажата средняя кнопка мыши или если это мультитач
                 if (e.button === 1) return;
                 if (e.touches && e.touches.length > 1) return;
                 e.preventDefault();
@@ -1889,7 +1886,6 @@
                 sharedCanvasCtx.stroke();
                 sharedCanvasCtx.globalAlpha = 1;
 
-                // Добавляем линию в буфер
                 pendingLines.push({
                     startX: sharedLastX,
                     startY: sharedLastY,
@@ -1900,7 +1896,6 @@
                     alpha: sharedAlpha
                 });
 
-                // Запускаем таймер для отправки, если ещё не запущен
                 if (!sendBatchTimer) {
                     sendBatchTimer = setTimeout(() => {
                         if (pendingLines.length > 0 && state.currentChatId) {
@@ -1911,7 +1906,7 @@
                             }).catch(err => console.log('Firestore batch error', err));
                         }
                         sendBatchTimer = null;
-                    }, 50); // отправка раз в 50 мс
+                    }, 50);
                 }
 
                 sharedLastX = x;
@@ -1920,7 +1915,6 @@
 
             function stopSharedDrawing() {
                 sharedDrawing = false;
-                // Принудительно отправляем оставшиеся линии
                 if (sendBatchTimer) {
                     clearTimeout(sendBatchTimer);
                     sendBatchTimer = null;
@@ -1954,7 +1948,7 @@
             }
 
             function startPan(e) {
-                if (e.button === 1) { // средняя кнопка мыши
+                if (e.button === 1) {
                     e.preventDefault();
                     isPanning = true;
                     panStartX = e.clientX;
@@ -1993,11 +1987,9 @@
                 }
             }
 
-            // Обработчики мультитач
             function handleTouchStart(e) {
                 e.preventDefault();
                 if (e.touches.length === 2) {
-                    // Начало жеста двумя пальцами
                     const touch1 = e.touches[0];
                     const touch2 = e.touches[1];
                     const dx = touch1.clientX - touch2.clientX;
@@ -2006,9 +1998,8 @@
                     touchPanStart.x = (touch1.clientX + touch2.clientX) / 2;
                     touchPanStart.y = (touch1.clientY + touch2.clientY) / 2;
                     isTouchPanning = true;
-                    sharedDrawing = false; // отключаем рисование
+                    sharedDrawing = false;
                 } else if (e.touches.length === 1) {
-                    // Один палец — рисование
                     startSharedDrawing(e);
                 }
             }
@@ -2024,7 +2015,6 @@
                     const scaleFactor = newDist / touchZoomDistance;
                     const newScale = scale * scaleFactor;
                     if (newScale >= 0.5 && newScale <= 5) {
-                        // Масштабирование относительно центра между пальцами
                         const centerX = (touch1.clientX + touch2.clientX) / 2;
                         const centerY = (touch1.clientY + touch2.clientY) / 2;
                         const rect = sharedCanvas.getBoundingClientRect();
@@ -2041,7 +2031,6 @@
                     }
                     touchZoomDistance = newDist;
 
-                    // Панорамирование (смещение средней точки)
                     const newCenterX = (touch1.clientX + touch2.clientX) / 2;
                     const newCenterY = (touch1.clientY + touch2.clientY) / 2;
                     const deltaX = newCenterX - touchPanStart.x;
@@ -2133,11 +2122,22 @@
                 const userRef = db.collection('users').doc(user.uid);
                 const doc = await userRef.get();
                 if (!doc.exists) {
+                    // Генерация уникального username
+                    let username = user.email.split('@')[0];
+                    let counter = 1;
+                    let baseUsername = username;
+                    while (true) {
+                        const existing = await db.collection('users').where('username', '==', username).get();
+                        if (existing.empty) break;
+                        username = baseUsername + counter;
+                        counter++;
+                    }
                     await userRef.set({
                         email: user.email,
-                        displayName: user.email.split('@')[0],
+                        displayName: username,
                         bio: '',
                         avatar: '',
+                        username: username,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
@@ -2172,14 +2172,24 @@
                 }
             }
 
-            // Лента (только друзья)
+            // Обновление статуса разработчика
+            async function updateDevStatus() {
+                if (state.currentUser) {
+                    const devDoc = await db.collection('developers').doc(state.currentUser.uid).get();
+                    state.isDev = devDoc.exists;
+                }
+            }
+
+            // Лента (только друзья, если не разработчик)
             function loadFeed() {
                 if (state.listeners.feed) state.listeners.feed();
                 const postsQuery = db.collection('posts').orderBy('timestamp', 'desc');
                 state.listeners.feed = postsQuery.onSnapshot(async (snap) => {
                     const allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    // фильтруем только друзей
-                    const filtered = allPosts.filter(post => state.friends.includes(post.userId));
+                    let filtered = allPosts;
+                    if (!state.isDev) {
+                        filtered = allPosts.filter(post => state.friends.includes(post.userId));
+                    }
                     renderFeed(filtered);
                 });
             }
@@ -2243,7 +2253,6 @@
                         }
                     });
                 });
-                // Добавляем обработчики на изображения
                 document.querySelectorAll('.post-image').forEach(img => {
                     img.addEventListener('click', () => openImage(img.dataset.src || img.src));
                 });
@@ -2482,6 +2491,7 @@
             // Редактирование профиля
             function showEditForm() {
                 editName.value = state.profile?.displayName || '';
+                if (editUsername) editUsername.value = state.profile?.username || '';
                 editBio.value = state.profile?.bio || '';
                 editAvatar.value = '';
                 editProfileModal.classList.add('show');
@@ -2501,9 +2511,17 @@
             });
             saveProfileBtn.addEventListener('click', async () => {
                 const newName = editName.value.trim();
+                const newUsername = editUsername ? editUsername.value.trim() : '';
                 const newBio = editBio.value.trim();
                 if (!newName) { alert('Имя не может быть пустым'); return; }
-                const updates = { displayName: newName, bio: newBio };
+                if (!newUsername) { alert('ID не может быть пустым'); return; }
+                // Проверить уникальность username (кроме самого себя)
+                const existing = await db.collection('users').where('username', '==', newUsername).get();
+                if (!existing.empty && existing.docs[0].id !== state.currentUser.uid) {
+                    alert('Этот ID уже занят');
+                    return;
+                }
+                const updates = { displayName: newName, username: newUsername, bio: newBio };
                 if (editAvatar.files.length > 0) {
                     const file = editAvatar.files[0];
                     const reader = new FileReader();
@@ -2555,7 +2573,9 @@
             closeUserList.addEventListener('click', () => userListModal.classList.remove('show'));
 
             // Загрузка профиля
+            window.currentProfileUid = null;
             async function loadProfile(uid) {
+                window.currentProfileUid = uid;
                 const container = document.getElementById('profileContainer');
                 container.innerHTML = '<div class="info-message">Загрузка...</div>';
                 const userDoc = await db.collection('users').doc(uid).get();
@@ -2582,6 +2602,14 @@
                 const followBtn = !isOwn ? `<button class="follow-btn ${isFollowing ? 'btn-secondary' : 'btn-primary'}" data-uid="${uid}">${isFollowing ? 'Отписаться' : 'Подписаться'}</button>` : '';
                 const messageBtn = !isOwn ? `<button class="btn-secondary" data-message-uid="${uid}">✉ Написать</button>` : '';
                 const editBtn = isOwn ? '<button id="editProfileBtn" class="btn-secondary">✎ Редактировать</button>' : '';
+                // Проверка, показывать ли статистику
+                const showStats = isOwn || isFollowing || state.isDev;
+                const statsHtml = showStats ? `
+                    <div class="stats">
+                        <span class="followers-stats" data-uid="${uid}">${followers} подписчиков</span>
+                        <span class="following-stats" data-uid="${uid}">${following} подписок</span>
+                    </div>
+                ` : '';
                 let postsHtml = postsDocs.map(doc => {
                     const p = doc.data();
                     const time = p.timestamp ? new Date(p.timestamp.toDate()).toLocaleString() : '';
@@ -2593,26 +2621,25 @@
                             <div class="avatar">${avatarHtml}</div>
                             <div class="profile-info">
                                 <h2>${userData.displayName || 'Без имени'}</h2>
+                                <p>@${userData.username || 'нет ID'}</p>
                                 <p>${userData.bio || ''}</p>
-                                <div class="stats">
-                                    <span class="followers-stats" data-uid="${uid}">${followers} подписчиков</span>
-                                    <span class="following-stats" data-uid="${uid}">${following} подписок</span>
-                                </div>
+                                ${statsHtml}
                                 <div class="flex-row" style="margin-top:1rem;">${followBtn} ${messageBtn} ${editBtn}</div>
                             </div>
                         </div>
                     </div>
                     <div class="card"><h3>Посты</h3>${postsHtml}</div>
                 `;
-                document.querySelector('.followers-stats')?.addEventListener('click', () => showUserList('followers', uid));
-                document.querySelector('.following-stats')?.addEventListener('click', () => showUserList('following', uid));
+                if (showStats) {
+                    document.querySelector('.followers-stats')?.addEventListener('click', () => showUserList('followers', uid));
+                    document.querySelector('.following-stats')?.addEventListener('click', () => showUserList('following', uid));
+                }
                 if (!isOwn) {
                     document.querySelector('[data-message-uid]')?.addEventListener('click', () => openChatWithUser(uid));
                     document.querySelector('.follow-btn')?.addEventListener('click', e => toggleFollow(uid, isFollowing));
                 } else {
                     document.getElementById('editProfileBtn')?.addEventListener('click', showEditForm);
                 }
-                // Обработчики на изображения аватара и постов
                 document.querySelectorAll('.avatar-img').forEach(img => {
                     img.addEventListener('click', () => openImage(img.dataset.src || img.src));
                 });
@@ -2625,8 +2652,11 @@
                 const id = `${state.currentUser.uid}_${targetUid}`;
                 if (currently) await db.collection('follows').doc(id).delete();
                 else await db.collection('follows').doc(id).set({ followerId: state.currentUser.uid, followeeId: targetUid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-                // после изменения подписок перезагружаем друзей
                 await loadFriends();
+                // Если открыт профиль этого пользователя – обновляем его
+                if (currentSectionId === 'profileSection' && window.currentProfileUid === targetUid) {
+                    loadProfile(targetUid);
+                }
             }
 
             // Поиск
@@ -2636,12 +2666,13 @@
             async function searchUsers(query) {
                 if (!query.trim()) return;
                 searchResults.innerHTML = '<div class="info-message">Поиск...</div>';
-                const nameQuery = db.collection('users').orderBy('displayName').startAt(query).endAt(query + '\uf8ff').get();
-                const emailQuery = db.collection('users').orderBy('email').startAt(query).endAt(query + '\uf8ff').get();
-                const [nameSnap, emailSnap] = await Promise.all([nameQuery, emailQuery]);
+                const usersSnap = await db.collection('users')
+                    .orderBy('username')
+                    .startAt(query)
+                    .endAt(query + '\uf8ff')
+                    .get();
                 const users = new Map();
-                nameSnap.docs.forEach(d => users.set(d.id, d.data()));
-                emailSnap.docs.forEach(d => users.set(d.id, d.data()));
+                usersSnap.docs.forEach(d => users.set(d.id, d.data()));
                 if (!users.size) { searchResults.innerHTML = '<div class="info-message">Ничего не найдено</div>'; return; }
                 let html = '';
                 for (let [uid, data] of users.entries()) {
@@ -2650,7 +2681,7 @@
                     html += `<div class="user-card" style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--border-light);">
                         <div class="info" style="display:flex; align-items:center; gap:1rem;">
                             <div style="width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;">${data.avatar ? `<img src="${data.avatar}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">` : (data.displayName?.[0] || '?')}</div>
-                            <div><h4 class="user-name-link" data-uid="${uid}" style="cursor:pointer;color:var(--accent);">${data.displayName || data.email}</h4><small>${data.email}</small></div>
+                            <div><h4 class="user-name-link" data-uid="${uid}" style="cursor:pointer;color:var(--accent);">${data.displayName || data.username}</h4><small>@${data.username}</small></div>
                         </div>
                         <div>
                             <button class="follow-btn ${isFollowing ? 'btn-secondary' : 'btn-primary'}" data-follow-uid="${uid}">${isFollowing ? 'Отписаться' : 'Подписаться'}</button>
@@ -2824,7 +2855,6 @@
                             }
                         };
                     });
-                    // Добавляем обработчик на аватар чата
                     const avatarImg = item.querySelector('.chat-avatar img');
                     if (avatarImg) {
                         avatarImg.addEventListener('click', (e) => {
@@ -2988,7 +3018,6 @@
                     });
                 });
 
-                // Обработчики на изображения
                 document.querySelectorAll('.message-media').forEach(img => {
                     img.addEventListener('click', () => openImage(img.dataset.src || img.src));
                 });
@@ -3016,7 +3045,6 @@
 
             document.getElementById('cancelReplyBtn').addEventListener('click', clearReply);
 
-            // Удаление сообщения с корректировкой unreadCounts для всех участников
             async function deleteMessage(msgId) {
                 if (!state.currentChatId) return;
                 try {
@@ -3571,10 +3599,9 @@
                     splash.classList.remove('hidden');
                     authContainer.classList.add('hidden');
 
-                    ensureUserProfile(user).then(() => {
-                        // После загрузки профиля загружаем друзей
-                        loadFriends();
-                    });
+                    await ensureUserProfile(user);
+                    await updateDevStatus(); // загружаем статус разработчика
+                    await loadFriends();
 
                     setTimeout(() => {
                         appContainer.classList.remove('hidden');
@@ -3587,6 +3614,7 @@
                     authContainer.classList.remove('hidden');
                     appContainer.classList.add('hidden');
                     state.currentUser = null;
+                    state.isDev = false;
                 }
             });
 
@@ -3764,8 +3792,8 @@
                 const userDoc = usersSnap.docs[0];
                 const uid = userDoc.id;
                 await db.collection('developers').doc(uid).set({ email: email });
-                loadDevList();
-                devEmail.value = '';
+                await loadDevList();
+                await updateDevStatus(); // обновляем статус текущего пользователя
             });
 
             removeAllDevsBtn.addEventListener('click', async () => {
@@ -3774,7 +3802,8 @@
                 const batch = db.batch();
                 snap.docs.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
-                loadDevList();
+                await loadDevList();
+                await updateDevStatus(); // обновляем статус текущего пользователя
             });
 
             closeDevPanel.addEventListener('click', () => devPanelModal.classList.remove('show'));
@@ -3790,7 +3819,6 @@
                 imageViewImg.src = '';
             });
 
-            // Закрытие по клику вне изображения
             imageViewModal.addEventListener('click', (e) => {
                 if (e.target === imageViewModal) {
                     imageViewModal.classList.remove('show');
