@@ -8,14 +8,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <!-- Firebase Storage (добавлено для загрузки музыки) -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <!-- MediaPipe Hands -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <!-- Lamejs для сжатия аудио (NEW) -->
-    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.all.js"></script>
     <style>
-        /* Все стили без изменений (полностью сохранены из исходного кода) */
         * {
             margin: 0;
             padding: 0;
@@ -1202,131 +1197,6 @@
             display: none;
             transform: translate(-50%, -50%);
         }
-
-        /* ===== НОВЫЕ СТИЛИ ДЛЯ МУЗЫКАЛЬНОГО ПЛЕЕРА ===== */
-        .music-player-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .music-control-panel {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            background: var(--bg-secondary);
-            padding: 0.75rem;
-            border-radius: 3rem;
-            border: 1px solid var(--border-light);
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        .music-visualizer {
-            flex: 1;
-            min-width: 120px;
-            height: 40px;
-            background: rgba(0,0,0,0.1);
-            border-radius: 20px;
-            overflow: hidden;
-            margin-left: 0.5rem;
-        }
-        #visualizerCanvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-        .music-search-section {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .music-search {
-            display: flex;
-            flex: 1;
-            min-width: 200px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-light);
-            border-radius: 2rem;
-            overflow: hidden;
-        }
-        .music-search input {
-            flex: 1;
-            padding: 0.6rem 1rem;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: var(--text-primary);
-        }
-        .music-search button {
-            border: none;
-            background: transparent;
-            padding: 0 1rem;
-            cursor: pointer;
-            color: var(--accent);
-            font-size: 1.2rem;
-        }
-        #musicUploadBtn {
-            white-space: nowrap;
-        }
-        .music-tracks-list {
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid var(--border-light);
-            border-radius: 1rem;
-            padding: 0.5rem;
-            background: var(--bg-secondary);
-        }
-        .music-track-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem;
-            border-bottom: 1px solid var(--border-light);
-            cursor: pointer;
-            transition: background 0.2s;
-            border-radius: 0.8rem;
-        }
-        .music-track-item:hover {
-            background: var(--bg-primary);
-        }
-        .music-track-item.active {
-            background: var(--accent);
-            color: white;
-        }
-        .music-track-info {
-            flex: 1;
-            overflow: hidden;
-        }
-        .music-track-title {
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .music-track-artist {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-        .music-track-duration {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-right: 0.5rem;
-        }
-        .music-track-play-btn {
-            background: none;
-            border: none;
-            font-size: 1.4rem;
-            cursor: pointer;
-            color: var(--accent);
-            padding: 0 0.5rem;
-        }
-        .music-track-item.active .music-track-play-btn {
-            color: white;
-        }
-        /* ===== КОНЕЦ НОВЫХ СТИЛЕЙ ===== */
     </style>
 </head>
 <body>
@@ -1455,8 +1325,6 @@
                                 <button id="backFromChatBtn" class="back-button btn-icon">←</button>
                                 <span id="chatHeader" class="contact-name" style="cursor:pointer; color:var(--accent);"></span>
                                 <button id="sharedCanvasBtn" class="btn-icon" title="Совместный холст">🎨</button>
-                                <!-- Новая кнопка музыкального плеера -->
-                                <button id="musicPlayerBtn" class="btn-icon" title="Музыкальный плеер">🎵</button>
                                 <button id="deleteChatBtn" class="btn-icon" style="margin-left:auto;">🗑️</button>
                             </div>
                             <div id="messagesContainer"></div>
@@ -1600,44 +1468,6 @@
         </div>
     </div>
 
-    <!-- Новая модалка музыкального плеера -->
-    <div id="musicPlayerModal" class="modal">
-        <div class="modal-content" style="width: 600px; max-width: 90%;">
-            <div class="music-player-header">
-                <h3>Общий плеер</h3>
-                <button id="closeMusicPlayer" class="btn-icon">✕</button>
-            </div>
-
-            <!-- Панель управления воспроизведением (всегда видна) -->
-            <div class="music-control-panel">
-                <button id="musicPrevBtn" class="btn-secondary" title="Предыдущий">⏮️</button>
-                <button id="musicPlayPauseBtn" class="btn-primary" style="min-width: 80px;">▶️ Play</button>
-                <button id="musicNextBtn" class="btn-secondary" title="Следующий">⏭️</button>
-                <div class="music-visualizer" id="musicVisualizer">
-                    <canvas id="visualizerCanvas" width="200" height="40"></canvas>
-                </div>
-            </div>
-
-            <!-- Поиск и загрузка -->
-            <div class="music-search-section">
-                <div class="music-search">
-                    <input type="text" id="musicSearchInput" placeholder="Название трека...">
-                    <button id="musicSearchBtn" class="btn-primary">🔍</button>
-                </div>
-                <button id="musicUploadBtn" class="btn-secondary" title="Загрузить свой трек">+ Загрузить</button>
-                <input type="file" id="musicFileInput" accept="audio/*" style="display: none;">
-            </div>
-
-            <!-- Список доступных треков -->
-            <div id="musicTracksList" class="music-tracks-list">
-                <div class="info-message">Загрузка треков...</div>
-            </div>
-
-            <!-- Аудиоэлемент (скрытый) -->
-            <audio id="musicAudio" style="display: none;"></audio>
-        </div>
-    </div>
-
     <!-- Курсор-ластик -->
     <div id="eraserCursor"></div>
 
@@ -1654,7 +1484,6 @@
             firebase.initializeApp(firebaseConfig);
             const auth = firebase.auth();
             const db = firebase.firestore();
-            // Firebase Storage инициализируется автоматически после подключения скрипта
 
             let state = {
                 currentUser: null,
@@ -1663,26 +1492,7 @@
                 currentChatId: null,
                 currentChatParticipant: null,
                 darkTheme: localStorage.getItem('theme') === 'dark',
-                listeners: {},
-                // ===== НОВОЕ СОСТОЯНИЕ ДЛЯ МУЗЫКИ =====
-                music: {
-                    currentChatId: null,
-                    tracks: [],               // список треков для текущего чата
-                    currentTrackIndex: -1,
-                    currentTrackId: null,
-                    isPlaying: false,
-                    audioContext: null,
-                    analyser: null,
-                    source: null,
-                    animationFrame: null,
-                    unsubscribeTracks: null,
-                    unsubscribeSession: null,
-                    sessionDocRef: null,
-                    audioElement: null,
-                    visualizerCanvas: null,
-                    visualizerCtx: null
-                }
-                // ===== КОНЕЦ НОВОГО СОСТОЯНИЯ =====
+                listeners: {}
             };
 
             // DOM элементы
@@ -1769,27 +1579,6 @@
             const openFreePostBtn = document.getElementById('openFreePostBtn');
             const uploadPostImageBtn = document.getElementById('uploadPostImageBtn');
             const postImageInput = document.getElementById('postImageInput');
-
-            // ===== НОВЫЕ ЭЛЕМЕНТЫ ДЛЯ МУЗЫКИ =====
-            const musicPlayerBtn = document.getElementById('musicPlayerBtn');
-            const musicPlayerModal = document.getElementById('musicPlayerModal');
-            const closeMusicPlayer = document.getElementById('closeMusicPlayer');
-            const musicSearchInput = document.getElementById('musicSearchInput');
-            const musicSearchBtn = document.getElementById('musicSearchBtn');
-            const musicUploadBtn = document.getElementById('musicUploadBtn');
-            const musicFileInput = document.getElementById('musicFileInput');
-            const musicTracksList = document.getElementById('musicTracksList');
-            const musicPlayPauseBtn = document.getElementById('musicPlayPauseBtn');
-            const musicPrevBtn = document.getElementById('musicPrevBtn');
-            const musicNextBtn = document.getElementById('musicNextBtn');
-            const musicAudio = document.getElementById('musicAudio');
-            const visualizerCanvas = document.getElementById('visualizerCanvas');
-
-            // Сохраняем ссылки в state.music
-            state.music.audioElement = musicAudio;
-            state.music.visualizerCanvas = visualizerCanvas;
-            if (visualizerCanvas) state.music.visualizerCtx = visualizerCanvas.getContext('2d');
-            // ===== КОНЕЦ НОВЫХ ЭЛЕМЕНТОВ =====
 
             // Мобильные элементы
             const headerEmailMobile = document.getElementById('headerEmailMobile');
@@ -2746,12 +2535,6 @@
             }
 
             async function openChatWithUser(otherUid) {
-                // Сбрасываем музыкальную сессию предыдущего чата
-                if (state.music.unsubscribeTracks) state.music.unsubscribeTracks();
-                if (state.music.unsubscribeSession) state.music.unsubscribeSession();
-                if (state.music.audioElement) state.music.audioElement.pause();
-                state.music.currentChatId = null;
-
                 const chat = await getOrCreateChat(otherUid);
                 state.currentChatId = chat.id;
                 const userDoc = await db.collection('users').doc(otherUid).get();
@@ -2826,12 +2609,6 @@
                     item.addEventListener('click', () => {
                         const chatId = item.dataset.chatId;
                         const otherUid = item.dataset.otherUid;
-
-                        // Сброс музыки предыдущего чата
-                        if (state.music.unsubscribeTracks) state.music.unsubscribeTracks();
-                        if (state.music.unsubscribeSession) state.music.unsubscribeSession();
-                        if (state.music.audioElement) state.music.audioElement.pause();
-
                         state.currentChatId = chatId;
                         db.collection('users').doc(otherUid).get().then(doc => {
                             state.currentChatParticipant = { uid: otherUid, ...doc.data() };
@@ -3309,12 +3086,6 @@
             });
 
             backFromChatBtn.addEventListener('click', () => {
-                // Сбрасываем музыку
-                if (state.music.unsubscribeTracks) state.music.unsubscribeTracks();
-                if (state.music.unsubscribeSession) state.music.unsubscribeSession();
-                if (state.music.audioElement) state.music.audioElement.pause();
-                state.music.currentChatId = null;
-
                 chatsSidebar.classList.remove('hide-mobile');
                 chatWindowContainer.classList.add('hidden');
                 noChatSelected.classList.remove('hidden');
@@ -3672,511 +3443,20 @@
                 alert(message); // В продакшене заменить на красивое модальное окно
             }
 
-            // ---------- НОВЫЙ КОД ДЛЯ МУЗЫКАЛЬНОГО ПЛЕЕРА (ИСПРАВЛЕННЫЙ) ----------
-
-            // Инициализация Web Audio API и визуализатора
-            function initMusicAudio() {
-                if (!state.music.audioContext) {
-                    state.music.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    state.music.analyser = state.music.audioContext.createAnalyser();
-                    state.music.analyser.fftSize = 256;
-                }
-
-                // Если уже есть источник, отключаем его и обнуляем
-                if (state.music.source) {
-                    try { 
-                        state.music.source.disconnect(); 
-                    } catch (e) {}
-                    state.music.source = null;
-                }
-
-                // Создаём новый источник
-                try {
-                    const track = state.music.audioContext.createMediaElementSource(state.music.audioElement);
-                    track.connect(state.music.analyser);
-                    state.music.analyser.connect(state.music.audioContext.destination);
-                    state.music.source = track;
-                } catch (e) {
-                    console.warn('Ошибка подключения аудио:', e);
-                }
-
-                visualize();
-            }
-
-            function visualize() {
-                if (!state.music.analyser || !state.music.visualizerCtx) return;
-
-                const bufferLength = state.music.analyser.frequencyBinCount;
-                const dataArray = new Uint8Array(bufferLength);
-                const canvas = state.music.visualizerCanvas;
-                const ctx = state.music.visualizerCtx;
-                const WIDTH = canvas.width;
-                const HEIGHT = canvas.height;
-
-                function draw() {
-                    if (!state.music.isPlaying || !state.music.analyser) {
-                        // Если не играет, рисуем ровную линию
-                        ctx.clearRect(0, 0, WIDTH, HEIGHT);
-                        ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--accent') || '#2a7bde';
-                        ctx.fillRect(0, HEIGHT/2 - 1, WIDTH, 2);
-                        state.music.animationFrame = requestAnimationFrame(draw);
-                        return;
-                    }
-
-                    state.music.analyser.getByteFrequencyData(dataArray);
-                    ctx.clearRect(0, 0, WIDTH, HEIGHT);
-                    const barWidth = (WIDTH / bufferLength) * 2.5;
-                    let x = 0;
-
-                    for (let i = 0; i < bufferLength; i++) {
-                        const barHeight = (dataArray[i] / 255) * HEIGHT;
-                        ctx.fillStyle = `hsl(${200 + i * 0.5}, 70%, 60%)`;
-                        ctx.fillRect(x, HEIGHT - barHeight, barWidth, barHeight);
-                        x += barWidth + 1;
-                    }
-
-                    state.music.animationFrame = requestAnimationFrame(draw);
-                }
-
-                draw();
-            }
-
-            // Открытие музыкального плеера
-            musicPlayerBtn.addEventListener('click', () => {
-                if (!state.currentChatId) return;
-
-                state.music.currentChatId = state.currentChatId;
-                musicPlayerModal.classList.add('show');
-
-                // Подписываемся на список треков этого чата
-                subscribeToMusicTracks(state.currentChatId);
-
-                // Подписываемся на сессию воспроизведения (синхронизация)
-                subscribeToMusicSession(state.currentChatId);
-
-                // Инициализируем аудио (если ещё нет)
-                initMusicAudio();
-            });
-
-            // Закрытие музыкального плеера (исправлено)
-            closeMusicPlayer.addEventListener('click', () => {
-                musicPlayerModal.classList.remove('show');
-
-                // Отписываемся от слушателей
-                if (state.music.unsubscribeTracks) state.music.unsubscribeTracks();
-                if (state.music.unsubscribeSession) state.music.unsubscribeSession();
-
-                // Останавливаем визуализацию
-                if (state.music.animationFrame) {
-                    cancelAnimationFrame(state.music.animationFrame);
-                    state.music.animationFrame = null;
-                }
-
-                // Отключаем источник
-                if (state.music.source) {
-                    try { state.music.source.disconnect(); } catch (e) {}
-                    state.music.source = null;
-                }
-                if (state.music.audioContext && state.music.audioContext.state === 'running') {
-                    state.music.audioContext.suspend();
-                }
-
-                // Сбрасываем состояние
-                state.music.currentChatId = null;
-                state.music.tracks = [];
-                state.music.currentTrackId = null;
-                state.music.currentTrackIndex = -1;
-                state.music.isPlaying = false;
-            });
-
-            // Подписка на треки из Firestore
-            function subscribeToMusicTracks(chatId) {
-                if (state.music.unsubscribeTracks) state.music.unsubscribeTracks();
-
-                const q = db.collection('musicTracks')
-                    .where('chatId', '==', chatId)
-                    .orderBy('uploadedAt', 'desc');
-
-                state.music.unsubscribeTracks = q.onSnapshot(snapshot => {
-                    state.music.tracks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderMusicTracks(state.music.tracks);
-                });
-            }
-
-            // Отображение списка треков с поиском
-            function renderMusicTracks(tracks) {
-                const searchTerm = musicSearchInput.value.trim().toLowerCase();
-                let filtered = tracks;
-                if (searchTerm) {
-                    filtered = tracks.filter(t => 
-                        (t.name && t.name.toLowerCase().includes(searchTerm)) ||
-                        (t.artist && t.artist.toLowerCase().includes(searchTerm))
-                    );
-                }
-
-                if (filtered.length === 0) {
-                    musicTracksList.innerHTML = '<div class="info-message">Нет треков</div>';
-                    return;
-                }
-
-                let html = '';
-                filtered.forEach((track, index) => {
-                    const activeClass = (state.music.currentTrackIndex !== -1 && tracks[state.music.currentTrackIndex]?.id === track.id) ? 'active' : '';
-                    const duration = track.duration ? `${Math.floor(track.duration / 60)}:${(track.duration % 60).toString().padStart(2, '0')}` : '--:--';
-                    html += `
-                        <div class="music-track-item ${activeClass}" data-track-id="${track.id}" data-track-index="${index}">
-                            <div class="music-track-info">
-                                <div class="music-track-title">${track.name || 'Без названия'}</div>
-                                <div class="music-track-artist">${track.artist || 'Неизвестный исполнитель'}</div>
-                            </div>
-                            <span class="music-track-duration">${duration}</span>
-                            <button class="music-track-play-btn" data-track-id="${track.id}">▶️</button>
-                        </div>
-                    `;
-                });
-
-                musicTracksList.innerHTML = html;
-
-                // Обработчики клика на трек
-                document.querySelectorAll('.music-track-item').forEach(item => {
-                    item.addEventListener('click', (e) => {
-                        if (e.target.classList.contains('music-track-play-btn')) return;
-                        const trackId = item.dataset.trackId;
-                        playTrackById(trackId);
-                    });
-                });
-
-                document.querySelectorAll('.music-track-play-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const trackId = btn.dataset.trackId;
-                        playTrackById(trackId);
-                    });
-                });
-            }
-
-            // Поиск по вводу
-            musicSearchBtn.addEventListener('click', () => {
-                renderMusicTracks(state.music.tracks);
-            });
-            musicSearchInput.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') renderMusicTracks(state.music.tracks);
-            });
-
-            // Вспомогательная функция загрузки в Firebase
-            async function uploadToFirebase(blob, fileName, duration) {
-                const storageRef = firebase.storage().ref();
-                const fileRef = storageRef.child(`chat_music/${state.music.currentChatId}/${Date.now()}_${fileName}.mp3`);
-                await fileRef.put(blob);
-                const downloadUrl = await fileRef.getDownloadURL();
-
-                await db.collection('musicTracks').add({
-                    chatId: state.music.currentChatId,
-                    name: fileName,
-                    artist: 'Неизвестно',
-                    duration: duration || 0,
-                    url: downloadUrl,
-                    uploadedBy: state.currentUser.uid,
-                    uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-
-            // Загрузка трека с конвертацией в MP3 и fallback
-            musicUploadBtn.addEventListener('click', () => musicFileInput.click());
-
-            // ========== ИСПРАВЛЕННЫЙ ОБРАБОТЧИК ЗАГРУЗКИ ==========
-            musicFileInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file || !state.music.currentChatId) return;
-
-                musicTracksList.innerHTML = '<div class="info-message">Обработка файла...</div>';
-
-                try {
-                    // Проверка наличия lamejs
-                    if (typeof lamejs === 'undefined') {
-                        throw new Error('Библиотека сжатия не загружена');
-                    }
-
-                    const arrayBuffer = await file.arrayBuffer();
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-                    if (!audioBuffer || audioBuffer.duration === 0) {
-                        throw new Error('Аудиофайл пуст или повреждён');
-                    }
-                    if (audioBuffer.numberOfChannels === 0) {
-                        throw new Error('Аудиофайл не содержит звуковых каналов');
-                    }
-
-                    const channels = audioBuffer.numberOfChannels;
-                    const sampleRate = audioBuffer.sampleRate;
-                    const leftChannel = audioBuffer.getChannelData(0); // Float32Array
-                    let rightChannel = null;
-                    if (channels === 2) {
-                        rightChannel = audioBuffer.getChannelData(1);
-                    }
-
-                    // Функция для конвертации Float32Array в Int16Array
-                    const floatToInt16 = (float32) => {
-                        const int16 = new Int16Array(float32.length);
-                        for (let i = 0; i < float32.length; i++) {
-                            let s = Math.max(-1, Math.min(1, float32[i]));
-                            int16[i] = s < 0 ? s * 32768 : s * 32767;
-                        }
-                        return int16;
-                    };
-
-                    const leftInt16 = floatToInt16(leftChannel);
-                    const rightInt16 = rightChannel ? floatToInt16(rightChannel) : null;
-
-                    // Создаём MP3-энкодер
-                    const mp3Encoder = new lamejs.Mp3Encoder(channels, sampleRate, 96);
-                    const mp3Data = [];
-                    const sampleBlockSize = 1152;
-
-                    // Кодирование
-                    if (channels === 1) {
-                        for (let i = 0; i < leftInt16.length; i += sampleBlockSize) {
-                            const chunk = leftInt16.subarray(i, i + sampleBlockSize);
-                            const mp3Chunk = mp3Encoder.encodeBuffer(chunk);
-                            if (mp3Chunk.length > 0) mp3Data.push(mp3Chunk);
-                        }
-                    } else {
-                        // Стерео: передаём оба канала отдельно
-                        for (let i = 0; i < leftInt16.length; i += sampleBlockSize) {
-                            const leftChunk = leftInt16.subarray(i, i + sampleBlockSize);
-                            const rightChunk = rightInt16.subarray(i, i + sampleBlockSize);
-                            const mp3Chunk = mp3Encoder.encodeBuffer(leftChunk, rightChunk);
-                            if (mp3Chunk.length > 0) mp3Data.push(mp3Chunk);
-                        }
-                    }
-
-                    const lastChunk = mp3Encoder.flush();
-                    if (lastChunk.length > 0) mp3Data.push(lastChunk);
-
-                    const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
-                    const fileName = file.name.replace(/\.[^/.]+$/, "");
-
-                    await uploadToFirebase(mp3Blob, fileName, audioBuffer.duration);
-
-                } catch (conversionError) {
-                    console.warn('Конвертация не удалась, загружаем оригинал:', conversionError);
-                    // Fallback: загружаем исходный файл без сжатия
-                    const originalBlob = file.slice(0, file.size, file.type);
-                    const fileName = file.name.replace(/\.[^/.]+$/, "");
-                    await uploadToFirebase(originalBlob, fileName, null);
-                }
-
-                musicFileInput.value = '';
-            });
-            // ========== КОНЕЦ ИСПРАВЛЕННОГО ОБРАБОТЧИКА ==========
-
-            // Подписка на сессию воспроизведения
-            function subscribeToMusicSession(chatId) {
-                if (state.music.unsubscribeSession) state.music.unsubscribeSession();
-
-                const sessionRef = db.collection('musicSessions').doc(chatId);
-                state.music.sessionDocRef = sessionRef;
-
-                // Создаём документ, если его нет
-                sessionRef.get().then(doc => {
-                    if (!doc.exists) {
-                        sessionRef.set({
-                            currentTrackId: null,
-                            isPlaying: false,
-                            position: 0,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    }
-                });
-
-                state.music.unsubscribeSession = sessionRef.onSnapshot((doc) => {
-                    if (!doc.exists) return;
-                    const data = doc.data();
-
-                    // Обрабатываем изменения от собеседника
-                    if (data.currentTrackId !== state.music.currentTrackId) {
-                        // Сменился трек
-                        const track = state.music.tracks.find(t => t.id === data.currentTrackId);
-                        if (track) {
-                            loadTrackAndPlay(track, data.isPlaying, data.position);
-                        } else {
-                            // Трек не найден (возможно, ещё не загрузился)
-                            state.music.audioElement.pause();
-                            state.music.isPlaying = false;
-                            updatePlayPauseButton();
-                        }
-                    } else {
-                        // Тот же трек, изменилось состояние или позиция
-                        if (data.isPlaying !== state.music.isPlaying) {
-                            if (data.isPlaying) {
-                                state.music.audioElement.play();
-                            } else {
-                                state.music.audioElement.pause();
-                            }
-                            state.music.isPlaying = data.isPlaying;
-                            updatePlayPauseButton();
-                        }
-                        // Синхронизация позиции (если разрыв большой)
-                        if (data.position && Math.abs(state.music.audioElement.currentTime - data.position) > 2) {
-                            state.music.audioElement.currentTime = data.position;
-                        }
-                    }
-                });
-            }
-
-            function loadTrackAndPlay(track, shouldPlay, startPosition = 0) {
-                state.music.audioElement.src = track.url;
-                state.music.audioElement.load();
-
-                const playAfterLoad = () => {
-                    state.music.audioElement.currentTime = startPosition;
-                    if (shouldPlay) {
-                        state.music.audioElement.play()
-                            .then(() => {
-                                state.music.isPlaying = true;
-                                updatePlayPauseButton();
-                            })
-                            .catch(e => console.log('play error', e));
-                    } else {
-                        state.music.isPlaying = false;
-                        updatePlayPauseButton();
-                    }
-                    // Обновляем активный трек в списке
-                    state.music.currentTrackId = track.id;
-                    renderMusicTracks(state.music.tracks); // перерисуем с активным классом
-                };
-
-                if (state.music.audioElement.readyState >= 2) {
-                    playAfterLoad();
-                } else {
-                    state.music.audioElement.addEventListener('canplay', playAfterLoad, { once: true });
-                }
-            }
-
-            function updatePlayPauseButton() {
-                musicPlayPauseBtn.textContent = state.music.isPlaying ? '⏸️ Пауза' : '▶️ Play';
-            }
-
-            // Управление: play/pause, prev/next, обновление позиции
-            musicPlayPauseBtn.addEventListener('click', async () => {
-                if (!state.music.sessionDocRef || !state.music.currentTrackId) return;
-
-                const newPlaying = !state.music.isPlaying;
-                // Локально меняем состояние
-                if (newPlaying) {
-                    await state.music.audioElement.play();
-                } else {
-                    state.music.audioElement.pause();
-                }
-                state.music.isPlaying = newPlaying;
-                updatePlayPauseButton();
-
-                // Обновляем в Firestore
-                await state.music.sessionDocRef.update({
-                    isPlaying: newPlaying,
-                    position: state.music.audioElement.currentTime,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            });
-
-            musicPrevBtn.addEventListener('click', () => {
-                if (state.music.tracks.length === 0) return;
-                let newIndex = state.music.currentTrackIndex - 1;
-                if (newIndex < 0) newIndex = state.music.tracks.length - 1;
-                playTrackByIndex(newIndex);
-            });
-
-            musicNextBtn.addEventListener('click', () => {
-                if (state.music.tracks.length === 0) return;
-                let newIndex = state.music.currentTrackIndex + 1;
-                if (newIndex >= state.music.tracks.length) newIndex = 0;
-                playTrackByIndex(newIndex);
-            });
-
-            async function playTrackById(trackId) {
-                const index = state.music.tracks.findIndex(t => t.id === trackId);
-                if (index !== -1) playTrackByIndex(index);
-            }
-
-            async function playTrackByIndex(index) {
-                const track = state.music.tracks[index];
-                if (!track) return;
-
-                state.music.currentTrackIndex = index;
-                state.music.currentTrackId = track.id;
-
-                // Загружаем и запускаем локально
-                loadTrackAndPlay(track, true, 0);
-
-                // Обновляем сессию в Firestore
-                if (state.music.sessionDocRef) {
-                    await state.music.sessionDocRef.update({
-                        currentTrackId: track.id,
-                        isPlaying: true,
-                        position: 0,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                }
-            }
-
-            // Периодическое обновление позиции (раз в 5 секунд)
-            setInterval(() => {
-                if (state.music.sessionDocRef && state.music.isPlaying && state.music.currentTrackId) {
-                    state.music.sessionDocRef.update({
-                        position: state.music.audioElement.currentTime,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }).catch(() => {});
-                }
-            }, 5000);
-
-            // ---------- КОНЕЦ НОВОГО КОДА ----------
-
-            // ---------- УЛУЧШЕННАЯ ИКОНКА ДЛЯ PWA ----------
+            // ---------- Генерация манифеста и иконки для PWA ----------
             function generateIconAndManifest() {
-                // Создаём иконку на canvas с градиентом и символом сообщения
+                // Создаём иконку на canvas (синий фон, белая буква S)
                 const canvas = document.createElement('canvas');
                 canvas.width = 192;
                 canvas.height = 192;
                 const ctx = canvas.getContext('2d');
-
-                // Градиентный фон
-                const gradient = ctx.createLinearGradient(0, 0, 192, 192);
-                gradient.addColorStop(0, '#2a7bde');
-                gradient.addColorStop(1, '#1f4b8a');
-                ctx.fillStyle = gradient;
+                ctx.fillStyle = '#2a7bde'; // синий
                 ctx.fillRect(0, 0, 192, 192);
-
-                // Рисуем белое облачко сообщения
                 ctx.fillStyle = '#ffffff';
-                ctx.shadowColor = 'rgba(0,0,0,0.3)';
-                ctx.shadowBlur = 10;
-                ctx.shadowOffsetX = 2;
-                ctx.shadowOffsetY = 2;
-
-                // Основной прямоугольник облака
-                ctx.beginPath();
-                ctx.roundRect(40, 50, 120, 80, 20);
-                ctx.fill();
-
-                // Хвостик облака
-                ctx.beginPath();
-                ctx.moveTo(40, 110);
-                ctx.lineTo(20, 140);
-                ctx.lineTo(60, 130);
-                ctx.closePath();
-                ctx.fill();
-
-                // Текст "S" внутри
-                ctx.shadowBlur = 0;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 0;
-                ctx.fillStyle = '#2a7bde';
-                ctx.font = 'bold 80px "Segoe UI", sans-serif';
+                ctx.font = 'bold 120px "Segoe UI", sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('S', 100, 100);
-
+                ctx.fillText('S', 96, 96);
                 const iconDataURL = canvas.toDataURL('image/png');
 
                 // Создаём манифест
@@ -4203,24 +3483,6 @@
                 link.rel = 'manifest';
                 link.href = manifestURL;
                 document.head.appendChild(link);
-            }
-
-            // Вспомогательный метод для roundRect (если не существует)
-            if (!CanvasRenderingContext2D.prototype.roundRect) {
-                CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
-                    if (w < 2 * r) r = w / 2;
-                    if (h < 2 * r) r = h / 2;
-                    this.moveTo(x + r, y);
-                    this.lineTo(x + w - r, y);
-                    this.quadraticCurveTo(x + w, y, x + w, y + r);
-                    this.lineTo(x + w, y + h - r);
-                    this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-                    this.lineTo(x + r, y + h);
-                    this.quadraticCurveTo(x, y + h, x, y + h - r);
-                    this.lineTo(x, y + r);
-                    this.quadraticCurveTo(x, y, x + r, y);
-                    return this;
-                };
             }
 
             generateIconAndManifest();
