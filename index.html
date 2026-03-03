@@ -1201,8 +1201,8 @@
 </head>
 <body>
     <div id="app">
-        <!-- Splash screen -->
-        <div id="splash-screen" class="hidden">
+        <!-- Splash screen (видим по умолчанию) -->
+        <div id="splash-screen" class="">
             <div class="splash-content">
                 <div class="splash-script">
                     <span class="splash-letter">S</span>
@@ -1216,8 +1216,8 @@
             </div>
         </div>
 
-        <!-- Аутентификация -->
-        <div id="authContainer" class="auth-container">
+        <!-- Аутентификация (скрыта по умолчанию) -->
+        <div id="authContainer" class="auth-container hidden">
             <div class="auth-logo">
                 <span class="auth-logo-script">SCRIPT</span><span class="auth-logo-messenger">Messenger</span>
             </div>
@@ -1237,7 +1237,7 @@
             </div>
         </div>
 
-        <!-- Основное приложение -->
+        <!-- Основное приложение (скрыто по умолчанию) -->
         <div id="appContainer" class="hidden">
             <div class="app-header">
                 <div class="header-left">
@@ -3371,25 +3371,47 @@
                 logoutBtnMobile.addEventListener('click', () => auth.signOut());
             }
 
+            // ========== ИЗМЕНЁННЫЙ ОБРАБОТЧИК ==========
             auth.onAuthStateChanged(async user => {
+                const splash = document.getElementById('splash-screen');
+                const authContainer = document.getElementById('authContainer');
+                const appContainer = document.getElementById('appContainer');
+
                 if (user) {
+                    // Пользователь уже вошёл
                     state.currentUser = user;
-                    const splash = document.getElementById('splash-screen');
+
+                    // Гарантируем, что splash виден (на случай, если он был скрыт ранее)
                     splash.classList.remove('hidden');
-                    setTimeout(async () => {
-                        authContainer.classList.add('hidden');
+                    // Скрываем форму входа (на всякий случай)
+                    authContainer.classList.add('hidden');
+                    // Приложение пока не показываем
+
+                    // Сразу начинаем загружать данные (профиль, подписки и т.д.)
+                    // Не ждём 2 секунды, чтобы ускорить загрузку
+                    ensureUserProfile(user).then(() => {
+                        // Профиль загружен, можно активировать слушатели (если они ещё не активны)
+                        // Но финальный показ приложения произойдёт через 2 секунды (для анимации)
+                    });
+
+                    // Через 2 секунды скрываем splash и показываем приложение
+                    setTimeout(() => {
                         appContainer.classList.remove('hidden');
-                        await ensureUserProfile(user);
+                        splash.classList.add('hidden');
+                        // Активируем подписки (лента, чаты) и переходим в нужный раздел
                         Object.values(state.listeners).forEach(fn => fn && fn());
                         showSection('chatsSection');
-                        splash.classList.add('hidden');
                     }, 2000);
                 } else {
+                    // Пользователь не авторизован
+                    splash.classList.add('hidden');          // убираем splash
+                    authContainer.classList.remove('hidden'); // показываем форму входа
+                    appContainer.classList.add('hidden');    // скрываем приложение
                     state.currentUser = null;
-                    authContainer.classList.remove('hidden');
-                    appContainer.classList.add('hidden');
+                    // Здесь можно сбросить слушатели, если необходимо
                 }
             });
+            // ===========================================
 
             window.addEventListener('resize', () => {
                 document.body.style.height = window.innerHeight + 'px';
