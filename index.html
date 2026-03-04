@@ -2579,36 +2579,51 @@
             }
             closeUserList.addEventListener('click', () => userListModal.classList.remove('show'));
 
-            // Загрузка профиля
+            // ========== ИЗМЕНЁННЫЕ ФУНКЦИИ ПРОФИЛЯ (без постов) ==========
+
             async function loadProfile(uid) {
                 const container = document.getElementById('profileContainer');
                 container.innerHTML = '<div class="info-message">Загрузка...</div>';
                 const userDoc = await db.collection('users').doc(uid).get();
                 if (!userDoc.exists) return;
                 const userData = userDoc.data();
-                if (state.listeners.profilePosts) state.listeners.profilePosts();
-                const postsQuery = db.collection('posts').where('userId', '==', uid).orderBy('timestamp', 'desc');
-                state.listeners.profilePosts = postsQuery.onSnapshot(async (snap) => {
-                    const followers = (await db.collection('follows').where('followeeId', '==', uid).get()).size;
-                    const following = (await db.collection('follows').where('followerId', '==', uid).get()).size;
-                    let isFollowing = false;
-                    if (state.currentUser && uid !== state.currentUser.uid) {
-                        const followDoc = await db.collection('follows').doc(`${state.currentUser.uid}_${uid}`).get();
-                        isFollowing = followDoc.exists;
-                    }
-                    renderProfile(uid, userData, snap.docs, followers, following, isFollowing);
-                });
+                
+                // Отписываемся от предыдущего слушателя постов, если был
+                if (state.listeners.profilePosts) {
+                    state.listeners.profilePosts();
+                    state.listeners.profilePosts = null;
+                }
+
+                // Получаем количество подписчиков и подписок
+                const followers = (await db.collection('follows').where('followeeId', '==', uid).get()).size;
+                const following = (await db.collection('follows').where('followerId', '==', uid).get()).size;
+                
+                let isFollowing = false;
+                if (state.currentUser && uid !== state.currentUser.uid) {
+                    const followDoc = await db.collection('follows').doc(`${state.currentUser.uid}_${uid}`).get();
+                    isFollowing = followDoc.exists;
+                }
+                
+                renderProfile(uid, userData, followers, following, isFollowing);
             }
 
-            function renderProfile(uid, userData, postsDocs, followers, following, isFollowing) {
+            function renderProfile(uid, userData, followers, following, isFollowing) {
                 const container = document.getElementById('profileContainer');
                 const isOwn = uid === state.currentUser.uid;
-                const avatarHtml = userData.avatar ? `<img src="${userData.avatar}" class="avatar-img" data-src="${userData.avatar}">` : (userData.displayName?.[0] || '?');
+                
+                // Аватар (если есть – показываем картинку, иначе инициал)
+                const avatarHtml = userData.avatar 
+                    ? `<img src="${userData.avatar}" class="avatar-img" data-src="${userData.avatar}">` 
+                    : (userData.displayName?.[0] || '?').toUpperCase();
+                
+                // Кнопки действий
                 const followBtn = !isOwn ? `<button class="follow-btn ${isFollowing ? 'btn-secondary' : 'btn-primary'}" data-uid="${uid}">${isFollowing ? 'Отписаться' : 'Подписаться'}</button>` : '';
                 const messageBtn = !isOwn ? `<button class="btn-secondary" data-message-uid="${uid}">✉ Написать</button>` : '';
                 const editBtn = isOwn ? '<button id="editProfileBtn" class="btn-secondary">✎ Редактировать</button>' : '';
+                // Кнопка для смены фото (только для своего профиля)
+                const changePhotoBtn = isOwn ? '<button id="changePhotoBtn" class="btn-secondary" style="margin-left:0.5rem;">📷 Сменить фото</button>' : '';
 
-                // Проверка на доступ к просмотру подписок
+                // Проверка доступа к статистике (подписчики/подписки)
                 const canViewStats = isOwn || state.isDev || state.friends.includes(uid);
                 const statsHtml = canViewStats 
                     ? `<div class="stats">
@@ -2616,19 +2631,6 @@
                         <span class="following-stats" data-uid="${uid}">${following} подписок</span>
                        </div>`
                     : '<p class="stats-disabled">Подписки скрыты</p>';
-
-                // Изменение: проверка доступа к постам
-                let postsHtml;
-                const canViewPosts = isOwn || state.isDev || state.friends.includes(uid);
-                if (canViewPosts) {
-                    postsHtml = postsDocs.map(doc => {
-                        const p = doc.data();
-                        const time = p.timestamp ? new Date(p.timestamp.toDate()).toLocaleString() : '';
-                        return `<div class="post"><div class="post-text">${p.text}</div>${p.image ? `<img src="${p.image}" class="post-image" data-src="${p.image}">` : ''}<div class="post-time">${time}</div></div>`;
-                    }).join('') || '<p>Нет постов</p>';
-                } else {
-                    postsHtml = '<p>Профиль закрыт. Подпишитесь, чтобы видеть посты.</p>';
-                }
 
                 container.innerHTML = `
                     <div class="card">
@@ -2639,33 +2641,55 @@
                                 <p><strong>ID:</strong> ${userData.userTag || 'не задан'}</p>
                                 <p>${userData.bio || ''}</p>
                                 ${statsHtml}
-                                <div class="flex-row" style="margin-top:1rem;">${followBtn} ${messageBtn} ${editBtn}</div>
+                                <div class="flex-row" style="margin-top:1rem; gap:0.5rem; flex-wrap:wrap;">
+                                    ${followBtn} ${messageBtn} ${editBtn} ${changePhotoBtn}
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card"><h3>Посты</h3>${postsHtml}</div>
                 `;
+
+                // Обработчики событий
                 if (canViewStats) {
                     document.querySelector('.followers-stats')?.addEventListener('click', () => showUserList('followers', uid));
                     document.querySelector('.following-stats')?.addEventListener('click', () => showUserList('following', uid));
                 }
+                
                 if (!isOwn) {
+                    // Для чужого профиля – кнопки подписки и сообщения
                     document.querySelector('[data-message-uid]')?.addEventListener('click', () => openChatWithUser(uid));
                     document.querySelector('.follow-btn')?.addEventListener('click', async (e) => {
                         await toggleFollow(uid, isFollowing);
                         loadProfile(uid); // обновляем профиль сразу
                     });
                 } else {
+                    // Для своего профиля – кнопки редактирования и смены фото
                     document.getElementById('editProfileBtn')?.addEventListener('click', showEditForm);
+                    document.getElementById('changePhotoBtn')?.addEventListener('click', () => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                    db.collection('users').doc(uid).update({ avatar: reader.result });
+                                };
+                                reader.readAsDataURL(file);
+                            }
+                        };
+                        input.click();
+                    });
                 }
-                // Обработчики на изображения аватара и постов
+
+                // Обработчик увеличения аватара при клике на картинку
                 document.querySelectorAll('.avatar-img').forEach(img => {
                     img.addEventListener('click', () => openImage(img.dataset.src || img.src));
                 });
-                document.querySelectorAll('.post-image').forEach(img => {
-                    img.addEventListener('click', () => openImage(img.dataset.src || img.src));
-                });
             }
+
+            // ========== КОНЕЦ ИЗМЕНЁННЫХ ФУНКЦИЙ ==========
 
             async function toggleFollow(targetUid, currently) {
                 const id = `${state.currentUser.uid}_${targetUid}`;
