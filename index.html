@@ -11,7 +11,6 @@
     <!-- MediaPipe Hands -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <style>
-        /* --- Все стили без изменений (полностью скопированы из вашего исходника) --- */
         * {
             margin: 0;
             padding: 0;
@@ -2173,26 +2172,20 @@
                 }
             }
 
-            // ========== ИСПРАВЛЕННАЯ ЛЕНТА ==========
+            // Лента: для разработчика все посты, иначе только друзья
             function loadFeed() {
                 if (state.listeners.feed) state.listeners.feed();
                 const postsQuery = db.collection('posts').orderBy('timestamp', 'desc');
-                state.listeners.feed = postsQuery.onSnapshot(
-                    async (snap) => {
-                        const allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                        let filtered;
-                        if (state.isDev) {
-                            filtered = allPosts; // разработчик видит все
-                        } else {
-                            filtered = allPosts.filter(post => state.friends.includes(post.userId));
-                        }
-                        renderFeed(filtered);
-                    },
-                    (error) => {
-                        console.error('Ошибка загрузки ленты:', error);
-                        feedPosts.innerHTML = '<div class="info-message">Ошибка загрузки ленты</div>';
+                state.listeners.feed = postsQuery.onSnapshot(async (snap) => {
+                    const allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    let filtered;
+                    if (state.isDev) {
+                        filtered = allPosts; // разработчик видит все
+                    } else {
+                        filtered = allPosts.filter(post => state.friends.includes(post.userId));
                     }
-                );
+                    renderFeed(filtered);
+                });
             }
 
             async function renderFeed(posts) {
@@ -2586,39 +2579,28 @@
             }
             closeUserList.addEventListener('click', () => userListModal.classList.remove('show'));
 
-            // ========== ИСПРАВЛЕННАЯ ЗАГРУЗКА ПРОФИЛЯ ==========
+            // Загрузка профиля
             async function loadProfile(uid) {
                 const container = document.getElementById('profileContainer');
                 container.innerHTML = '<div class="info-message">Загрузка...</div>';
                 const userDoc = await db.collection('users').doc(uid).get();
                 if (!userDoc.exists) return;
                 const userData = userDoc.data();
-
-                // Загружаем посты (однократно, с обработкой ошибок)
-                let posts = [];
-                try {
-                    const postsSnap = await db.collection('posts')
-                        .where('userId', '==', uid)
-                        .orderBy('timestamp', 'desc')
-                        .limit(10) // небольшой лимит для безопасности
-                        .get();
-                    posts = postsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                } catch (error) {
-                    console.warn('Не удалось загрузить посты профиля:', error);
-                    // оставляем пустой массив
-                }
-
-                const followers = (await db.collection('follows').where('followeeId', '==', uid).get()).size;
-                const following = (await db.collection('follows').where('followerId', '==', uid).get()).size;
-                let isFollowing = false;
-                if (state.currentUser && uid !== state.currentUser.uid) {
-                    const followDoc = await db.collection('follows').doc(`${state.currentUser.uid}_${uid}`).get();
-                    isFollowing = followDoc.exists;
-                }
-                renderProfile(uid, userData, posts, followers, following, isFollowing);
+                if (state.listeners.profilePosts) state.listeners.profilePosts();
+                const postsQuery = db.collection('posts').where('userId', '==', uid).orderBy('timestamp', 'desc');
+                state.listeners.profilePosts = postsQuery.onSnapshot(async (snap) => {
+                    const followers = (await db.collection('follows').where('followeeId', '==', uid).get()).size;
+                    const following = (await db.collection('follows').where('followerId', '==', uid).get()).size;
+                    let isFollowing = false;
+                    if (state.currentUser && uid !== state.currentUser.uid) {
+                        const followDoc = await db.collection('follows').doc(`${state.currentUser.uid}_${uid}`).get();
+                        isFollowing = followDoc.exists;
+                    }
+                    renderProfile(uid, userData, snap.docs, followers, following, isFollowing);
+                });
             }
 
-            function renderProfile(uid, userData, posts, followers, following, isFollowing) {
+            function renderProfile(uid, userData, postsDocs, followers, following, isFollowing) {
                 const container = document.getElementById('profileContainer');
                 const isOwn = uid === state.currentUser.uid;
                 const avatarHtml = userData.avatar ? `<img src="${userData.avatar}" class="avatar-img" data-src="${userData.avatar}">` : (userData.displayName?.[0] || '?');
@@ -2635,7 +2617,8 @@
                        </div>`
                     : '<p class="stats-disabled">Подписки скрыты</p>';
 
-                let postsHtml = posts.map(p => {
+                let postsHtml = postsDocs.map(doc => {
+                    const p = doc.data();
                     const time = p.timestamp ? new Date(p.timestamp.toDate()).toLocaleString() : '';
                     return `<div class="post"><div class="post-text">${p.text}</div>${p.image ? `<img src="${p.image}" class="post-image" data-src="${p.image}">` : ''}<div class="post-time">${time}</div></div>`;
                 }).join('') || '<p>Нет постов</p>';
