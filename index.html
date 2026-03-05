@@ -50,7 +50,7 @@
             --messenger-color: #ffffff;
         }
         html, body {
-            overflow-x: hidden;
+            overflow-x: hidden; /* предотвращает горизонтальный скролл */
         }
         body {
             background: var(--bg-secondary);
@@ -71,6 +71,7 @@
             overflow: hidden;
         }
 
+        /* Единый стиль для всех полей ввода, кроме range и color */
         input:not([type="range"]):not([type="color"]),
         textarea,
         select {
@@ -743,17 +744,13 @@
         }
 
         /* Чаты */
-        #chatsSection { 
-            flex-direction: row; 
-            overflow: hidden;
-        }
+        #chatsSection { flex-direction: row; }
         .chats-sidebar {
             width: 320px;
             background: var(--bg-sidebar);
             border-right: 1px solid var(--border-light);
             display: flex;
             flex-direction: column;
-            flex-shrink: 0;
         }
         .chats-list { flex: 1; overflow-y: auto; padding: 0.5rem; }
         .chat-item {
@@ -794,7 +791,6 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            min-width: 0; /* критично для предотвращения переполнения */
             max-width: 100%;
             overflow: hidden;
         }
@@ -827,8 +823,6 @@
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
         }
         .message {
             max-width: 75%;
@@ -840,7 +834,6 @@
             color: var(--text-primary);
             transition: transform 0.1s, opacity 0.1s;
             word-wrap: break-word;
-            overflow-wrap: break-word;
         }
         .message.own {
             background: var(--message-out-bg);
@@ -1123,7 +1116,6 @@
                 width: 100%;
                 transform: translateX(0);
                 transition: transform 0.25s ease;
-                z-index: 10;
             }
             .chats-sidebar.hide-mobile { transform: translateX(-100%); }
             .back-button { display: inline-block; }
@@ -1169,14 +1161,10 @@
                 font-size: 0.8rem;
             }
 
-            /* Исправление чата на мобильных — гарантия полной ширины */
-            #chatsSection {
-                overflow: hidden;
-            }
+            /* Исправление ширины окна чата на мобильных */
             .chat-main {
-                width: 100vw;
-                margin: 0;
-                padding: 0;
+                width: 100%;
+                max-width: 100%;
             }
             #chatWindowContainer {
                 width: 100%;
@@ -1184,13 +1172,6 @@
                 border-radius: 0;
                 border-left: none;
                 border-right: none;
-                box-sizing: border-box;
-            }
-            #messagesContainer {
-                padding: 0.5rem;
-            }
-            .message {
-                max-width: 90%;
             }
         }
         @media (min-width: 769px) {
@@ -1273,6 +1254,7 @@
             max-height: 100%;
             object-fit: contain;
         }
+        /* Стиль для пиксель-арта в модалке */
         #imageViewImg.pixel-art-modal {
             image-rendering: pixelated;
             image-rendering: crisp-edges;
@@ -1624,12 +1606,12 @@
                 currentUser: null,
                 profile: null,
                 followees: [],
-                friends: [],
+                friends: [], // массив uid взаимных подписок (включая себя)
                 currentChatId: null,
                 currentChatParticipant: null,
                 darkTheme: localStorage.getItem('theme') === 'dark',
                 listeners: {},
-                isDev: false
+                isDev: false // добавлено для разработчика
             };
 
             // DOM элементы
@@ -1685,7 +1667,7 @@
             const voiceLevel = document.getElementById('voiceLevel');
             const editProfileModal = document.getElementById('editProfileModal');
             const editName = document.getElementById('editName');
-            const editUserTag = document.getElementById('editUserTag');
+            const editUserTag = document.getElementById('editUserTag'); // новое поле
             const editBio = document.getElementById('editBio');
             const editAvatar = document.getElementById('editAvatar');
             const openPixelAvatarBtn = document.getElementById('openPixelAvatarBtn');
@@ -1782,12 +1764,16 @@
             let sharedCanvasCtx = null;
             let scale = 1;
             let offsetX = 0, offsetY = 0;
-            let isPanning = false;
+            let isPanning = false;          // для средней кнопки мыши
             let panStartX, panStartY;
             let sharedCanvasListenerData = null;
+
+            // Для мультитач на холсте
             let touchZoomDistance = 0;
             let touchPanStart = { x: 0, y: 0 };
             let isTouchPanning = false;
+
+            // --- Буфер для линий (чтобы не отправлять каждое движение) ---
             let pendingLines = [];
             let sendBatchTimer = null;
 
@@ -1871,6 +1857,7 @@
             }
 
             function startSharedDrawing(e) {
+                // Не начинаем рисование, если зажата средняя кнопка мыши или если это мультитач
                 if (e.button === 1) return;
                 if (e.touches && e.touches.length > 1) return;
                 e.preventDefault();
@@ -1907,6 +1894,7 @@
                 sharedCanvasCtx.stroke();
                 sharedCanvasCtx.globalAlpha = 1;
 
+                // Добавляем линию в буфер
                 pendingLines.push({
                     startX: sharedLastX,
                     startY: sharedLastY,
@@ -1917,6 +1905,7 @@
                     alpha: sharedAlpha
                 });
 
+                // Запускаем таймер для отправки, если ещё не запущен
                 if (!sendBatchTimer) {
                     sendBatchTimer = setTimeout(() => {
                         if (pendingLines.length > 0 && state.currentChatId) {
@@ -1927,7 +1916,7 @@
                             }).catch(err => console.log('Firestore batch error', err));
                         }
                         sendBatchTimer = null;
-                    }, 50);
+                    }, 50); // отправка раз в 50 мс
                 }
 
                 sharedLastX = x;
@@ -1936,6 +1925,7 @@
 
             function stopSharedDrawing() {
                 sharedDrawing = false;
+                // Принудительно отправляем оставшиеся линии
                 if (sendBatchTimer) {
                     clearTimeout(sendBatchTimer);
                     sendBatchTimer = null;
@@ -1956,17 +1946,20 @@
                 const mouseY = e.clientY - rect.top;
                 const delta = e.deltaY > 0 ? 0.9 : 1.1;
                 const newScale = scale * delta;
-                if (newScale < 0.5 || newScale > 5) return;
+                if (newScale < 0.5) return;
+                if (newScale > 5) return;
                 offsetX = mouseX - (mouseX - offsetX) * (newScale / scale);
                 offsetY = mouseY - (mouseY - offsetY) * (newScale / scale);
                 scale = newScale;
                 sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-                if (sharedCanvasListenerData) redrawAllLines(sharedCanvasListenerData.lines);
+                if (sharedCanvasListenerData) {
+                    redrawAllLines(sharedCanvasListenerData.lines);
+                }
                 updateEraserCursor();
             }
 
             function startPan(e) {
-                if (e.button === 1) {
+                if (e.button === 1) { // средняя кнопка мыши
                     e.preventDefault();
                     isPanning = true;
                     panStartX = e.clientX;
@@ -1982,13 +1975,17 @@
                 offsetX += dx;
                 offsetY += dy;
                 sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-                if (sharedCanvasListenerData) redrawAllLines(sharedCanvasListenerData.lines);
+                if (sharedCanvasListenerData) {
+                    redrawAllLines(sharedCanvasListenerData.lines);
+                }
                 panStartX = e.clientX;
                 panStartY = e.clientY;
                 updateEraserCursor();
             }
 
-            function endPan() { isPanning = false; }
+            function endPan() {
+                isPanning = false;
+            }
 
             function moveEraserCursor(e) {
                 if (!eraserMode) return;
@@ -2001,9 +1998,11 @@
                 }
             }
 
+            // Обработчики мультитач
             function handleTouchStart(e) {
                 e.preventDefault();
                 if (e.touches.length === 2) {
+                    // Начало жеста двумя пальцами
                     const touch1 = e.touches[0];
                     const touch2 = e.touches[1];
                     const dx = touch1.clientX - touch2.clientX;
@@ -2012,8 +2011,9 @@
                     touchPanStart.x = (touch1.clientX + touch2.clientX) / 2;
                     touchPanStart.y = (touch1.clientY + touch2.clientY) / 2;
                     isTouchPanning = true;
-                    sharedDrawing = false;
+                    sharedDrawing = false; // отключаем рисование
                 } else if (e.touches.length === 1) {
+                    // Один палец — рисование
                     startSharedDrawing(e);
                 }
             }
@@ -2029,6 +2029,7 @@
                     const scaleFactor = newDist / touchZoomDistance;
                     const newScale = scale * scaleFactor;
                     if (newScale >= 0.5 && newScale <= 5) {
+                        // Масштабирование относительно центра между пальцами
                         const centerX = (touch1.clientX + touch2.clientX) / 2;
                         const centerY = (touch1.clientY + touch2.clientY) / 2;
                         const rect = sharedCanvas.getBoundingClientRect();
@@ -2038,11 +2039,14 @@
                         offsetX = centerX - rect.left - prevCenterCanvasX * scale;
                         offsetY = centerY - rect.top - prevCenterCanvasY * scale;
                         sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-                        if (sharedCanvasListenerData) redrawAllLines(sharedCanvasListenerData.lines);
+                        if (sharedCanvasListenerData) {
+                            redrawAllLines(sharedCanvasListenerData.lines);
+                        }
                         updateEraserCursor();
                     }
                     touchZoomDistance = newDist;
 
+                    // Панорамирование (смещение средней точки)
                     const newCenterX = (touch1.clientX + touch2.clientX) / 2;
                     const newCenterY = (touch1.clientY + touch2.clientY) / 2;
                     const deltaX = newCenterX - touchPanStart.x;
@@ -2050,7 +2054,9 @@
                     offsetX += deltaX;
                     offsetY += deltaY;
                     sharedCanvasCtx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-                    if (sharedCanvasListenerData) redrawAllLines(sharedCanvasListenerData.lines);
+                    if (sharedCanvasListenerData) {
+                        redrawAllLines(sharedCanvasListenerData.lines);
+                    }
                     touchPanStart.x = newCenterX;
                     touchPanStart.y = newCenterY;
                     updateEraserCursor();
@@ -2060,8 +2066,12 @@
             }
 
             function handleTouchEnd(e) {
-                if (e.touches.length < 2) isTouchPanning = false;
-                if (e.touches.length === 0) stopSharedDrawing();
+                if (e.touches.length < 2) {
+                    isTouchPanning = false;
+                }
+                if (e.touches.length === 0) {
+                    stopSharedDrawing();
+                }
             }
 
             // Тема
@@ -2128,9 +2138,11 @@
                 const userRef = db.collection('users').doc(user.uid);
                 const doc = await userRef.get();
                 if (!doc.exists) {
+                    // Генерируем userTag из email (часть до @) или uid
                     const base = user.email.split('@')[0] || user.uid.slice(0, 8);
                     let userTag = base;
                     let counter = 1;
+                    // Проверяем уникальность
                     while (true) {
                         const existing = await db.collection('users').where('userTag', '==', userTag).get();
                         if (existing.empty) break;
@@ -2146,6 +2158,7 @@
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 } else {
+                    // Если у старого пользователя нет поля userTag, добавим его
                     if (!doc.data().userTag) {
                         const base = user.email.split('@')[0] || user.uid.slice(0, 8);
                         let userTag = base;
@@ -2169,6 +2182,7 @@
                 });
             }
 
+            // Функция загрузки друзей (взаимные подписки)
             async function loadFriends() {
                 if (!state.currentUser) return;
                 const uid = state.currentUser.uid;
@@ -2177,13 +2191,19 @@
                 const friends = [];
                 for (let followee of followees) {
                     const reverseFollow = await db.collection('follows').doc(`${followee}_${uid}`).get();
-                    if (reverseFollow.exists) friends.push(followee);
+                    if (reverseFollow.exists) {
+                        friends.push(followee);
+                    }
                 }
-                friends.push(uid);
+                friends.push(uid); // добавляем себя
                 state.friends = friends;
-                if (currentSectionId === 'feedSection') loadFeed();
+                // Если мы на ленте, обновляем её
+                if (currentSectionId === 'feedSection') {
+                    loadFeed();
+                }
             }
 
+            // Лента: для разработчика все посты, иначе только друзья
             function loadFeed() {
                 if (state.listeners.feed) state.listeners.feed();
                 const postsQuery = db.collection('posts').orderBy('timestamp', 'desc');
@@ -2191,7 +2211,7 @@
                     const allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     let filtered;
                     if (state.isDev) {
-                        filtered = allPosts;
+                        filtered = allPosts; // разработчик видит все
                     } else {
                         filtered = allPosts.filter(post => state.friends.includes(post.userId));
                     }
@@ -2258,6 +2278,7 @@
                         }
                     });
                 });
+                // Добавляем обработчики на изображения
                 document.querySelectorAll('.post-image').forEach(img => {
                     img.addEventListener('click', () => {
                         const isPixelArt = img.classList.contains('pixel-art');
@@ -2279,6 +2300,7 @@
                 }
             }
 
+            // Комментарии
             async function openComments(postId) {
                 currentPostIdForComment = postId;
                 const commentsSnap = await db.collection('comments').where('postId', '==', postId).orderBy('timestamp').get();
@@ -2524,6 +2546,7 @@
                 if (!newName) { alert('Имя не может быть пустым'); return; }
                 if (!newUserTag) { alert('ID не может быть пустым'); return; }
 
+                // Проверяем уникальность userTag (кроме текущего пользователя)
                 const existing = await db.collection('users')
                     .where('userTag', '==', newUserTag)
                     .get();
@@ -2553,11 +2576,14 @@
                 loadProfile(state.currentUser.uid);
             });
 
+            // Подписчики/подписки
             async function showUserList(type, uid) {
+                // Проверка доступа
                 if (uid !== state.currentUser.uid && !state.isDev && !state.friends.includes(uid)) {
                     alert('Вы не можете просматривать подписки этого пользователя');
                     return;
                 }
+
                 const title = type === 'followers' ? 'Подписчики' : 'Подписки';
                 userListTitle.textContent = title;
                 let list;
@@ -2588,6 +2614,7 @@
             closeUserList.addEventListener('click', () => userListModal.classList.remove('show'));
 
             // ========== ИЗМЕНЁННЫЕ ФУНКЦИИ ПРОФИЛЯ (без постов) ==========
+
             async function loadProfile(uid) {
                 const container = document.getElementById('profileContainer');
                 container.innerHTML = '<div class="info-message">Загрузка...</div>';
@@ -2595,11 +2622,13 @@
                 if (!userDoc.exists) return;
                 const userData = userDoc.data();
                 
+                // Отписываемся от предыдущего слушателя постов, если был
                 if (state.listeners.profilePosts) {
                     state.listeners.profilePosts();
                     state.listeners.profilePosts = null;
                 }
 
+                // Получаем количество подписчиков и подписок
                 const followers = (await db.collection('follows').where('followeeId', '==', uid).get()).size;
                 const following = (await db.collection('follows').where('followerId', '==', uid).get()).size;
                 
@@ -2616,15 +2645,19 @@
                 const container = document.getElementById('profileContainer');
                 const isOwn = uid === state.currentUser.uid;
                 
+                // Аватар (если есть – показываем картинку, иначе инициал)
                 const avatarHtml = userData.avatar 
                     ? `<img src="${userData.avatar}" class="avatar-img" data-src="${userData.avatar}">` 
                     : (userData.displayName?.[0] || '?').toUpperCase();
                 
+                // Кнопки действий
                 const followBtn = !isOwn ? `<button class="follow-btn ${isFollowing ? 'btn-secondary' : 'btn-primary'}" data-uid="${uid}">${isFollowing ? 'Отписаться' : 'Подписаться'}</button>` : '';
                 const messageBtn = !isOwn ? `<button class="btn-secondary" data-message-uid="${uid}">✉ Написать</button>` : '';
                 const editBtn = isOwn ? '<button id="editProfileBtn" class="btn-secondary">✎ Редактировать</button>' : '';
+                // Кнопка для смены фото (только для своего профиля)
                 const changePhotoBtn = isOwn ? '<button id="changePhotoBtn" class="btn-secondary" style="margin-left:0.5rem;">📷 Сменить фото</button>' : '';
 
+                // Проверка доступа к статистике (подписчики/подписки)
                 const canViewStats = isOwn || state.isDev || state.friends.includes(uid);
                 const statsHtml = canViewStats 
                     ? `<div class="stats">
@@ -2650,18 +2683,21 @@
                     </div>
                 `;
 
+                // Обработчики событий
                 if (canViewStats) {
                     document.querySelector('.followers-stats')?.addEventListener('click', () => showUserList('followers', uid));
                     document.querySelector('.following-stats')?.addEventListener('click', () => showUserList('following', uid));
                 }
                 
                 if (!isOwn) {
+                    // Для чужого профиля – кнопки подписки и сообщения
                     document.querySelector('[data-message-uid]')?.addEventListener('click', () => openChatWithUser(uid));
                     document.querySelector('.follow-btn')?.addEventListener('click', async (e) => {
                         await toggleFollow(uid, isFollowing);
-                        loadProfile(uid);
+                        loadProfile(uid); // обновляем профиль сразу
                     });
                 } else {
+                    // Для своего профиля – кнопки редактирования и смены фото
                     document.getElementById('editProfileBtn')?.addEventListener('click', showEditForm);
                     document.getElementById('changePhotoBtn')?.addEventListener('click', () => {
                         const input = document.createElement('input');
@@ -2681,19 +2717,23 @@
                     });
                 }
 
+                // Обработчик увеличения аватара при клике на картинку
                 document.querySelectorAll('.avatar-img').forEach(img => {
                     img.addEventListener('click', () => openImage(img.dataset.src || img.src));
                 });
             }
 
+            // ========== КОНЕЦ ИЗМЕНЁННЫХ ФУНКЦИЙ ==========
+
             async function toggleFollow(targetUid, currently) {
                 const id = `${state.currentUser.uid}_${targetUid}`;
                 if (currently) await db.collection('follows').doc(id).delete();
                 else await db.collection('follows').doc(id).set({ followerId: state.currentUser.uid, followeeId: targetUid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                // после изменения подписок перезагружаем друзей
                 await loadFriends();
             }
 
-            // Поиск
+            // Поиск по userTag
             searchBtn.addEventListener('click', () => searchUsers(searchInput.value));
             searchInput.addEventListener('keyup', e => e.key === 'Enter' && searchUsers(searchInput.value));
 
@@ -2886,6 +2926,7 @@
                             }
                         };
                     });
+                    // Добавляем обработчик на аватар чата
                     const avatarImg = item.querySelector('.chat-avatar img');
                     if (avatarImg) {
                         avatarImg.addEventListener('click', (e) => {
@@ -3049,6 +3090,7 @@
                     });
                 });
 
+                // Обработчики на изображения
                 document.querySelectorAll('.message-media').forEach(img => {
                     img.addEventListener('click', () => openImage(img.dataset.src || img.src));
                 });
@@ -3076,6 +3118,7 @@
 
             document.getElementById('cancelReplyBtn').addEventListener('click', clearReply);
 
+            // Удаление сообщения с корректировкой unreadCounts для всех участников
             async function deleteMessage(msgId) {
                 if (!state.currentChatId) return;
                 try {
@@ -3389,6 +3432,7 @@
                     sharedCanvas.addEventListener('mouseleave', endPan);
                     sharedCanvas.addEventListener('mousemove', moveEraserCursor);
 
+                    // Мультитач
                     sharedCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
                     sharedCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
                     sharedCanvas.addEventListener('touchend', handleTouchEnd);
@@ -3618,6 +3662,7 @@
                 logoutBtnMobile.addEventListener('click', () => auth.signOut());
             }
 
+            // ========== ОБРАБОТЧИК АУТЕНТИФИКАЦИИ ==========
             auth.onAuthStateChanged(async user => {
                 const splash = document.getElementById('splash-screen');
                 const authContainer = document.getElementById('authContainer');
@@ -3628,10 +3673,12 @@
                     splash.classList.remove('hidden');
                     authContainer.classList.add('hidden');
 
+                    // Проверяем, является ли пользователь разработчиком
                     const devDoc = await db.collection('developers').doc(user.uid).get();
                     state.isDev = devDoc.exists;
 
                     ensureUserProfile(user).then(() => {
+                        // После загрузки профиля загружаем друзей
                         loadFriends();
                     });
 
@@ -3855,6 +3902,7 @@
                 imageViewImg.src = '';
             });
 
+            // Закрытие по клику вне изображения
             imageViewModal.addEventListener('click', (e) => {
                 if (e.target === imageViewModal) {
                     imageViewModal.classList.remove('show');
