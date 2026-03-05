@@ -834,6 +834,8 @@
             color: var(--text-primary);
             transition: transform 0.1s, opacity 0.1s;
             word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: pre-wrap; /* сохраняем переносы строк */
         }
         .message.own {
             background: var(--message-out-bg);
@@ -907,6 +909,8 @@
             border-radius: 8px;
             font-size: 0.8rem;
             cursor: pointer;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         .message-reply .reply-sender {
             font-weight: 600;
@@ -914,9 +918,9 @@
         }
         .message-reply .reply-text {
             color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal; /* разрешаем перенос */
         }
         .message-reply:hover { background: rgba(0,0,0,0.1); }
 
