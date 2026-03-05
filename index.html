@@ -49,6 +49,9 @@
             --message-in-bg: #2f3139;
             --messenger-color: #ffffff;
         }
+        html, body {
+            overflow-x: hidden; /* предотвращает горизонтальный скролл */
+        }
         body {
             background: var(--bg-secondary);
             height: 100dvh;
@@ -784,7 +787,13 @@
         .chat-last-message { color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .chat-time { color: var(--text-secondary); font-size: 0.75rem; }
 
-        .chat-main { flex: 1; display: flex; flex-direction: column; }
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 100%;
+            overflow: hidden;
+        }
         #chatWindowContainer {
             display: flex;
             flex-direction: column;
@@ -793,6 +802,8 @@
             border-radius: 1rem;
             margin: 0.5rem;
             overflow: hidden;
+            box-sizing: border-box;
+            max-width: 100%;
         }
         .chat-header {
             padding: 1rem;
@@ -801,6 +812,7 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            flex-wrap: wrap;
         }
         .back-button { display: none; }
         #messagesContainer {
@@ -821,6 +833,7 @@
             position: relative;
             color: var(--text-primary);
             transition: transform 0.1s, opacity 0.1s;
+            word-wrap: break-word;
         }
         .message.own {
             background: var(--message-out-bg);
@@ -1147,6 +1160,19 @@
             .shared-canvas-toolbar label {
                 font-size: 0.8rem;
             }
+
+            /* Исправление ширины окна чата на мобильных */
+            .chat-main {
+                width: 100%;
+                max-width: 100%;
+            }
+            #chatWindowContainer {
+                width: 100%;
+                margin: 0;
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+            }
         }
         @media (min-width: 769px) {
             .mobile-only { display: none; }
@@ -1227,6 +1253,11 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
+        }
+        /* Стиль для пиксель-арта в модалке */
+        #imageViewImg.pixel-art-modal {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
         }
         #closeImageView {
             position: absolute;
@@ -2249,7 +2280,10 @@
                 });
                 // Добавляем обработчики на изображения
                 document.querySelectorAll('.post-image').forEach(img => {
-                    img.addEventListener('click', () => openImage(img.dataset.src || img.src));
+                    img.addEventListener('click', () => {
+                        const isPixelArt = img.classList.contains('pixel-art');
+                        openImage(img.dataset.src || img.src, isPixelArt);
+                    });
                 });
             }
 
@@ -3853,8 +3887,13 @@
             closeDevPanel.addEventListener('click', () => devPanelModal.classList.remove('show'));
 
             // ====== Просмотр изображений ======
-            function openImage(src) {
+            function openImage(src, isPixelArt = false) {
                 imageViewImg.src = src;
+                if (isPixelArt) {
+                    imageViewImg.classList.add('pixel-art-modal');
+                } else {
+                    imageViewImg.classList.remove('pixel-art-modal');
+                }
                 imageViewModal.classList.add('show');
             }
 
