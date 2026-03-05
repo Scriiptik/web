@@ -743,13 +743,17 @@
         }
 
         /* Чаты */
-        #chatsSection { flex-direction: row; }
+        #chatsSection { 
+            flex-direction: row; 
+            overflow: hidden;
+        }
         .chats-sidebar {
             width: 320px;
             background: var(--bg-sidebar);
             border-right: 1px solid var(--border-light);
             display: flex;
             flex-direction: column;
+            flex-shrink: 0;
         }
         .chats-list { flex: 1; overflow-y: auto; padding: 0.5rem; }
         .chat-item {
@@ -790,6 +794,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-width: 0; /* критично для предотвращения переполнения */
             max-width: 100%;
             overflow: hidden;
         }
@@ -823,6 +828,7 @@
             flex-direction: column;
             gap: 0.5rem;
             word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         .message {
             max-width: 75%;
@@ -1117,6 +1123,7 @@
                 width: 100%;
                 transform: translateX(0);
                 transition: transform 0.25s ease;
+                z-index: 10;
             }
             .chats-sidebar.hide-mobile { transform: translateX(-100%); }
             .back-button { display: inline-block; }
@@ -1162,14 +1169,14 @@
                 font-size: 0.8rem;
             }
 
-            /* Исправление ширины окна чата на мобильных */
+            /* Исправление чата на мобильных — гарантия полной ширины */
             #chatsSection {
                 overflow: hidden;
             }
             .chat-main {
                 width: 100vw;
-                margin-left: 0;
-                margin-right: 0;
+                margin: 0;
+                padding: 0;
             }
             #chatWindowContainer {
                 width: 100%;
@@ -1181,7 +1188,6 @@
             }
             #messagesContainer {
                 padding: 0.5rem;
-                word-wrap: break-word;
             }
             .message {
                 max-width: 90%;
@@ -1601,7 +1607,6 @@
     </div>
 
     <script>
-        // Полный скрипт с изменениями (в точности как в предыдущих полных версиях, с обновлённой функцией openImage и обработчиками)
         (function() {
             const firebaseConfig = {
                 apiKey: "AIzaSyBw-Jv_Kp6UijGT4giu1DCO-kAXtlU-y5w",
