@@ -1341,8 +1341,7 @@
 
         /* Разделители дат в чате */
         .date-divider {
-            position: sticky;
-            top: 10px;
+            position: relative;
             z-index: 10;
             background: var(--accent);
             color: white;
@@ -1351,25 +1350,14 @@
             text-align: center;
             font-size: 0.85rem;
             font-weight: 600;
-            margin: 12px 0;
-            display: inline-block;
-            left: 50%;
-            transform: translateX(-50%);
+            margin: 12px auto;
+            display: table;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
 
         /* Контейнер для сообщений с разделителями */
         .message-with-divider {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
             width: 100%;
-        }
-        .message-with-divider > .message {
-            align-self: flex-start;
-        }
-        .message-with-divider > .message.own {
-            align-self: flex-end;
         }
 
         /* Скелетоны для загрузки */
@@ -1860,6 +1848,7 @@
                 friends: [], // массив uid взаимных подписок (включая себя)
                 currentChatId: null,
                 currentChatParticipant: null,
+                currentChatMessages: [], // сообщения текущего чата
                 currentTheme: localStorage.getItem('theme-style') || 'light',
                 listeners: {},
                 isDev: false, // добавлено для разработчика
@@ -3435,10 +3424,14 @@
                 }
             }
 
-            function loadMessages(chatId) {
+            async function loadMessages(chatId) {
+                // Очищаем предыдущие слушатели Firestore
                 if (state.listeners.messages) state.listeners.messages();
 
                 markChatAsRead(chatId);
+                
+                // Очищаем и объявляем массив сообщений
+                state.currentChatMessages = [];
 
                 // Показываем скелетоны при первой загрузке
                 messagesContainer.innerHTML = `
@@ -3466,73 +3459,106 @@
                     </div>
                 `;
 
-                // Пагинация: загружаем по 50 сообщений
-                const MESSAGES_PER_PAGE = 50;
-                let lastVisible = null;
-                let allMessages = [];
-                let isNewMessagesAvailable = false;
+                // Загружаем ВСЕ сообщения чата сразу
+                try {
+                    const snapshot = await db.collection('messages')
+                        .where('chatId', '==', chatId)
+                        .orderBy('timestamp', 'asc')
+                        .get();
 
-                async function loadMoreMessages() {
-                    try {
+                    state.currentChatMessages = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    
+                    // Сортируем сообщения по timestamp (старые → новые)
+                    state.currentChatMessages.sort((a, b) => {
+                        const timeA = a.timestamp ? a.timestamp.toDate().getTime() : 0;
+                        const timeB = b.timestamp ? b.timestamp.toDate().getTime() : 0;
+                        return timeA - timeB;
+                    });
+
+                    renderMessages([...state.currentChatMessages], true);
+                } catch (error) {
+                    console.error('Ошибка загрузки сообщений:', error);
+                }
+
+                // Real-time слушатель для новых сообщений
+                const messagesQuery = db.collection('messages')
+                    .where('chatId', '==', chatId)
+                    .orderBy('timestamp', 'desc')
+                    .limit(1);
+
+                state.listeners.messages = messagesQuery.onSnapshot(async snapshot => {
+                    if (!snapshot.empty) {
+                        const lastMsgDoc = snapshot.docs[0];
+                        const lastMsg = { id: lastMsgDoc.id, ...lastMsgDoc.data() };
+                        
+                        // Проверяем, есть ли уже это сообщение в массиве
+                        const exists = state.currentChatMessages.some(m => m.id === lastMsg.id);
+                        if (!exists) {
+                            // Добавляем новое сообщение в массив
+                            state.currentChatMessages.push(lastMsg);
+                            state.currentChatMessages.sort((a, b) => {
+                                const timeA = a.timestamp ? a.timestamp.toDate().getTime() : 0;
+                                const timeB = b.timestamp ? b.timestamp.toDate().getTime() : 0;
+                                return timeA - timeB;
+                            });
+                            
+                            // Если сообщение от другого пользователя - показываем индикатор и прокручиваем вниз
+                            if (lastMsg.senderId !== state.currentUser.uid) {
+                                renderMessages([...state.currentChatMessages], true);
+                                const indicator = document.getElementById('newMessagesIndicator');
+                                if (indicator) {
+                                    indicator.style.display = 'block';
+                                }
+                            } else {
+                                // Своё сообщение уже добавлено, просто обновляем
+                                renderMessages([...state.currentChatMessages], false);
+                            }
+                        }
+                    }
+                });
+
+                // Обработчик кнопки "Новые сообщения"
+                const showNewMessagesBtn = document.getElementById('showNewMessagesBtn');
+                if (showNewMessagesBtn) {
+                    const clickHandler = async () => {
+                        if (!state.currentChatId) return;
+
+                        // Загружаем новые сообщения
+                        const lastMsgTimestamp = state.currentChatMessages.length > 0 ? state.currentChatMessages[state.currentChatMessages.length - 1].timestamp : null;
                         let query = db.collection('messages')
-                            .where('chatId', '==', chatId)
-                            .orderBy('timestamp', 'desc')
-                            .limit(MESSAGES_PER_PAGE);
+                            .where('chatId', '==', state.currentChatId)
+                            .orderBy('timestamp', 'asc')
+                            .limit(50);
 
-                        if (lastVisible) {
-                            query = query.startAfter(lastVisible);
+                        if (lastMsgTimestamp) {
+                            query = query.startAfter(lastMsgTimestamp);
                         }
 
                         const snapshot = await query.get();
-                        if (snapshot.empty) return;
+                        if (!snapshot.empty) {
+                            const newMessages = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                        lastVisible = snapshot.docs[snapshot.docs.length - 1];
-                        const newMessages = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                        allMessages = [...newMessages, ...allMessages];
+                            // Добавляем новые сообщения в массив
+                            state.currentChatMessages = [...state.currentChatMessages, ...newMessages];
 
-                        renderMessages([...allMessages]);
-                    } catch (error) {
-                        console.error('Ошибка загрузки сообщений:', error);
-                    }
-                }
+                            // Сортируем сообщения по timestamp (старые → новые)
+                            state.currentChatMessages.sort((a, b) => {
+                                const timeA = a.timestamp ? a.timestamp.toDate().getTime() : 0;
+                                const timeB = b.timestamp ? b.timestamp.toDate().getTime() : 0;
+                                return timeA - timeB;
+                            });
 
-                // Первая загрузка
-                loadMoreMessages();
-
-                // Проверка новых сообщений каждые 5 секунд
-                const checkNewMessagesInterval = setInterval(async () => {
-                    if (!state.currentChatId || state.currentChatId !== chatId) return;
-
-                    const lastMsgTimestamp = allMessages.length > 0 ? allMessages[0].timestamp : null;
-                    let query = db.collection('messages')
-                        .where('chatId', '==', chatId)
-                        .orderBy('timestamp', 'desc')
-                        .limit(1);
-
-                    if (lastMsgTimestamp) {
-                        query = query.startAfter(lastMsgTimestamp);
-                    }
-
-                    const snapshot = await query.get();
-                    if (!snapshot.empty) {
-                        isNewMessagesAvailable = true;
-                        // Показываем индикатор новых сообщений
-                        const indicator = document.getElementById('newMessagesIndicator');
-                        if (indicator) {
-                            indicator.style.display = 'block';
+                            renderMessages([...state.currentChatMessages], true);
                         }
-                    }
-                }, 5000);
 
-                // Сохраняем интервал для очистки
-                state.currentMessagesInterval = checkNewMessagesInterval;
+                        // Скрываем индикатор
+                        document.getElementById('newMessagesIndicator').style.display = 'none';
+                    };
 
-                // Подгрузка при скролле вверх
-                messagesContainer.addEventListener('scroll', () => {
-                    if (messagesContainer.scrollTop < 50) {
-                        loadMoreMessages();
-                    }
-                }, { passive: true });
+                    // Удаляем предыдущий обработчик если есть
+                    showNewMessagesBtn.replaceWith(showNewMessagesBtn.cloneNode(true));
+                    document.getElementById('showNewMessagesBtn').addEventListener('click', clickHandler);
+                }
             }
 
             // Функция форматирования даты для разделителей
@@ -3560,21 +3586,21 @@
                 }
             }
 
-            function renderMessages(msgs) {
+            function renderMessages(msgs, scrollToBottom = false) {
                 if (!msgs.length) { messagesContainer.innerHTML = '<div class="info-message">Нет сообщений</div>'; return; }
-                
+
                 let html = '';
                 let lastDate = null;
-                
+
                 msgs.forEach(m => {
                     const msgDate = m.timestamp ? formatDateDivider(m.timestamp) : '';
-                    
-                    // Если дата сменилась — вставляем разделитель
+
+                    // Если дата сменилась — вставляем разделитель по центру
                     if (msgDate && msgDate !== lastDate) {
-                        html += `<div class="message-with-divider"><div class="date-divider">${msgDate}</div></div>`;
+                        html += `<div class="date-divider">${msgDate}</div>`;
                         lastDate = msgDate;
                     }
-                    
+
                     const isOwn = m.senderId === state.currentUser.uid;
                     const sender = isOwn ? 'Вы' : (state.currentChatParticipant?.displayName || '');
                     const time = m.timestamp ? new Date(m.timestamp.toDate()).toLocaleTimeString() : '';
@@ -3596,16 +3622,24 @@
                     const msgClass = `message ${isOwn ? 'own' : ''} ${isSingleEmoji ? 'single-emoji' : ''}`;
                     const deleteBtn = `<button class="delete-msg" data-msg-id="${m.id}">🗑️</button>`;
 
-                    html += `<div class="message-with-divider"><div class="${msgClass}" data-msg-id="${m.id}">
+                    html += `<div class="${msgClass}" data-msg-id="${m.id}">
                         <div class="message-sender">${sender}</div>
                         ${replyHtml}
                         <div>${m.text || ''}</div>
                         ${media}
                         <div class="message-time">${time}</div>
                         ${deleteBtn}
-                    </div></div>`;
+                    </div>`;
                 });
                 messagesContainer.innerHTML = html;
+
+                // Прокрутка вниз к последнему сообщению только при первой загрузке
+                if (scrollToBottom) {
+                    // Небольшая задержка для обновления DOM
+                    setTimeout(() => {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }, 50);
+                }
 
                 document.querySelectorAll('.delete-msg').forEach(btn => {
                     btn.addEventListener('click', async e => {
@@ -3724,17 +3758,6 @@
 
             document.getElementById('cancelReplyBtn').addEventListener('click', clearReply);
 
-            // Кнопка "Новые сообщения"
-            const showNewMessagesBtn = document.getElementById('showNewMessagesBtn');
-            if (showNewMessagesBtn) {
-                showNewMessagesBtn.addEventListener('click', () => {
-                    // Прокрутка к самому низу (к новым сообщениям)
-                    messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' });
-                    // Скрываем индикатор
-                    document.getElementById('newMessagesIndicator').style.display = 'none';
-                });
-            }
-
             // Удаление сообщения с корректировкой unreadCounts для всех участников
             async function deleteMessage(msgId) {
                 if (!state.currentChatId) return;
@@ -3746,6 +3769,13 @@
                     const isOwn = msgData.senderId === state.currentUser.uid;
 
                     await msgRef.delete();
+
+                    // Удаляем сообщение из массива и перерисовываем чат
+                    const index = state.currentChatMessages.findIndex(m => m.id === msgId);
+                    if (index >= 0) {
+                        state.currentChatMessages.splice(index, 1);
+                        renderMessages([...state.currentChatMessages], false);
+                    }
 
                     const chatRef = db.collection('chats').doc(state.currentChatId);
                     await db.runTransaction(async (transaction) => {
@@ -3855,7 +3885,50 @@
                     if (Object.keys(updates).length > 0) {
                         await db.collection('chats').doc(state.currentChatId).update(updates);
                     }
-                    
+
+                    // Добавляем сообщение в массив сразу для мгновенного отображения
+                    const tempMsgId = msgRef.id;
+                    const tempMsg = {
+                        id: tempMsgId,
+                        chatId: state.currentChatId,
+                        senderId: state.currentUser.uid,
+                        text: msg.text,
+                        media: msg.media,
+                        mediaType: msg.mediaType,
+                        replyTo: msg.replyTo,
+                        timestamp: { toDate: () => new Date() } // Временный timestamp
+                    };
+
+                    state.currentChatMessages.push(tempMsg);
+                    state.currentChatMessages.sort((a, b) => {
+                        const timeA = a.timestamp ? a.timestamp.toDate().getTime() : 0;
+                        const timeB = b.timestamp ? b.timestamp.toDate().getTime() : 0;
+                        return timeA - timeB;
+                    });
+                    renderMessages([...state.currentChatMessages], true);
+
+                    // Обновляем сообщение с реальным timestamp из Firestore
+                    setTimeout(async () => {
+                        try {
+                            const msgDoc = await db.collection('messages').doc(tempMsgId).get();
+                            if (msgDoc.exists) {
+                                const realMsg = { id: msgDoc.id, ...msgDoc.data() };
+                                const index = state.currentChatMessages.findIndex(m => m.id === tempMsgId);
+                                if (index >= 0) {
+                                    state.currentChatMessages[index] = realMsg;
+                                    state.currentChatMessages.sort((a, b) => {
+                                        const timeA = a.timestamp ? a.timestamp.toDate().getTime() : 0;
+                                        const timeB = b.timestamp ? b.timestamp.toDate().getTime() : 0;
+                                        return timeA - timeB;
+                                    });
+                                    renderMessages([...state.currentChatMessages], false);
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Ошибка обновления сообщения:', e);
+                        }
+                    }, 500);
+
                     if (!media) messageInput.value = '';
                     clearReply();
                 } catch (error) {
