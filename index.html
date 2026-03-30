@@ -8,8 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <!-- MediaPipe Hands -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <!-- MediaPipe Hands загружается лениво при открытии AR -->
     <style>
         * {
             margin: 0;
@@ -48,6 +47,66 @@
             --message-out-bg: #2b4b6e;
             --message-in-bg: #2f3139;
             --messenger-color: #ffffff;
+        }
+        
+        /* Тема "Океан" - сине-зелёная */
+        body.theme-ocean {
+            --bg-primary: #f0f9ff;
+            --bg-secondary: #e0f2fe;
+            --bg-sidebar: #ffffff;
+            --text-primary: #0c4a6e;
+            --text-secondary: #334155;
+            --accent: #00b4d8;
+            --accent-hover: #0096c7;
+            --border-light: #bae6fd;
+            --message-out-bg: #7de2f5;
+            --message-in-bg: #ffffff;
+            --messenger-color: #0077b6;
+        }
+        
+        /* Тема "Закат" - оранжево-розовая */
+        body.theme-sunset {
+            --bg-primary: #fff5f5;
+            --bg-secondary: #ffe3e3;
+            --bg-sidebar: #ffffff;
+            --text-primary: #7c2d2d;
+            --text-secondary: #5c4848;
+            --accent: #ff6b6b;
+            --accent-hover: #ee5a5a;
+            --border-light: #ffc9c9;
+            --message-out-bg: #ffadad;
+            --message-in-bg: #ffffff;
+            --messenger-color: #c92a2a;
+        }
+        
+        /* Тема "Лес" - зелёная натуральная */
+        body.theme-forest {
+            --bg-primary: #f4f9f4;
+            --bg-secondary: #e8f5e9;
+            --bg-sidebar: #ffffff;
+            --text-primary: #1b4332;
+            --text-secondary: #405d52;
+            --accent: #2d6a4f;
+            --accent-hover: #1b5a40;
+            --border-light: #c8e6c9;
+            --message-out-bg: #81c784;
+            --message-in-bg: #ffffff;
+            --messenger-color: #0d3b28;
+        }
+        
+        /* Тема "Ночь" - глубокая тёмная с фиолетовым */
+        body.theme-night {
+            --bg-primary: #0f0a1f;
+            --bg-secondary: #1a1030;
+            --bg-sidebar: #1f1540;
+            --text-primary: #e9e0ff;
+            --text-secondary: #b8a8d0;
+            --accent: #7c3aed;
+            --accent-hover: #6d28d9;
+            --border-light: #3d2f5c;
+            --message-out-bg: #5b21b6;
+            --message-in-bg: #2d1f4e;
+            --messenger-color: #a78bfa;
         }
         html, body {
             overflow-x: hidden; /* предотвращает горизонтальный скролл */
@@ -1279,6 +1338,155 @@
             justify-content: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
+
+        /* Разделители дат в чате */
+        .date-divider {
+            position: sticky;
+            top: 10px;
+            z-index: 10;
+            background: var(--accent);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 16px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 12px 0;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        /* Контейнер для сообщений с разделителями */
+        .message-with-divider {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        .message-with-divider > .message {
+            align-self: flex-start;
+        }
+        .message-with-divider > .message.own {
+            align-self: flex-end;
+        }
+
+        /* Скелетоны для загрузки */
+        .skeleton {
+            background: linear-gradient(90deg, 
+                var(--bg-secondary) 25%, 
+                var(--border-light) 50%, 
+                var(--bg-secondary) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+        }
+
+        .skeleton-text {
+            height: 16px;
+            margin: 8px 0;
+        }
+
+        .skeleton-text.short {
+            width: 40%;
+        }
+
+        .skeleton-text.medium {
+            width: 70%;
+        }
+
+        .skeleton-chat-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            align-items: center;
+        }
+
+        .skeleton-post {
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            margin-bottom: 12px;
+        }
+
+        /* Модальное окно выбора темы */
+        .theme-selector-modal {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .theme-option {
+            padding: 16px;
+            border-radius: 12px;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .theme-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .theme-option.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+        }
+
+        .theme-option-light {
+            background: #ffffff;
+            color: #0d0e12;
+        }
+
+        .theme-option-dark {
+            background: #1a1c22;
+            color: #f0f2f5;
+        }
+
+        .theme-option-ocean {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            color: #0c4a6e;
+        }
+
+        .theme-option-sunset {
+            background: linear-gradient(135deg, #fff5f5, #ffe3e3);
+            color: #7c2d2d;
+        }
+
+        .theme-option-forest {
+            background: linear-gradient(135deg, #f4f9f4, #e8f5e9);
+            color: #1b4332;
+        }
+
+        .theme-option-night {
+            background: linear-gradient(135deg, #0f0a1f, #1a1030);
+            color: #e9e0ff;
+        }
+
+        .theme-option-name {
+            font-weight: 600;
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+
+        .theme-option-preview {
+            font-size: 1.5rem;
+        }
     </style>
 </head>
 <body>
@@ -1592,6 +1800,40 @@
         </div>
     </div>
 
+    <!-- Модальное окно выбора темы -->
+    <div id="themeSelectorModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h3 style="text-align: center; margin-bottom: 20px;">Выберите тему оформления</h3>
+            <div class="theme-selector-modal">
+                <div class="theme-option theme-option-light active" data-theme="light">
+                    <div class="theme-option-preview">☀️</div>
+                    <div class="theme-option-name">Светлая</div>
+                </div>
+                <div class="theme-option theme-option-dark" data-theme="dark">
+                    <div class="theme-option-preview">🌙</div>
+                    <div class="theme-option-name">Тёмная</div>
+                </div>
+                <div class="theme-option theme-option-ocean" data-theme="ocean">
+                    <div class="theme-option-preview">🌊</div>
+                    <div class="theme-option-name">Океан</div>
+                </div>
+                <div class="theme-option theme-option-sunset" data-theme="sunset">
+                    <div class="theme-option-preview">🌅</div>
+                    <div class="theme-option-name">Закат</div>
+                </div>
+                <div class="theme-option theme-option-forest" data-theme="forest">
+                    <div class="theme-option-preview">🌲</div>
+                    <div class="theme-option-name">Лес</div>
+                </div>
+                <div class="theme-option theme-option-night" data-theme="night">
+                    <div class="theme-option-preview">🌃</div>
+                    <div class="theme-option-name">Ночь</div>
+                </div>
+            </div>
+            <button id="closeThemeSelectorBtn" class="btn-secondary" style="width: 100%; margin-top: 20px;">Закрыть</button>
+        </div>
+    </div>
+
     <script>
         (function() {
             const firebaseConfig = {
@@ -1613,9 +1855,13 @@
                 friends: [], // массив uid взаимных подписок (включая себя)
                 currentChatId: null,
                 currentChatParticipant: null,
-                darkTheme: localStorage.getItem('theme') === 'dark',
+                currentTheme: localStorage.getItem('theme-style') || 'light',
                 listeners: {},
-                isDev: false // добавлено для разработчика
+                isDev: false, // добавлено для разработчика
+                cache: {
+                    avatars: {}, // кэш аватарок { uid: { url, timestamp } }
+                    users: {} // кэш профилей пользователей
+                }
             };
 
             // DOM элементы
@@ -2078,24 +2324,116 @@
                 }
             }
 
-            // Тема
+            // Тема - расширенная с 6 темами
+            const themeOptions = ['light', 'dark', 'ocean', 'sunset', 'forest', 'night'];
+            
             function applyTheme() {
-                if (state.darkTheme) {
+                // Удаляем все классы тем
+                document.body.classList.remove('dark-theme', 'theme-ocean', 'theme-sunset', 'theme-forest', 'theme-night');
+                
+                const currentTheme = state.currentTheme || 'light';
+                
+                if (currentTheme === 'dark') {
                     document.body.classList.add('dark-theme');
                     themeToggle.textContent = '☀️';
-                } else {
-                    document.body.classList.remove('dark-theme');
+                } else if (currentTheme === 'light') {
                     themeToggle.textContent = '🌙';
+                } else {
+                    document.body.classList.add(`theme-${currentTheme}`);
+                    themeToggle.textContent = '🎨';
                 }
-                localStorage.setItem('theme', state.darkTheme ? 'dark' : 'light');
+                
+                localStorage.setItem('theme-style', currentTheme);
             }
             applyTheme();
+            
+            // Открытие модального окна выбора темы при клике на themeToggle
             themeToggle.addEventListener('click', () => {
-                state.darkTheme = !state.darkTheme;
-                applyTheme();
+                openThemeSelector();
             });
+            
+            function openThemeSelector() {
+                const modal = document.getElementById('themeSelectorModal');
+                modal.classList.add('show');
+                
+                // Обновляем активную тему
+                document.querySelectorAll('.theme-option').forEach(opt => {
+                    opt.classList.remove('active');
+                    if (opt.dataset.theme === state.currentTheme) {
+                        opt.classList.add('active');
+                    }
+                });
+            }
+            
+            function closeThemeSelector() {
+                document.getElementById('themeSelectorModal').classList.remove('show');
+            }
+            
+            function setTheme(themeName) {
+                state.currentTheme = themeName;
+                applyTheme();
+                closeThemeSelector();
+            }
+            
+            // Инициализация выбора темы
+            document.querySelectorAll('.theme-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    setTheme(opt.dataset.theme);
+                });
+            });
+            
+            if (closeThemeSelectorBtn) {
+                closeThemeSelectorBtn.addEventListener('click', closeThemeSelector);
+            }
 
-            // Бургер
+            // Санитизация HTML для защиты от XSS
+            function sanitizeHTML(str) {
+                if (!str) return '';
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // Кэширование данных пользователей
+            const CACHE_TTL = 5 * 60 * 1000; // 5 минут
+
+            function getCachedUser(uid) {
+                const cached = state.cache.users[uid];
+                if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+                    return cached.data;
+                }
+                return null;
+            }
+
+            function setCachedUser(uid, data) {
+                state.cache.users[uid] = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+            }
+
+            async function getUserData(uid) {
+                // Проверяем кэш
+                const cached = getCachedUser(uid);
+                if (cached) return cached;
+
+                // Загружаем из Firestore
+                try {
+                    const doc = await db.collection('users').doc(uid).get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        setCachedUser(uid, data);
+                        return data;
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки пользователя:', error);
+                }
+                return null;
+            }
+
+            // Блокировка дублирования отправки сообщений
+            let isSending = false;
+            let sendDebounceTimer = null;
             function openDrawer() { navDrawer.classList.add('open'); overlay.classList.add('show'); }
             function closeDrawer() { navDrawer.classList.remove('open'); overlay.classList.remove('show'); }
             burgerMenu.addEventListener('click', openDrawer);
@@ -2105,7 +2443,9 @@
             // Переключение секций
             let currentSectionId = 'feedSection';
             let arModule = null;
-            function showSection(sectionId) {
+            let arModuleInitializing = false;
+
+            async function showSection(sectionId) {
                 if (currentSectionId === 'arSection' && sectionId !== 'arSection' && arModule) {
                     arModule.stopAR();
                 }
@@ -2125,8 +2465,20 @@
                     loadChats();
                 } else if (sectionId === 'feedSection') {
                     loadFeed();
-                } else if (sectionId === 'arSection' && arModule) {
-                    arModule.startAR();
+                } else if (sectionId === 'arSection') {
+                    // Ленивая инициализация AR модуля
+                    if (!arModule && !arModuleInitializing) {
+                        arModuleInitializing = true;
+                        try {
+                            arModule = await initARModule();
+                            arModule.startAR();
+                        } catch (err) {
+                            console.error('AR init error:', err);
+                            alert('Не удалось загрузить AR модуль. Проверьте подключение к интернету.');
+                        }
+                    } else if (arModule) {
+                        arModule.startAR();
+                    }
                 }
             }
 
@@ -2210,6 +2562,31 @@
             // Лента: для разработчика все посты, иначе только друзья
             function loadFeed() {
                 if (state.listeners.feed) state.listeners.feed();
+                
+                // Показываем скелетоны при первой загрузке
+                feedPosts.innerHTML = `
+                    <div class="skeleton skeleton-post">
+                        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+                            <div class="skeleton skeleton-avatar"></div>
+                            <div style="flex: 1;">
+                                <div class="skeleton skeleton-text short"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton skeleton-text medium"></div>
+                        <div class="skeleton skeleton-text medium"></div>
+                    </div>
+                    <div class="skeleton skeleton-post">
+                        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+                            <div class="skeleton skeleton-avatar"></div>
+                            <div style="flex: 1;">
+                                <div class="skeleton skeleton-text short"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton skeleton-text medium"></div>
+                        <div class="skeleton skeleton-text medium"></div>
+                    </div>
+                `;
+                
                 const postsQuery = db.collection('posts').orderBy('timestamp', 'desc');
                 state.listeners.feed = postsQuery.onSnapshot(async (snap) => {
                     const allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -2850,13 +3227,49 @@
             function loadChats() {
                 if (!state.currentUser) return;
                 if (state.listeners.chats) state.listeners.chats();
+                
+                // Показываем скелетоны при первой загрузке
+                chatsList.innerHTML = `
+                    <div class="skeleton-chat-item">
+                        <div class="skeleton skeleton-avatar"></div>
+                        <div style="flex: 1;">
+                            <div class="skeleton skeleton-text short"></div>
+                            <div class="skeleton skeleton-text medium"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-chat-item">
+                        <div class="skeleton skeleton-avatar"></div>
+                        <div style="flex: 1;">
+                            <div class="skeleton skeleton-text short"></div>
+                            <div class="skeleton skeleton-text medium"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-chat-item">
+                        <div class="skeleton skeleton-avatar"></div>
+                        <div style="flex: 1;">
+                            <div class="skeleton skeleton-text short"></div>
+                            <div class="skeleton skeleton-text medium"></div>
+                        </div>
+                    </div>
+                `;
+                
                 const q = db.collection('chats').where('participants', 'array-contains', state.currentUser.uid).orderBy('updatedAt', 'desc');
                 state.listeners.chats = q.onSnapshot(async snap => {
                     const chats = await Promise.all(snap.docs.map(async doc => {
                         const chat = { id: doc.id, ...doc.data() };
                         const otherUid = chat.participants.find(uid => uid !== state.currentUser.uid);
-                        const user = await db.collection('users').doc(otherUid).get();
-                        return { ...chat, otherUser: { uid: otherUid, ...user.data() } };
+                        
+                        // Используем кэш или загружаем из Firestore
+                        let userData = getCachedUser(otherUid);
+                        if (!userData) {
+                            const userDoc = await db.collection('users').doc(otherUid).get();
+                            if (userDoc.exists) {
+                                userData = userDoc.data();
+                                setCachedUser(otherUid, userData);
+                            }
+                        }
+                        
+                        return { ...chat, otherUser: { uid: otherUid, ...userData } };
                     }));
                     renderChatsList(chats);
                 });
@@ -2956,23 +3369,135 @@
 
             function loadMessages(chatId) {
                 if (state.listeners.messages) state.listeners.messages();
-                
+
                 markChatAsRead(chatId);
-                
-                const q = db.collection('messages').where('chatId', '==', chatId).orderBy('timestamp', 'asc');
+
+                // Показываем скелетоны при первой загрузке
+                messagesContainer.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 8px; padding: 16px;">
+                        <div style="display: flex; gap: 12px; align-items: flex-end;">
+                            <div class="skeleton skeleton-avatar" style="width: 32px; height: 32px;"></div>
+                            <div>
+                                <div class="skeleton skeleton-text short" style="width: 80px;"></div>
+                                <div class="skeleton skeleton-text medium" style="width: 200px;"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: flex-end; justify-content: flex-end;">
+                            <div>
+                                <div class="skeleton skeleton-text medium" style="width: 180px;"></div>
+                                <div class="skeleton skeleton-text short" style="width: 50px; margin-left: auto;"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: flex-end;">
+                            <div class="skeleton skeleton-avatar" style="width: 32px; height: 32px;"></div>
+                            <div>
+                                <div class="skeleton skeleton-text short" style="width: 80px;"></div>
+                                <div class="skeleton skeleton-text medium" style="width: 150px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Пагинация: загружаем по 50 сообщений
+                const MESSAGES_PER_PAGE = 50;
+                let lastVisible = null;
+                let allMessages = [];
+
+                async function loadMoreMessages() {
+                    try {
+                        let query = db.collection('messages')
+                            .where('chatId', '==', chatId)
+                            .orderBy('timestamp', 'desc')
+                            .limit(MESSAGES_PER_PAGE);
+
+                        if (lastVisible) {
+                            query = query.startAfter(lastVisible);
+                        }
+
+                        const snapshot = await query.get();
+                        if (snapshot.empty) return;
+
+                        lastVisible = snapshot.docs[snapshot.docs.length - 1];
+                        const newMessages = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                        allMessages = [...newMessages, ...allMessages]; // новые сверху
+
+                        // Реверсируем для отображения (старые снизу)
+                        renderMessages([...allMessages]);
+
+                        // Навешиваем обработчик скролла для подгрузки
+                        if (messagesContainer.scrollTop < 100 && snapshot.docs.length === MESSAGES_PER_PAGE) {
+                            // Можно добавить индикатор "загружено ещё"
+                        }
+                    } catch (error) {
+                        console.error('Ошибка загрузки сообщений:', error);
+                    }
+                }
+
+                // Первая загрузка
+                loadMoreMessages();
+
+                // Live updates через onSnapshot
+                const q = db.collection('messages').where('chatId', '==', chatId).orderBy('timestamp', 'desc');
                 state.listeners.messages = q.onSnapshot(async snap => {
                     if (state.currentChatId === chatId) {
                         await markChatAsRead(chatId);
                     }
                     const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    renderMessages(msgs);
+                    // Обновляем только если есть новые сообщения
+                    if (msgs.length > allMessages.length) {
+                        allMessages = msgs;
+                        renderMessages(msgs.reverse()); // reversing для отображения старых снизу
+                    }
                 });
+
+                // Подгрузка при скролле вверх
+                messagesContainer.addEventListener('scroll', () => {
+                    if (messagesContainer.scrollTop < 50) {
+                        loadMoreMessages();
+                    }
+                }, { passive: true });
+            }
+
+            // Функция форматирования даты для разделителей
+            function formatDateDivider(timestamp) {
+                if (!timestamp) return '';
+                const date = timestamp.toDate();
+                const now = new Date();
+                const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                const daysDiff = Math.floor((today - msgDate) / (1000 * 60 * 60 * 24));
+
+                if (msgDate.getTime() === today.getTime()) {
+                    return 'Сегодня';
+                } else if (msgDate.getTime() === yesterday.getTime()) {
+                    return 'Вчера';
+                } else if (daysDiff >= 1 && daysDiff <= 6) {
+                    // Последние 7 дней — название дня недели
+                    return date.toLocaleDateString('ru-RU', { weekday: 'long' });
+                } else {
+                    // Полная дата
+                    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+                }
             }
 
             function renderMessages(msgs) {
                 if (!msgs.length) { messagesContainer.innerHTML = '<div class="info-message">Нет сообщений</div>'; return; }
+                
                 let html = '';
+                let lastDate = null;
+                
                 msgs.forEach(m => {
+                    const msgDate = m.timestamp ? formatDateDivider(m.timestamp) : '';
+                    
+                    // Если дата сменилась — вставляем разделитель
+                    if (msgDate && msgDate !== lastDate) {
+                        html += `<div class="message-with-divider"><div class="date-divider">${msgDate}</div></div>`;
+                        lastDate = msgDate;
+                    }
+                    
                     const isOwn = m.senderId === state.currentUser.uid;
                     const sender = isOwn ? 'Вы' : (state.currentChatParticipant?.displayName || '');
                     const time = m.timestamp ? new Date(m.timestamp.toDate()).toLocaleTimeString() : '';
@@ -2994,14 +3519,14 @@
                     const msgClass = `message ${isOwn ? 'own' : ''} ${isSingleEmoji ? 'single-emoji' : ''}`;
                     const deleteBtn = `<button class="delete-msg" data-msg-id="${m.id}">🗑️</button>`;
 
-                    html += `<div class="${msgClass}" data-msg-id="${m.id}">
+                    html += `<div class="message-with-divider"><div class="${msgClass}" data-msg-id="${m.id}">
                         <div class="message-sender">${sender}</div>
                         ${replyHtml}
                         <div>${m.text || ''}</div>
                         ${media}
                         <div class="message-time">${time}</div>
                         ${deleteBtn}
-                    </div>`;
+                    </div></div>`;
                 });
                 messagesContainer.innerHTML = html;
 
@@ -3185,48 +3710,94 @@
             }
 
             async function sendMessage(text, media, mediaType) {
+                // Блокировка дублирования отправки
+                if (isSending) return;
+
                 const msgText = text !== undefined ? text : messageInput.value.trim();
                 if (!msgText && !media) return;
-                const msg = {
-                    chatId: state.currentChatId,
-                    senderId: state.currentUser.uid,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    read: false
-                };
-                if (msgText) msg.text = msgText;
-                if (media) { msg.media = media; msg.mediaType = mediaType; }
-                if (replyToMessageId) {
-                    msg.replyTo = {
-                        messageId: replyToMessageId,
-                        sender: replyToSender,
-                        text: replyToText
+
+                isSending = true;
+                sendMessageBtn.disabled = true;
+                messageInput.disabled = true;
+
+                try {
+                    const msg = {
+                        chatId: state.currentChatId,
+                        senderId: state.currentUser.uid,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        read: false
                     };
-                }
-                await db.collection('messages').add(msg);
-
-                const chatDoc = await db.collection('chats').doc(state.currentChatId).get();
-                const chatData = chatDoc.data();
-                const participants = chatData.participants;
-                const updates = {};
-                participants.forEach(uid => {
-                    if (uid !== state.currentUser.uid) {
-                        updates[`unreadCounts.${uid}`] = firebase.firestore.FieldValue.increment(1);
+                    if (msgText) msg.text = sanitizeHTML(msgText);
+                    if (media) { msg.media = media; msg.mediaType = mediaType; }
+                    if (replyToMessageId) {
+                        msg.replyTo = {
+                            messageId: replyToMessageId,
+                            sender: sanitizeHTML(replyToSender),
+                            text: sanitizeHTML(replyToText)
+                        };
                     }
-                });
-                await db.collection('chats').doc(state.currentChatId).update(updates);
+                    
+                    // Используем batch для атомарности и производительности
+                    const batch = db.batch();
+                    const msgRef = db.collection('messages').doc();
+                    batch.set(msgRef, msg);
 
-                await db.collection('chats').doc(state.currentChatId).update({
-                    lastMessage: msgText || (mediaType === 'image' ? '📷' : '🎤'),
-                    lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastMessageSender: state.currentUser.uid,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                if (!media) messageInput.value = '';
-                clearReply();
+                    // Обновляем чат одним запросом
+                    const chatRef = db.collection('chats').doc(state.currentChatId);
+                    batch.update(chatRef, {
+                        lastMessage: msgText || (mediaType === 'image' ? '📷' : '🎤'),
+                        lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastMessageSender: state.currentUser.uid,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        [`unreadCounts.${state.currentUser.uid}`]: firebase.firestore.FieldValue.increment(0)
+                    });
+                    
+                    await batch.commit();
+
+                    // Увеличиваем unreadCounts для других участников отдельным запросом
+                    const chatDoc = await db.collection('chats').doc(state.currentChatId).get();
+                    const chatData = chatDoc.data();
+                    const participants = chatData.participants;
+                    const updates = {};
+                    participants.forEach(uid => {
+                        if (uid !== state.currentUser.uid) {
+                            updates[`unreadCounts.${uid}`] = firebase.firestore.FieldValue.increment(1);
+                        }
+                    });
+                    if (Object.keys(updates).length > 0) {
+                        await db.collection('chats').doc(state.currentChatId).update(updates);
+                    }
+                    
+                    if (!media) messageInput.value = '';
+                    clearReply();
+                } catch (error) {
+                    console.error('Ошибка отправки сообщения:', error);
+                } finally {
+                    isSending = false;
+                    sendMessageBtn.disabled = false;
+                    messageInput.disabled = false;
+                    messageInput.focus();
+                }
             }
 
-            sendMessageBtn.addEventListener('click', () => sendMessage());
-            messageInput.addEventListener('keyup', e => e.key === 'Enter' && sendMessage());
+            // Обработчики с дебаунсом для предотвращения дублирования
+            sendMessageBtn.addEventListener('click', () => {
+                if (sendDebounceTimer) return;
+                sendMessage();
+                sendDebounceTimer = setTimeout(() => {
+                    sendDebounceTimer = null;
+                }, 300);
+            });
+            
+            messageInput.addEventListener('keyup', e => {
+                if (e.key === 'Enter' && !sendDebounceTimer) {
+                    if (sendDebounceTimer) return;
+                    sendMessage();
+                    sendDebounceTimer = setTimeout(() => {
+                        sendDebounceTimer = null;
+                    }, 300);
+                }
+            });
 
             attachBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', e => {
@@ -3388,13 +3959,19 @@
                 state.currentChatId = null;
             });
 
-            chatSearchInput.addEventListener('input', e => {
-                const q = e.target.value.toLowerCase();
-                document.querySelectorAll('.chat-item').forEach(item => {
-                    const name = item.querySelector('.chat-name')?.textContent.toLowerCase() || '';
-                    item.style.display = name.includes(q) ? 'flex' : 'none';
-                });
-            });
+            chatSearchInput.addEventListener('input', (() => {
+                let timeout;
+                return e => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => {
+                        const q = e.target.value.toLowerCase();
+                        document.querySelectorAll('.chat-item').forEach(item => {
+                            const name = item.querySelector('.chat-name')?.textContent.toLowerCase() || '';
+                            item.style.display = name.includes(q) ? 'flex' : 'none';
+                        });
+                    }, 300);
+                };
+            })());
 
             // Совместный холст
             if (sharedCanvasBtn) {
@@ -3478,8 +4055,35 @@
                 });
             }
 
-            // AR Module
-            function initARModule() {
+            // AR Module с ленивой загрузкой MediaPipe
+            let mediaPipeLoaded = false;
+
+            async function initARModule() {
+                // Ленивая загрузка MediaPipe Hands
+                if (!mediaPipeLoaded) {
+                    const loadingEl = document.getElementById('arUiCanvas');
+                    if (loadingEl) {
+                        const ctx = loadingEl.getContext('2d');
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(0, 0, loadingEl.width, loadingEl.height);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '20px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('Загрузка AR модуля...', loadingEl.width / 2, loadingEl.height / 2);
+                    }
+
+                    // Динамическая загрузка скрипта
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
+                        script.onload = resolve;
+                        script.onerror = () => reject(new Error('Не удалось загрузить MediaPipe Hands'));
+                        document.head.appendChild(script);
+                    });
+
+                    mediaPipeLoaded = true;
+                }
+
                 const arVideo = document.getElementById('arVideo');
                 const arDrawCanvas = document.getElementById('arDrawCanvas');
                 const arUiCanvas = document.getElementById('arUiCanvas');
@@ -3619,23 +4223,32 @@
                 }
 
                 function stopAR() {
+                    // Отмена requestAnimationFrame
                     if (arAnimationFrame) {
                         cancelAnimationFrame(arAnimationFrame);
                         arAnimationFrame = null;
                     }
+                    // Остановка media stream
                     if (arStream) {
                         arStream.getTracks().forEach(t => t.stop());
                         arStream = null;
                     }
                     if (arVideo) arVideo.srcObject = null;
+                    // Очистка canvas
                     arDrawCtx.clearRect(0, 0, arDrawCanvas.width, arDrawCanvas.height);
                     arUiCtx.clearRect(0, 0, arUiCanvas.width, arUiCanvas.height);
                 }
 
-                return { startAR, stopAR };
+                function cleanup() {
+                    stopAR();
+                    // Удаляем обработчик resize
+                    window.removeEventListener('resize', resize);
+                }
+
+                return { startAR, stopAR, cleanup };
             }
 
-            arModule = initARModule();
+            // arModule инициализируется лениво при открытии AR секции
 
             // Аутентификация
             function handleLogin() {
