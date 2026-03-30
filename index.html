@@ -1621,6 +1621,11 @@
                                 <button id="deleteChatBtn" class="btn-icon" style="margin-left:auto;">🗑️</button>
                             </div>
                             <div id="messagesContainer"></div>
+                            <div id="newMessagesIndicator" style="display:none; position:sticky; bottom:10px; left:50%; transform:translateX(-50%); z-index:100;">
+                                <button id="showNewMessagesBtn" class="btn-primary" style="border-radius:20px; padding:8px 16px; font-size:0.9rem; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+                                    ⬇️ Новые сообщения
+                                </button>
+                            </div>
                             <div id="replyPanel" class="reply-panel hidden">
                                 <div class="reply-info">
                                     <span class="reply-sender"></span>
@@ -2562,7 +2567,7 @@
             // Лента: для разработчика все посты, иначе только друзья
             function loadFeed() {
                 if (state.listeners.feed) state.listeners.feed();
-                
+
                 // Показываем скелетоны при первой загрузке
                 feedPosts.innerHTML = `
                     <div class="skeleton skeleton-post">
@@ -2586,36 +2591,99 @@
                         <div class="skeleton skeleton-text medium"></div>
                     </div>
                 `;
-                
-                const postsQuery = db.collection('posts').orderBy('timestamp', 'desc');
-                state.listeners.feed = postsQuery.onSnapshot(async (snap) => {
-                    const allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    let filtered;
-                    if (state.isDev) {
-                        filtered = allPosts; // разработчик видит все
-                    } else {
-                        filtered = allPosts.filter(post => state.friends.includes(post.userId));
+
+                // Пагинация: загружаем по 20 постов
+                const POSTS_PER_PAGE = 20;
+                let lastVisible = null;
+                let allPosts = [];
+
+                async function loadMorePosts() {
+                    try {
+                        let query = db.collection('posts')
+                            .orderBy('timestamp', 'desc')
+                            .limit(POSTS_PER_PAGE);
+
+                        if (lastVisible) {
+                            query = query.startAfter(lastVisible);
+                        }
+
+                        const snapshot = await query.get();
+                        if (snapshot.empty) return;
+
+                        lastVisible = snapshot.docs[snapshot.docs.length - 1];
+                        const newPosts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                        allPosts = [...allPosts, ...newPosts];
+
+                        // Фильтрация по друзьям
+                        let filtered;
+                        if (state.isDev) {
+                            filtered = allPosts; // разработчик видит все
+                        } else {
+                            filtered = allPosts.filter(post => state.friends.includes(post.userId));
+                        }
+
+                        renderFeed(filtered);
+                    } catch (error) {
+                        console.error('Ошибка загрузки постов:', error);
                     }
-                    renderFeed(filtered);
-                });
+                }
+
+                // Первая загрузка
+                loadMorePosts();
+
+                // Подгрузка при скролле вниз
+                const feedContainer = document.getElementById('feedSection').querySelector('.section-content');
+                feedContainer.addEventListener('scroll', () => {
+                    const scrollTop = feedContainer.scrollTop;
+                    const scrollHeight = feedContainer.scrollHeight;
+                    const clientHeight = feedContainer.clientHeight;
+
+                    // Если доскроллили до конца (за 100px до конца)
+                    if (scrollTop + clientHeight >= scrollHeight - 100) {
+                        loadMorePosts();
+                    }
+                }, { passive: true });
             }
 
             async function renderFeed(posts) {
                 if (!posts.length) { feedPosts.innerHTML = '<div class="info-message">Нет постов</div>'; return; }
+                
+                // Используем кэш для авторов вместо загрузки каждого
                 const authorIds = [...new Set(posts.map(p => p.userId))];
-                const authorSnaps = await Promise.all(authorIds.map(id => db.collection('users').doc(id).get()));
-                const authors = Object.fromEntries(authorSnaps.map(snap => [snap.id, snap.data()]));
+                const authors = {};
+                
+                // Загружаем авторов из кэша или Firestore
+                for (const uid of authorIds) {
+                    const cached = getCachedUser(uid);
+                    if (cached) {
+                        authors[uid] = cached;
+                    } else {
+                        try {
+                            const doc = await db.collection('users').doc(uid).get();
+                            if (doc.exists) {
+                                const data = doc.data();
+                                authors[uid] = data;
+                                setCachedUser(uid, data);
+                            } else {
+                                authors[uid] = { displayName: 'Неизвестно', avatar: '' };
+                            }
+                        } catch (error) {
+                            console.error('Ошибка загрузки автора:', error);
+                            authors[uid] = { displayName: 'Неизвестно', avatar: '' };
+                        }
+                    }
+                }
+                
                 let html = '';
                 for (let post of posts) {
                     const author = authors[post.userId] || { displayName: 'Неизвестно', avatar: '' };
                     const time = post.timestamp ? new Date(post.timestamp.toDate()).toLocaleString() : '';
                     const likes = post.likes?.length || 0;
                     const userLiked = post.likes?.includes(state.currentUser.uid);
-                    const commentsSnapshot = await db.collection('comments').where('postId', '==', post.id).get();
-                    const commentsCount = commentsSnapshot.size;
+                    // Комментарии не загружаем заранее, показываем заглушку
                     const pixelClass = post.isPixelArt ? 'pixel-art' : '';
-                    const avatarHtml = author.avatar 
-                        ? `<img src="${author.avatar}" class="post-author-avatar">` 
+                    const avatarHtml = author.avatar
+                        ? `<img src="${author.avatar}" class="post-author-avatar">`
                         : `<div class="post-author-avatar">${(author.displayName?.[0] || '?').toUpperCase()}</div>`;
                     html += `
                         <div class="post card" data-post-id="${post.id}">
@@ -2628,7 +2696,7 @@
                             <div class="post-text">${post.text.replace(/</g, '&lt;')}</div>
                             <div class="post-actions">
                                 <button class="like-btn ${userLiked ? 'liked' : ''}" data-post-id="${post.id}">❤️ <span class="likes-count">${likes}</span></button>
-                                <button class="comment-btn" data-post-id="${post.id}">💬 ${commentsCount}</button>
+                                <button class="comment-btn" data-post-id="${post.id}">💬</button>
                                 <button class="delete-post-btn" data-post-id="${post.id}">🗑️</button>
                             </div>
                         </div>
@@ -3402,6 +3470,7 @@
                 const MESSAGES_PER_PAGE = 50;
                 let lastVisible = null;
                 let allMessages = [];
+                let isNewMessagesAvailable = false;
 
                 async function loadMoreMessages() {
                     try {
@@ -3419,15 +3488,9 @@
 
                         lastVisible = snapshot.docs[snapshot.docs.length - 1];
                         const newMessages = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                        allMessages = [...newMessages, ...allMessages]; // новые сверху
+                        allMessages = [...newMessages, ...allMessages];
 
-                        // Реверсируем для отображения (старые снизу)
                         renderMessages([...allMessages]);
-
-                        // Навешиваем обработчик скролла для подгрузки
-                        if (messagesContainer.scrollTop < 100 && snapshot.docs.length === MESSAGES_PER_PAGE) {
-                            // Можно добавить индикатор "загружено ещё"
-                        }
                     } catch (error) {
                         console.error('Ошибка загрузки сообщений:', error);
                     }
@@ -3436,19 +3499,33 @@
                 // Первая загрузка
                 loadMoreMessages();
 
-                // Live updates через onSnapshot
-                const q = db.collection('messages').where('chatId', '==', chatId).orderBy('timestamp', 'desc');
-                state.listeners.messages = q.onSnapshot(async snap => {
-                    if (state.currentChatId === chatId) {
-                        await markChatAsRead(chatId);
+                // Проверка новых сообщений каждые 5 секунд
+                const checkNewMessagesInterval = setInterval(async () => {
+                    if (!state.currentChatId || state.currentChatId !== chatId) return;
+
+                    const lastMsgTimestamp = allMessages.length > 0 ? allMessages[0].timestamp : null;
+                    let query = db.collection('messages')
+                        .where('chatId', '==', chatId)
+                        .orderBy('timestamp', 'desc')
+                        .limit(1);
+
+                    if (lastMsgTimestamp) {
+                        query = query.startAfter(lastMsgTimestamp);
                     }
-                    const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    // Обновляем только если есть новые сообщения
-                    if (msgs.length > allMessages.length) {
-                        allMessages = msgs;
-                        renderMessages(msgs.reverse()); // reversing для отображения старых снизу
+
+                    const snapshot = await query.get();
+                    if (!snapshot.empty) {
+                        isNewMessagesAvailable = true;
+                        // Показываем индикатор новых сообщений
+                        const indicator = document.getElementById('newMessagesIndicator');
+                        if (indicator) {
+                            indicator.style.display = 'block';
+                        }
                     }
-                });
+                }, 5000);
+
+                // Сохраняем интервал для очистки
+                state.currentMessagesInterval = checkNewMessagesInterval;
 
                 // Подгрузка при скролле вверх
                 messagesContainer.addEventListener('scroll', () => {
@@ -3646,6 +3723,17 @@
             }
 
             document.getElementById('cancelReplyBtn').addEventListener('click', clearReply);
+
+            // Кнопка "Новые сообщения"
+            const showNewMessagesBtn = document.getElementById('showNewMessagesBtn');
+            if (showNewMessagesBtn) {
+                showNewMessagesBtn.addEventListener('click', () => {
+                    // Прокрутка к самому низу (к новым сообщениям)
+                    messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' });
+                    // Скрываем индикатор
+                    document.getElementById('newMessagesIndicator').style.display = 'none';
+                });
+            }
 
             // Удаление сообщения с корректировкой unreadCounts для всех участников
             async function deleteMessage(msgId) {
@@ -3956,6 +4044,13 @@
                 chatWindowContainer.classList.add('hidden');
                 noChatSelected.classList.remove('hidden');
                 if (state.listeners.messages) state.listeners.messages();
+                
+                // Очищаем интервал проверки новых сообщений
+                if (state.currentMessagesInterval) {
+                    clearInterval(state.currentMessagesInterval);
+                    state.currentMessagesInterval = null;
+                }
+                
                 state.currentChatId = null;
             });
 
