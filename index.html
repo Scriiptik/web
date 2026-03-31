@@ -2738,6 +2738,96 @@
             #messagesContainer {
                 overflow-x: hidden;                  /* предотвращаем горизонтальный скролл */
             }
+
+            /* ============================================
+               ОПТИМИЗАЦИЯ ТЕМ НА МОБИЛЬНЫХ
+               ============================================ */
+
+            /* 🌃 ТЕМА НОЧЬ - Отключаем тяжёлые анимации */
+            body.theme-night #app {
+                overflow: visible !important; /* Исправляем обрезку контента */
+                position: static !important;
+            }
+            body.theme-night #app::before {
+                display: none; /* Отключаем звёзды */
+            }
+            body.theme-night .app-header,
+            body.theme-night .messages-container,
+            body.theme-night .chats-sidebar {
+                position: relative;
+                z-index: auto;
+            }
+            body.theme-night .message {
+                animation: none; /* Отключаем анимацию появления сообщений */
+                box-shadow: none;
+            }
+            body.theme-night .btn-primary:hover,
+            body.theme-night .chat-item:hover {
+                transform: none; /* Отключаем hover-трансформации */
+            }
+
+            /* 🤖 ТЕМА КИБЕРПАНК - Отключаем тяжёлые эффекты */
+            body.theme-cyberpunk #app {
+                overflow: visible !important; /* Исправляем обрезку контента */
+                position: static !important;
+            }
+            body.theme-cyberpunk {
+                background: linear-gradient(180deg, #1a1025 0%, #2a1f3d 100%); /* Упрощаем фон */
+            }
+            body.theme-cyberpunk #app::after {
+                display: none; /* Отключаем сканирующую линию */
+            }
+            body.theme-cyberpunk .app-header,
+            body.theme-cyberpunk .messages-container,
+            body.theme-cyberpunk .chats-sidebar {
+                background: transparent !important; /* Убираем фон */
+                backdrop-filter: none !important; /* Отключаем размытие */
+                position: relative;
+                z-index: auto;
+            }
+            body.theme-cyberpunk .message {
+                animation: none; /* Отключаем анимацию сообщений */
+                clip-path: none; /* Отключаем clip-path */
+                border: 1px solid rgba(251, 191, 36, 0.3);
+            }
+            body.theme-cyberpunk .btn-primary {
+                clip-path: none; /* Отключаем clip-path кнопок */
+                border: 2px solid #fbbf24;
+            }
+            body.theme-cyberpunk .chat-item {
+                clip-path: none; /* Отключаем clip-path чатов */
+            }
+            body.theme-cyberpunk .btn-primary:hover,
+            body.theme-cyberpunk .chat-item:hover {
+                transform: none; /* Отключаем hover-трансформации */
+                box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+            }
+
+            /* 🌊 ТЕМА ОКЕАН - Отключаем пузырьки */
+            body.theme-ocean #app::before,
+            body.theme-ocean #app::after,
+            body.theme-ocean .messages-container::before {
+                display: none;
+            }
+            body.theme-ocean .message.own::after {
+                display: none;
+            }
+
+            /* 🌅 ТЕМА ЗАКАТ - Отключаем лучи */
+            body.theme-sunset #app::before {
+                display: none;
+            }
+
+            /* 🌲 ТЕМА ЛЕС - Отключаем светлячков */
+            body.theme-forest #app::before,
+            body.theme-forest #app::after {
+                display: none;
+            }
+
+            /* 🌌 ТЕМА СТЕКЛО - Отключаем частицы */
+            body.theme-glass::before {
+                display: none;
+            }
         }
         @media (min-width: 769px) {
             .mobile-only { display: none; }
