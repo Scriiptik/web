@@ -2746,7 +2746,6 @@
             /* 🌃 ТЕМА НОЧЬ - Отключаем тяжёлые анимации */
             body.theme-night #app {
                 overflow: visible !important; /* Исправляем обрезку контента */
-                position: static !important;
             }
             body.theme-night #app::before {
                 display: none; /* Отключаем звёзды */
@@ -2754,8 +2753,7 @@
             body.theme-night .app-header,
             body.theme-night .messages-container,
             body.theme-night .chats-sidebar {
-                position: relative;
-                z-index: auto;
+                z-index: 2 !important; /* Поверх псевдоэлементов */
             }
             body.theme-night .message {
                 animation: none; /* Отключаем анимацию появления сообщений */
@@ -2769,7 +2767,6 @@
             /* 🤖 ТЕМА КИБЕРПАНК - Отключаем тяжёлые эффекты */
             body.theme-cyberpunk #app {
                 overflow: visible !important; /* Исправляем обрезку контента */
-                position: static !important;
             }
             body.theme-cyberpunk {
                 background: linear-gradient(180deg, #1a1025 0%, #2a1f3d 100%); /* Упрощаем фон */
@@ -2782,8 +2779,7 @@
             body.theme-cyberpunk .chats-sidebar {
                 background: transparent !important; /* Убираем фон */
                 backdrop-filter: none !important; /* Отключаем размытие */
-                position: relative;
-                z-index: auto;
+                z-index: 2 !important; /* Поверх псевдоэлементов */
             }
             body.theme-cyberpunk .message {
                 animation: none; /* Отключаем анимацию сообщений */
