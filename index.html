@@ -16,6 +16,145 @@
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
+        
+        /* ============================================
+           УНИВЕРСАЛЬНЫЕ CSS ПЕРЕМЕННЫЕ АНИМАЦИЙ
+           ============================================ */
+        :root {
+            --anim-duration-fast: 0.2s;
+            --anim-duration-normal: 0.4s;
+            --anim-duration-slow: 0.6s;
+            --anim-easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+            --anim-easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            --anim-easing-elastic: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --glow-color: rgba(42, 123, 222, 0.3);
+            --shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.15);
+            --shadow-active: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* ============================================
+           УНИВЕРСАЛЬНЫЕ КЛАССЫ АНИМАЦИЙ
+           ============================================ */
+        
+        /* Плавное появление */
+        .anim-fade-in {
+            animation: universalFadeIn var(--anim-duration-normal) var(--anim-easing-smooth);
+        }
+        
+        @keyframes universalFadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        
+        /* Выезд снизу */
+        .anim-slide-up {
+            animation: universalSlideUp var(--anim-duration-normal) var(--anim-easing-smooth);
+        }
+        
+        @keyframes universalSlideUp {
+            0% { opacity: 0; transform: translateY(30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Выезд слева */
+        .anim-slide-left {
+            animation: universalSlideLeft var(--anim-duration-normal) var(--anim-easing-smooth);
+        }
+        
+        @keyframes universalSlideLeft {
+            0% { opacity: 0; transform: translateX(-30px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+        
+        /* Выезд справа */
+        .anim-slide-right {
+            animation: universalSlideRight var(--anim-duration-normal) var(--anim-easing-smooth);
+        }
+        
+        @keyframes universalSlideRight {
+            0% { opacity: 0; transform: translateX(30px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+        
+        /* Увеличение из точки */
+        .anim-scale-in {
+            animation: universalScaleIn var(--anim-duration-normal) var(--anim-easing-elastic);
+        }
+        
+        @keyframes universalScaleIn {
+            0% { opacity: 0; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        /* Волновой эффект (для ripple) */
+        .anim-ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .anim-ripple::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .anim-ripple:active::after {
+            width: 300px;
+            height: 300px;
+        }
+        
+        /* Парение при наведении */
+        .hover-float {
+            transition: transform var(--anim-duration-fast) var(--anim-easing-smooth),
+                        box-shadow var(--anim-duration-fast) var(--anim-easing-smooth);
+        }
+        
+        .hover-float:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        /* Свечение при наведении */
+        .glow-on-hover {
+            transition: box-shadow var(--anim-duration-fast) var(--anim-easing-smooth);
+        }
+        
+        .glow-on-hover:hover {
+            box-shadow: 0 0 20px var(--glow-color);
+        }
+        
+        /* Пульсация */
+        .anim-pulse {
+            animation: universalPulse 2s var(--anim-easing-smooth) infinite;
+        }
+        
+        @keyframes universalPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+        
+        /* Каскадное появление (для списков) */
+        .anim-stagger > *:nth-child(1) { animation-delay: 0ms; }
+        .anim-stagger > *:nth-child(2) { animation-delay: 50ms; }
+        .anim-stagger > *:nth-child(3) { animation-delay: 100ms; }
+        .anim-stagger > *:nth-child(4) { animation-delay: 150ms; }
+        .anim-stagger > *:nth-child(5) { animation-delay: 200ms; }
+        .anim-stagger > *:nth-child(6) { animation-delay: 250ms; }
+        .anim-stagger > *:nth-child(7) { animation-delay: 300ms; }
+        .anim-stagger > *:nth-child(8) { animation-delay: 350ms; }
+        .anim-stagger > *:nth-child(9) { animation-delay: 400ms; }
+        .anim-stagger > *:nth-child(10) { animation-delay: 450ms; }
+        
+        /* ============================================
+           БАЗОВЫЕ СТИЛИ
+           ============================================ */
         :root {
             --bg-primary: #ffffff;
             --bg-secondary: #f0f2f5;
@@ -34,6 +173,7 @@
             --button-radius: 2rem;
             --input-radius: 2rem;
             --messenger-color: #000000;
+            --glow-color: rgba(42, 123, 222, 0.3);
         }
         body.dark-theme {
             --bg-primary: #1a1c22;
@@ -47,23 +187,144 @@
             --message-out-bg: #2b4b6e;
             --message-in-bg: #2f3139;
             --messenger-color: #ffffff;
+            --glow-color: rgba(95, 158, 255, 0.4);
         }
-        
-        /* Тема "Океан" - сине-зелёная */
+
+        /* ☀️ СВЕТЛАЯ ТЕМА - Классическая минималистичная */
+        body:not(.dark-theme):not([class*="theme-"]) {
+            background: linear-gradient(180deg, #ffffff 0%, #f0f2f5 100%);
+            background-attachment: fixed;
+        }
+
+        body:not(.dark-theme):not([class*="theme-"]) .message {
+            animation: lightFadeIn 0.4s ease-out;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+        }
+
+        @keyframes lightFadeIn {
+            0% { transform: translateY(10px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        body:not(.dark-theme):not([class*="theme-"]) .btn-primary {
+            background: linear-gradient(45deg, #2a7bde, #1f63b5);
+            box-shadow: 0 4px 12px rgba(42, 123, 222, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body:not(.dark-theme):not([class*="theme-"]) .btn-primary:hover {
+            background: linear-gradient(45deg, #1f63b5, #155095);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(42, 123, 222, 0.4);
+        }
+
+        body:not(.dark-theme):not([class*="theme-"]) .chat-item {
+            transition: all 0.2s ease;
+            border-radius: 1rem;
+        }
+
+        body:not(.dark-theme):not([class*="theme-"]) .chat-item:hover {
+            background: linear-gradient(90deg, rgba(42, 123, 222, 0.08), transparent);
+            transform: translateX(3px);
+        }
+
+        body:not(.dark-theme):not([class*="theme-"]) input:not([type="range"]):not([type="color"]),
+        body:not(.dark-theme):not([class*="theme-"]) textarea {
+            transition: all 0.2s ease;
+        }
+
+        body:not(.dark-theme):not([class*="theme-"]) input:not([type="range"]):not([type="color"]):focus,
+        body:not(.dark-theme):not([class*="theme-"]) textarea:focus {
+            transform: scale(1.01);
+        }
+
+        /* 🌙 ТЁМНАЯ ТЕМА - Современная с неоновым свечением */
+        body.dark-theme {
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1c22 50%, #1f2128 100%);
+            background-attachment: fixed;
+            position: relative;
+        }
+
+        body.dark-theme::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 50%, rgba(95, 158, 255, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            animation: darkPulse 10s ease-in-out infinite;
+        }
+
+        @keyframes darkPulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        body.dark-theme .message {
+            animation: darkSlideIn 0.4s ease-out;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes darkSlideIn {
+            0% { transform: translateX(-15px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+
+        body.dark-theme .btn-primary {
+            background: linear-gradient(45deg, #5f9eff, #4782e0);
+            box-shadow: 0 4px 15px rgba(95, 158, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        body.dark-theme .btn-primary:hover {
+            background: linear-gradient(45deg, #4782e0, #356bc0);
+            box-shadow: 0 6px 20px rgba(95, 158, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        body.dark-theme .chat-item {
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        body.dark-theme .chat-item:hover {
+            border-left-color: var(--accent);
+            background: linear-gradient(90deg, rgba(95, 158, 255, 0.1), transparent);
+            transform: translateX(5px);
+        }
+
+        body.dark-theme input:not([type="range"]):not([type="color"]),
+        body.dark-theme textarea {
+            border: 1px solid var(--border-light);
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        body.dark-theme input:not([type="range"]):not([type="color"]):focus,
+        body.dark-theme textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(95, 158, 255, 0.2);
+        }
+
+        /* Тема "Океан" - сине-зелёная (бирюзовая) */
         body.theme-ocean {
-            --bg-primary: #f0f9ff;
-            --bg-secondary: #e0f2fe;
+            --bg-primary: #e0f7fa;
+            --bg-secondary: #b2ebf2;
             --bg-sidebar: #ffffff;
-            --text-primary: #0c4a6e;
-            --text-secondary: #334155;
-            --accent: #00b4d8;
-            --accent-hover: #0096c7;
-            --border-light: #bae6fd;
-            --message-out-bg: #7de2f5;
+            --text-primary: #006064;
+            --text-secondary: #00838f;
+            --accent: #00acc1;
+            --accent-hover: #0097a7;
+            --border-light: #80deea;
+            --message-out-bg: #4dd0e1;
             --message-in-bg: #ffffff;
-            --messenger-color: #0077b6;
+            --messenger-color: #00838f;
+            --glow-color: rgba(0, 172, 193, 0.4);
         }
-        
+
         /* Тема "Закат" - оранжево-розовая */
         body.theme-sunset {
             --bg-primary: #fff5f5;
@@ -77,8 +338,9 @@
             --message-out-bg: #ffadad;
             --message-in-bg: #ffffff;
             --messenger-color: #c92a2a;
+            --glow-color: rgba(255, 107, 107, 0.4);
         }
-        
+
         /* Тема "Лес" - зелёная натуральная */
         body.theme-forest {
             --bg-primary: #f4f9f4;
@@ -92,8 +354,9 @@
             --message-out-bg: #81c784;
             --message-in-bg: #ffffff;
             --messenger-color: #0d3b28;
+            --glow-color: rgba(45, 106, 79, 0.4);
         }
-        
+
         /* Тема "Ночь" - глубокая тёмная с фиолетовым */
         body.theme-night {
             --bg-primary: #0f0a1f;
@@ -107,6 +370,87 @@
             --message-out-bg: #5b21b6;
             --message-in-bg: #2d1f4e;
             --messenger-color: #a78bfa;
+            --glow-color: rgba(124, 58, 237, 0.5);
+        }
+
+        /* Тема "Стекло" - эффект жидкого стекла с размытием */
+        body.theme-glass {
+            --bg-primary: rgba(255, 255, 255, 0.25);
+            --bg-secondary: rgba(255, 255, 255, 0.15);
+            --bg-sidebar: rgba(255, 255, 255, 0.2);
+            --text-primary: #1a1c22;
+            --text-secondary: #5e6f7d;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border-light: rgba(255, 255, 255, 0.3);
+            --message-out-bg: rgba(99, 102, 241, 0.2);
+            --message-in-bg: rgba(255, 255, 255, 0.3);
+            --messenger-color: #4338ca;
+            --glow-color: rgba(99, 102, 241, 0.4);
+        }
+
+        /* Тема "Неон" - яркая неоновая тема */
+        body.theme-neon {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-sidebar: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #b8b8d0;
+            --accent: #00ffff;
+            --accent-hover: #00cccc;
+            --border-light: #2a2a4e;
+            --message-out-bg: #1a1a3e;
+            --message-in-bg: #2a2a4e;
+            --messenger-color: #00ffff;
+            --glow-color: rgba(0, 255, 255, 0.6);
+        }
+
+        /* Тема "Пустыня" - песочно-золотая тёплая */
+        body.theme-desert {
+            --bg-primary: #faf5f0;
+            --bg-secondary: #f5ebe0;
+            --bg-sidebar: #ffffff;
+            --text-primary: #5c4835;
+            --text-secondary: #8b7355;
+            --accent: #d4a574;
+            --accent-hover: #c49464;
+            --border-light: #e8d5c0;
+            --message-out-bg: #f5deb3;
+            --message-in-bg: #ffffff;
+            --messenger-color: #a08060;
+            --glow-color: rgba(212, 165, 116, 0.4);
+        }
+
+        /* Тема "Арктика" - холодная бело-голубая (ледяная) */
+        body.theme-arctic {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f0f8ff;
+            --bg-sidebar: #fafdff;
+            --text-primary: #2c5270;
+            --text-secondary: #6b9ac4;
+            --accent: #4299e1;
+            --accent-hover: #3182ce;
+            --border-light: #bee3f8;
+            --message-out-bg: #ebf8ff;
+            --message-in-bg: #ffffff;
+            --messenger-color: #2b6cb0;
+            --glow-color: rgba(66, 153, 225, 0.4);
+        }
+
+        /* Тема "Киберпанк" - футуристичная жёлто-фиолетовая */
+        body.theme-cyberpunk {
+            --bg-primary: #1a1025;
+            --bg-secondary: #2a1f3d;
+            --bg-sidebar: #35254d;
+            --text-primary: #f0e6ff;
+            --text-secondary: #c4b5d9;
+            --accent: #fbbf24;
+            --accent-hover: #f59e0b;
+            --border-light: #4a355f;
+            --message-out-bg: #7c3aed;
+            --message-in-bg: #4a355f;
+            --messenger-color: #fbbf24;
+            --glow-color: rgba(251, 191, 36, 0.6);
         }
         html, body {
             overflow-x: hidden; /* предотвращает горизонтальный скролл */
@@ -121,6 +465,856 @@
             color: var(--text-primary);
             transition: background-color 0.2s, color 0.2s;
         }
+
+        /* ============================================
+           УНИКАЛЬНЫЕ АНИМАЦИИ И СТИЛИ ДЛЯ ТЕМ
+           ============================================ */
+
+        /* 🌊 ТЕМА ОКЕАН - Морские волны с пузырьками */
+        body.theme-ocean {
+            background: linear-gradient(-45deg, #e0f7fa, #b2ebf2, #80deea, #4dd0e1);
+            background-size: 400% 400%;
+            animation: oceanWave 15s ease infinite;
+        }
+
+        @keyframes oceanWave {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Пузырьки на фоне */
+        body.theme-ocean #app {
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.theme-ocean #app::before {
+            content: '';
+            position: absolute;
+            bottom: -100px;
+            left: 10%;
+            width: 20px;
+            height: 20px;
+            background: rgba(0, 172, 193, 0.3);
+            border-radius: 50%;
+            animation: oceanBubble 8s infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body.theme-ocean #app::after {
+            content: '';
+            position: absolute;
+            bottom: -100px;
+            left: 30%;
+            width: 15px;
+            height: 15px;
+            background: rgba(0, 172, 193, 0.25);
+            border-radius: 50%;
+            animation: oceanBubble 10s infinite;
+            animation-delay: -2s;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body.theme-ocean .messages-container::before {
+            content: '';
+            position: absolute;
+            bottom: -100px;
+            left: 60%;
+            width: 18px;
+            height: 18px;
+            background: rgba(0, 172, 193, 0.2);
+            border-radius: 50%;
+            animation: oceanBubble 12s infinite;
+            animation-delay: -4s;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes oceanBubble {
+            0% { transform: translateY(0) scale(1); opacity: 0.6; }
+            100% { transform: translateY(-100vh) scale(1.5); opacity: 0; }
+        }
+
+        /* Контент поверх пузырьков */
+        body.theme-ocean .message,
+        body.theme-ocean .chat-item {
+            position: relative;
+            z-index: 1;
+        }
+
+        body.theme-ocean .message.own {
+            animation: messageFloat 0.5s ease-out;
+            position: relative;
+        }
+
+        body.theme-ocean .message.own::after {
+            content: '○';
+            position: absolute;
+            right: -15px;
+            bottom: 5px;
+            font-size: 10px;
+            color: var(--accent);
+            animation: bubbleRise 2s infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes messageFloat {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes bubbleRise {
+            0% { transform: translateY(0); opacity: 0.6; }
+            100% { transform: translateY(-20px); opacity: 0; }
+        }
+
+        body.theme-ocean .btn-primary {
+            background: linear-gradient(45deg, var(--accent), var(--accent-hover));
+            box-shadow: 0 4px 15px rgba(0, 172, 193, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        body.theme-ocean .btn-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 20px rgba(0, 172, 193, 0.6);
+        }
+
+        /* 🌅 ТЕМА ЗАКАТ - Тёплый градиент с лучами */
+        body.theme-sunset {
+            background: linear-gradient(-45deg, #fff5f5, #ffe3e3, #ffc9c9, #ffadad);
+            background-size: 400% 400%;
+            animation: sunsetGlow 10s ease infinite;
+        }
+
+        @keyframes sunsetGlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Тёплые световые лучи на фоне */
+        body.theme-sunset #app {
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.theme-sunset #app::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at center, rgba(255, 107, 107, 0.15) 0%, transparent 70%);
+            animation: sunsetRay 15s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes sunsetRay {
+            0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.5; }
+            50% { transform: scale(1.2) rotate(10deg); opacity: 0.8; }
+        }
+
+        /* Контент поверх лучей */
+        body.theme-sunset .message,
+        body.theme-sunset .chat-item,
+        body.theme-sunset .app-header {
+            position: relative;
+            z-index: 1;
+        }
+
+        body.theme-sunset .message {
+            animation: warmAppear 0.4s ease-out;
+            border-radius: 1.2rem;
+        }
+
+        @keyframes warmAppear {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        body.theme-sunset .btn-primary {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a5a);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        body.theme-sunset .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        }
+
+        body.theme-sunset .chat-item {
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        body.theme-sunset .chat-item:hover {
+            transform: scale(1.02);
+        }
+
+        /* 🌲 ТЕМА ЛЕС - Природная со светлячками */
+        body.theme-forest {
+            background: linear-gradient(135deg, #f4f9f4 0%, #e8f5e9 50%, #c8e6c9 100%);
+            background-attachment: fixed;
+        }
+
+        /* Светлячки на фоне */
+        body.theme-forest #app {
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.theme-forest #app::before {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: rgba(45, 106, 79, 0.6);
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(45, 106, 79, 0.8);
+            animation: fireflyFloat 15s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body.theme-forest #app::after {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(45, 106, 79, 0.5);
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(45, 106, 79, 0.7);
+            animation: fireflyFloat 12s ease-in-out infinite;
+            animation-delay: -5s;
+            top: 20%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes fireflyFloat {
+            0% { 
+                transform: translate(0, 0); 
+                opacity: 0; 
+            }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { 
+                transform: translate(100px, -100vh); 
+                opacity: 0; 
+            }
+        }
+
+        /* Контент поверх светлячков */
+        body.theme-forest .message,
+        body.theme-forest .chat-item {
+            position: relative;
+            z-index: 1;
+        }
+
+        body.theme-forest .message {
+            animation: leafFall 0.5s ease-out;
+            border-radius: 1rem 1rem 1rem 0;
+        }
+
+        body.theme-forest .message.own {
+            border-radius: 1rem 1rem 0 1rem;
+        }
+
+        @keyframes leafFall {
+            0% { transform: translateX(-10px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+
+        body.theme-forest .btn-primary {
+            background: linear-gradient(45deg, #2d6a4f, #1b5a40);
+            box-shadow: 0 4px 15px rgba(45, 106, 79, 0.4);
+        }
+
+        body.theme-forest .btn-primary:hover {
+            background: linear-gradient(45deg, #1b5a40, #0d3b28);
+            transform: translateY(-2px);
+        }
+
+        body.theme-forest .chat-item {
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        body.theme-forest .chat-item:hover {
+            border-left-color: var(--accent);
+            background: linear-gradient(90deg, rgba(45, 106, 79, 0.1), transparent);
+        }
+
+        /* 🌃 ТЕМА НОЧЬ - Космическая со звёздами */
+        body.theme-night {
+            background: linear-gradient(135deg, #0f0a1f 0%, #1a1030 50%, #2d1f4e 100%);
+            background-attachment: fixed;
+        }
+
+        /* Звёзды на фоне всего приложения */
+        body.theme-night #app {
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.theme-night #app::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #e9e0ff, transparent),
+                radial-gradient(2px 2px at 40px 70px, #ffffff, transparent),
+                radial-gradient(1px 1px at 90px 40px, #e9e0ff, transparent),
+                radial-gradient(2px 2px at 160px 120px, #ffffff, transparent),
+                radial-gradient(1px 1px at 230px 80px, #e9e0ff, transparent),
+                radial-gradient(2px 2px at 300px 150px, #ffffff, transparent),
+                radial-gradient(1px 1px at 370px 50px, #e9e0ff, transparent),
+                radial-gradient(2px 2px at 450px 100px, #ffffff, transparent);
+            background-size: 500px 200px;
+            animation: starsTwinkle 5s infinite;
+            pointer-events: none;
+            opacity: 0.6;
+            z-index: 0;
+        }
+
+        @keyframes starsTwinkle {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* Контент поверх звёзд */
+        body.theme-night .app-header,
+        body.theme-night .messages-container,
+        body.theme-night .chats-sidebar {
+            position: relative;
+            z-index: 1;
+        }
+
+        body.theme-night .message {
+            animation: spaceAppear 0.5s ease-out;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+        }
+
+        @keyframes spaceAppear {
+            0% { transform: scale(0.9); opacity: 0; box-shadow: 0 0 0 transparent; }
+            100% { transform: scale(1); opacity: 1; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3); }
+        }
+
+        body.theme-night .btn-primary {
+            background: linear-gradient(45deg, #7c3aed, #6d28d9);
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        body.theme-night .btn-primary:hover {
+            box-shadow: 0 0 30px rgba(124, 58, 237, 0.8);
+            transform: translateY(-2px);
+        }
+
+        body.theme-night .chat-item {
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        body.theme-night .chat-item:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
+        }
+
+        /* 🪟 ТЕМА СТЕКЛО - Улучшенный Glassmorphism с преломлением */
+        body.theme-glass {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f6d365 75%, #667eea 100%);
+            background-size: 400% 400%;
+            animation: glassShift 15s ease infinite;
+            background-attachment: fixed;
+            position: relative;
+        }
+
+        @keyframes glassShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Плавающие частицы на фоне */
+        body.theme-glass::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.35) 0%, transparent 40%);
+            background-size: 200px 200px, 150px 150px, 180px 180px;
+            animation: glassParticles 20s linear infinite;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        @keyframes glassParticles {
+            0% { background-position: 0 0, 0 0, 0 0; }
+            100% { background-position: 200px 200px, 150px 150px, 180px 180px; }
+        }
+
+        /* Применяем блюр только к конкретным элементам, не к #app */
+        body.theme-glass .app-header,
+        body.theme-glass .chats-sidebar,
+        body.theme-glass .nav-drawer,
+        body.theme-glass .card,
+        body.theme-glass .message,
+        body.theme-glass .chat-item {
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Модальное окно выбора темы - отдельный стиль для стекла */
+        body.theme-glass #themeSelectorModal .modal-content {
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        body.theme-glass .message {
+            animation: glassSlide 0.4s ease-out;
+        }
+
+        @keyframes glassSlide {
+            0% { transform: translateX(-20px) scale(0.95); opacity: 0; }
+            100% { transform: translateX(0) scale(1); opacity: 1; }
+        }
+
+        body.theme-glass .btn-primary {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.9), rgba(79, 70, 229, 0.9));
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.theme-glass .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+        }
+
+        body.theme-glass .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        body.theme-glass .btn-primary:hover {
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        body.theme-glass .chat-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        body.theme-glass .chat-item:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateX(5px) scale(1.02);
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
+        }
+
+        body.theme-glass input:not([type="range"]):not([type="color"]),
+        body.theme-glass textarea {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        body.theme-glass input:not([type="range"]):not([type="color"]):focus,
+        body.theme-glass textarea:focus {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Блик на кнопках */
+        body.theme-glass .btn-primary:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        /* 💡 ТЕМА НЕОН - Кибер-неон с глитчем и линиями */
+        body.theme-neon {
+            background: #0a0a0f;
+        }
+
+        /* Линии сканирования на фоне приложения */
+        body.theme-neon #app {
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.theme-neon #app::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 255, 255, 0.04) 2px,
+                rgba(0, 255, 255, 0.04) 4px
+            );
+            pointer-events: none;
+            z-index: 0;
+            animation: neonLines 10s linear infinite;
+        }
+
+        @keyframes neonLines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(50px); }
+        }
+
+        /* Контент поверх линий */
+        body.theme-neon .message,
+        body.theme-neon .chat-item,
+        body.theme-neon .app-header {
+            position: relative;
+            z-index: 1;
+        }
+
+        body.theme-neon .message {
+            animation: neonFlicker 0.5s ease-out;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+        }
+
+        @keyframes neonFlicker {
+            0% { opacity: 0; filter: brightness(2); }
+            50% { opacity: 0.8; filter: brightness(1.5); }
+            100% { opacity: 1; filter: brightness(1); }
+        }
+
+        body.theme-neon .btn-primary {
+            background: transparent;
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 10px rgba(0, 255, 255, 0.1);
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.8);
+            transition: all 0.3s ease;
+        }
+
+        body.theme-neon .btn-primary:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8), inset 0 0 20px rgba(0, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        body.theme-neon .chat-item {
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        body.theme-neon .chat-item:hover {
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+        }
+
+        body.theme-neon input:not([type="range"]):not([type="color"]),
+        body.theme-neon textarea {
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            background: rgba(0, 255, 255, 0.05);
+        }
+
+        body.theme-neon input:not([type="range"]):not([type="color"]):focus,
+        body.theme-neon textarea:focus {
+            border-color: #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        /* 🏜️ ТЕМА ПУСТЫНЯ - Песчаная с мерцающими частицами */
+        body.theme-desert {
+            background: linear-gradient(135deg, #faf5f0 0%, #f5ebe0 50%, #e8d5c0 100%);
+            background-attachment: fixed;
+        }
+
+        /* Мерцающие песчаные частицы на фоне */
+        body.theme-desert #app {
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.theme-desert #app::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(circle at 50% 50%, transparent 0%, transparent 10%, rgba(212, 165, 116, 0.15) 10%, rgba(212, 165, 116, 0.15) 12%, transparent 12%),
+                radial-gradient(circle at 50% 50%, transparent 0%, transparent 20%, rgba(212, 165, 116, 0.08) 20%, rgba(212, 165, 116, 0.08) 22%, transparent 22%);
+            background-size: 60px 60px, 100px 100px;
+            pointer-events: none;
+            z-index: 0;
+            animation: desertPattern 30s linear infinite;
+        }
+
+        @keyframes desertPattern {
+            0% { background-position: 0 0; }
+            100% { background-position: 60px 100px; }
+        }
+
+        /* Контент поверх узоров */
+        body.theme-desert .message,
+        body.theme-desert .chat-item,
+        body.theme-desert .app-header {
+            position: relative;
+            z-index: 1;
+        }
+
+        body.theme-desert .message {
+            animation: sandAppear 0.4s ease-out;
+            border-radius: 0.5rem;
+        }
+
+        @keyframes sandAppear {
+            0% { transform: translateY(10px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        body.theme-desert .btn-primary {
+            background: linear-gradient(45deg, #d4a574, #c49464);
+            box-shadow: 0 4px 15px rgba(212, 165, 116, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        body.theme-desert .btn-primary:hover {
+            background: linear-gradient(45deg, #c49464, #b48454);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 165, 116, 0.6);
+        }
+
+        body.theme-desert .chat-item {
+            border-right: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        body.theme-desert .chat-item:hover {
+            border-right-color: var(--accent);
+            background: linear-gradient(90deg, transparent, rgba(212, 165, 116, 0.1));
+        }
+
+        /* ❄️ ТЕМА АРКТИКА - Ледяная с падающими снежинками */
+        body.theme-arctic {
+            background: linear-gradient(180deg, #ffffff 0%, #f0f8ff 50%, #e6f3ff 100%);
+            background-attachment: fixed;
+        }
+
+        /* Снежинки на фоне всего приложения */
+        body.theme-arctic #app {
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.theme-arctic #app::before,
+        body.theme-arctic #app::after {
+            content: '❄';
+            position: absolute;
+            top: -50px;
+            color: rgba(66, 153, 225, 0.15);
+            font-size: 20px;
+            animation: snowFall 15s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body.theme-arctic #app::after {
+            content: '❄';
+            left: 30%;
+            color: rgba(66, 153, 225, 0.1);
+            font-size: 15px;
+            animation: snowFall 20s linear infinite;
+            animation-delay: -5s;
+        }
+
+        /* Дополнительные снежинки */
+        body.theme-arctic .messages-container::before,
+        body.theme-arctic .chats-sidebar::before {
+            content: '❄';
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            color: rgba(66, 153, 225, 0.12);
+            font-size: 18px;
+            animation: snowFall 18s linear infinite;
+            animation-delay: -8s;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes snowFall {
+            0% { transform: translateY(-50px) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* Контент поверх снежинок */
+        body.theme-arctic .message,
+        body.theme-arctic .chat-item,
+        body.theme-arctic .app-header {
+            position: relative;
+            z-index: 1;
+        }
+
+        body.theme-arctic .message {
+            animation: iceForm 0.5s ease-out;
+            border: 1px solid rgba(190, 227, 248, 0.5);
+            box-shadow: 0 2px 10px rgba(66, 153, 225, 0.1);
+        }
+
+        @keyframes iceForm {
+            0% { transform: scale(0.95); opacity: 0; }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        body.theme-arctic .btn-primary {
+            background: linear-gradient(45deg, #4299e1, #3182ce);
+            box-shadow: 0 4px 15px rgba(66, 153, 225, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        body.theme-arctic .btn-primary:hover {
+            background: linear-gradient(45deg, #3182ce, #2c5282);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(66, 153, 225, 0.5);
+        }
+
+        body.theme-arctic .chat-item {
+            transition: all 0.3s ease;
+            background: rgba(235, 248, 255, 0.5);
+        }
+
+        body.theme-arctic .chat-item:hover {
+            background: rgba(235, 248, 255, 0.8);
+            transform: scale(1.01);
+        }
+
+        /* 🤖 ТЕМА КИБЕРПАНК - Футуристичная с сеткой и сканированием */
+        body.theme-cyberpunk {
+            background:
+                linear-gradient(180deg, #1a1025 0%, #2a1f3d 100%),
+                linear-gradient(90deg, rgba(251, 191, 36, 0.15) 1px, transparent 1px),
+                linear-gradient(rgba(251, 191, 36, 0.15) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            background-attachment: fixed;
+        }
+
+        /* Сетка и сканирующая линия на фоне приложения */
+        body.theme-cyberpunk #app {
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.theme-cyberpunk #app::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, transparent 0%, rgba(124, 58, 237, 0.3) 50%, transparent 100%);
+            animation: cyberpunkScan 4s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes cyberpunkScan {
+            0% { transform: translateY(-100%); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(100%); opacity: 0; }
+        }
+
+        /* Контент поверх сетки */
+        body.theme-cyberpunk .app-header,
+        body.theme-cyberpunk .messages-container,
+        body.theme-cyberpunk .chats-sidebar {
+            position: relative;
+            z-index: 1;
+            background: rgba(26, 16, 37, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        body.theme-cyberpunk .message {
+            animation: digitalAppear 0.3s ease-out;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+        }
+
+        @keyframes digitalAppear {
+            0% { transform: translateX(-10px); opacity: 0; filter: hue-rotate(90deg); }
+            100% { transform: translateX(0); opacity: 1; filter: hue-rotate(0deg); }
+        }
+
+        body.theme-cyberpunk .btn-primary {
+            background: linear-gradient(45deg, #fbbf24, #f59e0b);
+            color: #1a1025;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+            border: 2px solid #fbbf24;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            font-weight: 700;
+        }
+
+        body.theme-cyberpunk .btn-primary:hover {
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.8);
+            transform: translateY(-2px);
+        }
+
+        body.theme-cyberpunk .chat-item {
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            transition: all 0.3s ease;
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+        }
+
+        body.theme-cyberpunk .chat-item:hover {
+            border-color: #fbbf24;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+            transform: translateX(5px);
+        }
+
+        body.theme-cyberpunk input:not([type="range"]):not([type="color"]),
+        body.theme-cyberpunk textarea {
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            background: rgba(251, 191, 36, 0.05);
+            font-family: 'Courier New', monospace;
+        }
+
+        body.theme-cyberpunk input:not([type="range"]):not([type="color"]):focus,
+        body.theme-cyberpunk textarea:focus {
+            border-color: #fbbf24;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+        }
+        
         #app {
             width: 100%;
             height: 100dvh;
@@ -140,7 +1334,7 @@
             background: var(--bg-secondary);
             color: var(--text-primary);
             outline: none;
-            transition: border-color 0.2s;
+            transition: all var(--anim-duration-fast) var(--anim-easing-smooth);
             font-size: 1rem;
             width: 100%;
             box-sizing: border-box;
@@ -150,23 +1344,49 @@
         textarea:focus,
         select:focus {
             border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--glow-color);
+            transform: scale(1.01);
+            background: var(--bg-primary);
         }
 
         .btn-primary {
-            background: var(--accent);
+            background: linear-gradient(45deg, var(--accent), var(--accent-hover));
             color: white;
             padding: 0.8rem 1.5rem;
             border-radius: var(--button-radius);
             font-weight: 600;
             border: 1px solid transparent;
             cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
+            transition: all var(--anim-duration-normal) var(--anim-easing-smooth);
+            box-shadow: 0 4px 15px var(--glow-color);
+            position: relative;
+            overflow: hidden;
         }
+        
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
         .btn-primary:hover {
-            background: var(--accent-hover);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
+            background: linear-gradient(45deg, var(--accent-hover), var(--accent));
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px var(--glow-color);
         }
+        
+        .btn-primary:active::before {
+            width: 300px;
+            height: 300px;
+        }
+        
         .btn-secondary {
             background: transparent;
             color: var(--accent);
@@ -174,12 +1394,18 @@
             padding: 0.5rem 1rem;
             border-radius: var(--button-radius);
             cursor: pointer;
-            transition: background 0.2s, border-color 0.2s;
+            transition: all var(--anim-duration-normal) var(--anim-easing-smooth);
+            position: relative;
+            overflow: hidden;
         }
+        
         .btn-secondary:hover {
             background: var(--bg-secondary);
             border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
+        
         .btn-icon {
             width: 40px;
             height: 40px;
@@ -192,69 +1418,212 @@
             background: transparent;
             border: 1px solid transparent;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all var(--anim-duration-fast) var(--anim-easing-smooth);
         }
+        
         .btn-icon:hover {
             background: var(--bg-secondary);
             border-color: var(--border-light);
+            transform: scale(1.1);
+        }
         }
 
-        /* Splash screen */
+        /* Splash screen - УЛУЧШЕННАЯ АНИМАЦИЯ */
         #splash-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: var(--bg-primary);
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
             z-index: 9999;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.5s;
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
         }
+        
+        #splash-screen::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, var(--glow-color) 0%, transparent 70%);
+            opacity: 0;
+            animation: splashGlow 3s ease-out infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes splashGlow {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 0.3; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.5); }
+        }
+        
         #splash-screen.hidden {
             opacity: 0;
             pointer-events: none;
         }
+        
         .splash-content {
             text-align: center;
+            position: relative;
+            z-index: 10;
         }
+        
         .splash-script {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.3rem;
             justify-content: center;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            perspective: 1000px;
         }
+        
         .splash-letter {
-            font-size: 4rem;
-            font-weight: 700;
+            font-size: 5rem;
+            font-weight: 800;
             color: var(--accent);
             opacity: 0;
-            transform: translateY(-50px);
-            animation: fall 0.4s forwards;
-            animation-delay: calc(0.1s * var(--i));
+            transform: translateY(-80px) rotateX(-90deg);
+            animation: splashLetterDrop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            animation-delay: calc(0.12s * var(--i));
+            text-shadow: 0 10px 30px var(--glow-color);
+            display: inline-block;
         }
+        
         .splash-letter:nth-child(1) { --i: 1; }
         .splash-letter:nth-child(2) { --i: 2; }
         .splash-letter:nth-child(3) { --i: 3; }
         .splash-letter:nth-child(4) { --i: 4; }
         .splash-letter:nth-child(5) { --i: 5; }
         .splash-letter:nth-child(6) { --i: 6; }
-        @keyframes fall {
-            0% { opacity: 0; transform: translateY(-50px); }
-            100% { opacity: 1; transform: translateY(0); }
+        .splash-letter:nth-child(7) { --i: 7; }
+        
+        @keyframes splashLetterDrop {
+            0% { 
+                opacity: 0; 
+                transform: translateY(-80px) rotateX(-90deg);
+                filter: blur(10px);
+            }
+            60% {
+                opacity: 1;
+                transform: translateY(10px) rotateX(10deg);
+                filter: blur(0);
+            }
+            80% {
+                transform: translateY(-5px) rotateX(-5deg);
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateY(0) rotateX(0);
+                filter: blur(0);
+            }
         }
+        
         .splash-messenger {
-            font-size: 2.5rem;
-            font-weight: 600;
+            font-size: 3rem;
+            font-weight: 700;
             color: var(--messenger-color);
             opacity: 0;
-            transform: translateY(20px);
-            animation: appear 0.5s 0.7s forwards;
+            transform: translateY(30px) scale(0.9);
+            animation: splashMessengerAppear 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            animation-delay: 1s;
+            letter-spacing: 0.1em;
+            position: relative;
         }
-        @keyframes appear {
-            to { opacity: 1; transform: translateY(0); }
+        
+        .splash-messenger::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            animation: splashUnderline 0.8s ease-out forwards;
+            animation-delay: 1.5s;
+        }
+        
+        @keyframes splashMessengerAppear {
+            0% { 
+                opacity: 0; 
+                transform: translateY(30px) scale(0.9);
+                filter: blur(5px);
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+            }
+        }
+        
+        @keyframes splashUnderline {
+            0% { width: 0; opacity: 1; }
+            100% { width: 80%; opacity: 0.8; }
+        }
+        
+        .splash-tagline {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            opacity: 0;
+            margin-top: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 0.05em;
+            animation: splashFadeIn 0.8s ease-out forwards;
+            animation-delay: 1.8s;
+        }
+        
+        @keyframes splashFadeIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Частицы на фоне splash screen */
+        .splash-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        
+        .splash-particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            opacity: 0;
+            animation: particleFloat 3s ease-out infinite;
+        }
+        
+        .splash-particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .splash-particle:nth-child(2) { left: 20%; animation-delay: 0.5s; }
+        .splash-particle:nth-child(3) { left: 30%; animation-delay: 1s; }
+        .splash-particle:nth-child(4) { left: 50%; animation-delay: 1.5s; }
+        .splash-particle:nth-child(5) { left: 70%; animation-delay: 2s; }
+        .splash-particle:nth-child(6) { left: 80%; animation-delay: 2.5s; }
+        .splash-particle:nth-child(7) { left: 90%; animation-delay: 0.3s; }
+        
+        @keyframes particleFloat {
+            0% { 
+                opacity: 0; 
+                transform: translateY(100vh) scale(0);
+            }
+            50% {
+                opacity: 0.6;
+                transform: translateY(50vh) scale(1);
+            }
+            100% { 
+                opacity: 0; 
+                transform: translateY(-100px) scale(0.5);
+            }
         }
 
         /* Аутентификация */
@@ -330,9 +1699,60 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            transition: background 0.2s;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .burger-menu:hover { background: var(--bg-secondary); }
+        
+        .burger-menu:hover { 
+            background: var(--bg-secondary);
+            transform: scale(1.1);
+        }
+        
+        /* Анимация бургер меню - превращение в крестик */
+        .burger-menu.open {
+            transform: rotate(180deg);
+        }
+        
+        .burger-menu.open .burger-line {
+            background: var(--accent);
+        }
+        
+        .burger-menu .burger-line {
+            width: 20px;
+            height: 2px;
+            background: currentColor;
+            position: absolute;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+        
+        .burger-menu .burger-line:nth-child(1) {
+            transform: translateY(-6px);
+        }
+        
+        .burger-menu .burger-line:nth-child(2) {
+            transform: translateY(0);
+        }
+        
+        .burger-menu .burger-line:nth-child(3) {
+            transform: translateY(6px);
+        }
+        
+        .burger-menu.open .burger-line:nth-child(1) {
+            transform: translateY(0) rotate(45deg);
+        }
+        
+        .burger-menu.open .burger-line:nth-child(2) {
+            opacity: 0;
+            transform: translateX(-10px);
+        }
+        
+        .burger-menu.open .burger-line:nth-child(3) {
+            transform: translateY(0) rotate(-45deg);
+        }
         .logo {
             font-size: 1.3rem;
             font-weight: 600;
@@ -800,6 +2220,40 @@
             max-width: 90%;
             max-height: 90%;
             overflow-y: auto;
+            animation: modalScaleIn var(--anim-duration-slow) var(--anim-easing-elastic);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes modalScaleIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.8) translateY(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            animation: modalBackdropFadeIn var(--anim-duration-normal) var(--anim-easing-smooth);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes modalBackdropFadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
         }
 
         /* Чаты */
@@ -819,10 +2273,19 @@
             padding: 0.75rem;
             border-radius: 1rem;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all var(--anim-duration-normal) var(--anim-easing-smooth);
         }
-        .chat-item:hover { background: var(--bg-secondary); }
-        .chat-item.active { background: var(--bg-secondary); }
+        
+        .chat-item:hover {
+            background: var(--bg-secondary);
+            transform: translateX(5px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .chat-item.active {
+            background: var(--bg-secondary);
+            box-shadow: 0 2px 15px var(--glow-color);
+        }
         .chat-avatar {
             width: 54px;
             height: 54px;
@@ -891,12 +2354,49 @@
             align-self: flex-start;
             position: relative;
             color: var(--text-primary);
-            transition: transform 0.1s, opacity 0.1s;
+            transition: all var(--anim-duration-fast) var(--anim-easing-smooth);
             word-wrap: break-word;
         }
+        
+        .message:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
         .message.own {
             background: var(--message-out-bg);
             align-self: flex-end;
+        }
+        
+        /* Анимация только для новых сообщений */
+        .message.new {
+            animation: messageSlideIn var(--anim-duration-normal) var(--anim-easing-smooth);
+        }
+        
+        .message.own.new {
+            animation: messageSlideInOwn var(--anim-duration-normal) var(--anim-easing-smooth);
+        }
+
+        @keyframes messageSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes messageSlideInOwn {
+            0% {
+                opacity: 0;
+                transform: translateX(20px) translateY(20px) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0) translateY(0) scale(1);
+            }
         }
         .message.single-emoji {
             font-size: 4rem;
@@ -1415,6 +2915,8 @@
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 16px;
             margin-top: 20px;
+            position: relative;
+            z-index: 4;
         }
 
         .theme-option {
@@ -1424,6 +2926,8 @@
             cursor: pointer;
             transition: all 0.2s;
             text-align: center;
+            position: relative;
+            z-index: 3;
         }
 
         .theme-option:hover {
@@ -1447,8 +2951,8 @@
         }
 
         .theme-option-ocean {
-            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-            color: #0c4a6e;
+            background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+            color: #006064;
         }
 
         .theme-option-sunset {
@@ -1466,6 +2970,36 @@
             color: #e9e0ff;
         }
 
+        .theme-option-glass {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
+            color: #ffffff;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .theme-option-neon {
+            background: linear-gradient(135deg, #0a0a0f, #1a1a2e);
+            color: #00ffff;
+            border: 1px solid #00ffff;
+        }
+
+        .theme-option-desert {
+            background: linear-gradient(135deg, #faf5f0, #f5ebe0);
+            color: #5c4835;
+        }
+
+        .theme-option-arctic {
+            background: linear-gradient(135deg, #ffffff, #f0f8ff);
+            color: #2c5270;
+            border: 1px solid #bee3f8;
+        }
+
+        .theme-option-cyberpunk {
+            background: linear-gradient(135deg, #1a1025, #2a1f3d);
+            color: #fbbf24;
+            border: 1px solid #fbbf24;
+        }
+
         .theme-option-name {
             font-weight: 600;
             margin-top: 8px;
@@ -1481,6 +3015,15 @@
     <div id="app">
         <!-- Splash screen (видим по умолчанию) -->
         <div id="splash-screen" class="">
+            <div class="splash-particles">
+                <div class="splash-particle"></div>
+                <div class="splash-particle"></div>
+                <div class="splash-particle"></div>
+                <div class="splash-particle"></div>
+                <div class="splash-particle"></div>
+                <div class="splash-particle"></div>
+                <div class="splash-particle"></div>
+            </div>
             <div class="splash-content">
                 <div class="splash-script">
                     <span class="splash-letter">S</span>
@@ -1491,6 +3034,7 @@
                     <span class="splash-letter">T</span>
                 </div>
                 <div class="splash-messenger">Messenger</div>
+                <div class="splash-tagline">Добро пожаловать в будущее общения</div>
             </div>
         </div>
 
@@ -1519,7 +3063,11 @@
         <div id="appContainer" class="hidden">
             <div class="app-header">
                 <div class="header-left">
-                    <button id="burgerMenu" class="burger-menu">☰</button>
+                    <button id="burgerMenu" class="burger-menu">
+                        <span class="burger-line"></span>
+                        <span class="burger-line"></span>
+                        <span class="burger-line"></span>
+                    </button>
                     <span class="logo"><span class="logo-script">SCRIPT</span><span class="logo-messenger">Messenger</span></span>
                 </div>
                 <div class="user-info">
@@ -1821,6 +3369,26 @@
                 <div class="theme-option theme-option-night" data-theme="night">
                     <div class="theme-option-preview">🌃</div>
                     <div class="theme-option-name">Ночь</div>
+                </div>
+                <div class="theme-option theme-option-glass" data-theme="glass">
+                    <div class="theme-option-preview">🪟</div>
+                    <div class="theme-option-name">Стекло</div>
+                </div>
+                <div class="theme-option theme-option-neon" data-theme="neon">
+                    <div class="theme-option-preview">💡</div>
+                    <div class="theme-option-name">Неон</div>
+                </div>
+                <div class="theme-option theme-option-desert" data-theme="desert">
+                    <div class="theme-option-preview">🏜️</div>
+                    <div class="theme-option-name">Пустыня</div>
+                </div>
+                <div class="theme-option theme-option-arctic" data-theme="arctic">
+                    <div class="theme-option-preview">❄️</div>
+                    <div class="theme-option-name">Арктика</div>
+                </div>
+                <div class="theme-option theme-option-cyberpunk" data-theme="cyberpunk">
+                    <div class="theme-option-preview">🤖</div>
+                    <div class="theme-option-name">Киберпанк</div>
                 </div>
             </div>
             <button id="closeThemeSelectorBtn" class="btn-secondary" style="width: 100%; margin-top: 20px;">Закрыть</button>
@@ -2318,15 +3886,15 @@
                 }
             }
 
-            // Тема - расширенная с 6 темами
-            const themeOptions = ['light', 'dark', 'ocean', 'sunset', 'forest', 'night'];
-            
+            // Тема - расширенная с 11 темами
+            const themeOptions = ['light', 'dark', 'ocean', 'sunset', 'forest', 'night', 'glass', 'neon', 'desert', 'arctic', 'cyberpunk'];
+
             function applyTheme() {
                 // Удаляем все классы тем
-                document.body.classList.remove('dark-theme', 'theme-ocean', 'theme-sunset', 'theme-forest', 'theme-night');
-                
+                document.body.classList.remove('dark-theme', 'theme-ocean', 'theme-sunset', 'theme-forest', 'theme-night', 'theme-glass', 'theme-neon', 'theme-desert', 'theme-arctic', 'theme-cyberpunk');
+
                 const currentTheme = state.currentTheme || 'light';
-                
+
                 if (currentTheme === 'dark') {
                     document.body.classList.add('dark-theme');
                     themeToggle.textContent = '☀️';
@@ -2334,9 +3902,21 @@
                     themeToggle.textContent = '🌙';
                 } else {
                     document.body.classList.add(`theme-${currentTheme}`);
-                    themeToggle.textContent = '🎨';
+                    // Иконка для каждой темы
+                    const themeIcons = {
+                        ocean: '🌊',
+                        sunset: '🌅',
+                        forest: '🌲',
+                        night: '🌃',
+                        glass: '🪟',
+                        neon: '💡',
+                        desert: '🏜️',
+                        arctic: '❄️',
+                        cyberpunk: '🤖'
+                    };
+                    themeToggle.textContent = themeIcons[currentTheme] || '🎨';
                 }
-                
+
                 localStorage.setItem('theme-style', currentTheme);
             }
             applyTheme();
@@ -2428,8 +4008,16 @@
             // Блокировка дублирования отправки сообщений
             let isSending = false;
             let sendDebounceTimer = null;
-            function openDrawer() { navDrawer.classList.add('open'); overlay.classList.add('show'); }
-            function closeDrawer() { navDrawer.classList.remove('open'); overlay.classList.remove('show'); }
+            function openDrawer() { 
+                navDrawer.classList.add('open'); 
+                overlay.classList.add('show'); 
+                burgerMenu.classList.add('open');
+            }
+            function closeDrawer() { 
+                navDrawer.classList.remove('open'); 
+                overlay.classList.remove('show');
+                burgerMenu.classList.remove('open');
+            }
             burgerMenu.addEventListener('click', openDrawer);
             closeDrawerBtn.addEventListener('click', closeDrawer);
             overlay.addEventListener('click', closeDrawer);
@@ -3490,18 +5078,19 @@
                     if (!snapshot.empty) {
                         const lastMsgDoc = snapshot.docs[0];
                         const lastMsg = { id: lastMsgDoc.id, ...lastMsgDoc.data() };
-                        
+
                         // Проверяем, есть ли уже это сообщение в массиве
-                        const exists = state.currentChatMessages.some(m => m.id === lastMsg.id);
-                        if (!exists) {
-                            // Добавляем новое сообщение в массив
+                        const existingIndex = state.currentChatMessages.findIndex(m => m.id === lastMsg.id);
+
+                        if (existingIndex === -1) {
+                            // Сообщение новое - добавляем
                             state.currentChatMessages.push(lastMsg);
                             state.currentChatMessages.sort((a, b) => {
                                 const timeA = a.timestamp ? a.timestamp.toDate().getTime() : 0;
                                 const timeB = b.timestamp ? b.timestamp.toDate().getTime() : 0;
                                 return timeA - timeB;
                             });
-                            
+
                             // Если сообщение от другого пользователя - показываем индикатор и прокручиваем вниз
                             if (lastMsg.senderId !== state.currentUser.uid) {
                                 renderMessages([...state.currentChatMessages], true);
@@ -3514,6 +5103,7 @@
                                 renderMessages([...state.currentChatMessages], false);
                             }
                         }
+                        // Если сообщение уже есть в массиве - ничего не делаем (оно уже отображено)
                     }
                 });
 
@@ -3586,7 +5176,7 @@
                 }
             }
 
-            function renderMessages(msgs, scrollToBottom = false) {
+            function renderMessages(msgs, scrollToBottom = false, isNewMessage = false) {
                 if (!msgs.length) { messagesContainer.innerHTML = '<div class="info-message">Нет сообщений</div>'; return; }
 
                 let html = '';
@@ -3619,7 +5209,9 @@
                         else if (m.mediaType === 'audio') media = `<audio controls src="${m.media}" class="message-audio"></audio>`;
                     }
                     const isSingleEmoji = m.text && /^[\p{Emoji}]+$/u.test(m.text) && m.text.length <= 2;
-                    const msgClass = `message ${isOwn ? 'own' : ''} ${isSingleEmoji ? 'single-emoji' : ''}`;
+                    // Добавляем класс 'new' только для нового сообщения
+                    const isNew = isNewMessage && m.id === msgs[msgs.length - 1].id;
+                    const msgClass = `message ${isOwn ? 'own' : ''} ${isSingleEmoji ? 'single-emoji' : ''} ${isNew ? 'new' : ''}`;
                     const deleteBtn = `<button class="delete-msg" data-msg-id="${m.id}">🗑️</button>`;
 
                     html += `<div class="${msgClass}" data-msg-id="${m.id}">
@@ -3632,6 +5224,14 @@
                     </div>`;
                 });
                 messagesContainer.innerHTML = html;
+
+                // Удаляем класс 'new' после завершения анимации
+                if (isNewMessage) {
+                    setTimeout(() => {
+                        const newMsg = messagesContainer.querySelector('.message.new');
+                        if (newMsg) newMsg.classList.remove('new');
+                    }, 600);
+                }
 
                 // Прокрутка вниз к последнему сообщению только при первой загрузке
                 if (scrollToBottom) {
@@ -3887,9 +5487,8 @@
                     }
 
                     // Добавляем сообщение в массив сразу для мгновенного отображения
-                    const tempMsgId = msgRef.id;
-                    const tempMsg = {
-                        id: tempMsgId,
+                    const newMsg = {
+                        id: msgRef.id,
                         chatId: state.currentChatId,
                         senderId: state.currentUser.uid,
                         text: msg.text,
@@ -3899,36 +5498,15 @@
                         timestamp: { toDate: () => new Date() } // Временный timestamp
                     };
 
-                    state.currentChatMessages.push(tempMsg);
+                    state.currentChatMessages.push(newMsg);
                     state.currentChatMessages.sort((a, b) => {
                         const timeA = a.timestamp ? a.timestamp.toDate().getTime() : 0;
                         const timeB = b.timestamp ? b.timestamp.toDate().getTime() : 0;
                         return timeA - timeB;
                     });
-                    renderMessages([...state.currentChatMessages], true);
+                    renderMessages([...state.currentChatMessages], true, true);
 
-                    // Обновляем сообщение с реальным timestamp из Firestore
-                    setTimeout(async () => {
-                        try {
-                            const msgDoc = await db.collection('messages').doc(tempMsgId).get();
-                            if (msgDoc.exists) {
-                                const realMsg = { id: msgDoc.id, ...msgDoc.data() };
-                                const index = state.currentChatMessages.findIndex(m => m.id === tempMsgId);
-                                if (index >= 0) {
-                                    state.currentChatMessages[index] = realMsg;
-                                    state.currentChatMessages.sort((a, b) => {
-                                        const timeA = a.timestamp ? a.timestamp.toDate().getTime() : 0;
-                                        const timeB = b.timestamp ? b.timestamp.toDate().getTime() : 0;
-                                        return timeA - timeB;
-                                    });
-                                    renderMessages([...state.currentChatMessages], false);
-                                }
-                            }
-                        } catch (e) {
-                            console.error('Ошибка обновления сообщения:', e);
-                        }
-                    }, 500);
-
+                    // Очищаем поле ввода и форму
                     if (!media) messageInput.value = '';
                     clearReply();
                 } catch (error) {
