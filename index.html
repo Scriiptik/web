@@ -758,7 +758,7 @@
         /* Звёзды на фоне всего приложения */
         body.theme-night #app {
             position: relative;
-            overflow: hidden;
+            overflow: visible; /* Исправлено: было overflow: hidden, обрезало контент */
         }
 
         body.theme-night #app::before {
@@ -768,7 +768,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: 
+            background-image:
                 radial-gradient(2px 2px at 20px 30px, #e9e0ff, transparent),
                 radial-gradient(2px 2px at 40px 70px, #ffffff, transparent),
                 radial-gradient(1px 1px at 90px 40px, #e9e0ff, transparent),
@@ -794,7 +794,7 @@
         body.theme-night .messages-container,
         body.theme-night .chats-sidebar {
             position: relative;
-            z-index: 1;
+            z-index: 2; /* Исправлено: было z-index: 1, увеличено для надёжности */
         }
 
         body.theme-night .message {
@@ -1232,7 +1232,7 @@
         /* Сетка и сканирующая линия на фоне приложения */
         body.theme-cyberpunk #app {
             position: relative;
-            overflow: hidden;
+            overflow: visible; /* Исправлено: было overflow: hidden, обрезало контент */
         }
 
         body.theme-cyberpunk #app::after {
@@ -1259,9 +1259,9 @@
         body.theme-cyberpunk .messages-container,
         body.theme-cyberpunk .chats-sidebar {
             position: relative;
-            z-index: 1;
-            background: rgba(26, 16, 37, 0.8);
-            backdrop-filter: blur(5px);
+            z-index: 2; /* Исправлено: было z-index: 1, увеличено для надёжности */
+            background: transparent; /* Исправлено: было rgba(...), мешало отображению */
+            backdrop-filter: none; /* Исправлено: было blur(5px), вызывало проблемы */
         }
 
         body.theme-cyberpunk .message {
