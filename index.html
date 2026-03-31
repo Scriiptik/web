@@ -2273,6 +2273,8 @@
             padding: 0.75rem;
             border-radius: 1rem;
             cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
             transition: all var(--anim-duration-normal) var(--anim-easing-smooth);
         }
         
@@ -4993,7 +4995,12 @@
                     if (avatarImg) {
                         avatarImg.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            openImage(avatarImg.dataset.src || avatarImg.src);
+                            // На мобильных устройствах открываем чат вместо изображения
+                            if (window.innerWidth <= 768) {
+                                item.click();
+                            } else {
+                                openImage(avatarImg.dataset.src || avatarImg.src);
+                            }
                         });
                     }
                 });
