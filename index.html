@@ -248,7 +248,7 @@
 
         body.dark-theme::before {
             content: '';
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
@@ -784,12 +784,12 @@
         /* Плавающие частицы на фоне */
         body.theme-glass::before {
             content: '';
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: 
+            background-image:
                 radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 50%),
                 radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
                 radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.35) 0%, transparent 40%);
@@ -1308,7 +1308,7 @@
         /* Винные волны на фоне */
         body.theme-darkwine::before {
             content: '';
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
@@ -2401,6 +2401,7 @@
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
+            position: relative;
         }
         .message {
             max-width: 75%;
@@ -2797,6 +2798,22 @@
                ОПТИМИЗАЦИЯ ТЕМ НА МОБИЛЬНЫХ
                ============================================ */
 
+            /* 📱 ОТКЛЮЧАЕМ ФИКСИРОВАННЫЙ ФОН ДЛЯ ВСЕХ ТЕМ
+               Исправление проблемы с прокруткой на iOS Safari и Android */
+            body:not(.dark-theme):not([class*="theme-"]),
+            body.theme-ocean,
+            body.theme-sunset,
+            body.theme-forest,
+            body.theme-glass,
+            body.theme-desert,
+            body.theme-arctic,
+            body.theme-newyear,
+            body.theme-darkolive,
+            body.theme-darkwine {
+                background-attachment: scroll !important;
+                -webkit-background-attachment: scroll !important;
+            }
+
             /* 🌊 ТЕМА ОКЕАН - Отключаем пузырьки */
             body.theme-ocean #app::before,
             body.theme-ocean #app::after,
@@ -2845,6 +2862,28 @@
             /* 🌌 ТЕМА СТЕКЛО - Отключаем частицы */
             body.theme-glass::before {
                 display: none;
+            }
+
+            /* 🌙 ТЁМНАЯ ТЕМА - Отключаем фоновый эффект */
+            body.dark-theme::before {
+                display: none;
+            }
+
+            /* 📱 ИСПРАВЛЕНИЕ ПРОКРУТКИ ДЛЯ ВСЕХ ТЕМ
+               Гарантируем корректную работу скролла на мобильных */
+            #app {
+                overflow: hidden !important;
+                -webkit-overflow-scrolling: touch;
+            }
+            #messagesContainer {
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+                flex: 1;
+                position: relative !important;
+            }
+            .chats-sidebar {
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
             }
         }
         @media (min-width: 769px) {
