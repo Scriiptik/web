@@ -357,22 +357,6 @@
             --glow-color: rgba(45, 106, 79, 0.4);
         }
 
-        /* Тема "Ночь" - глубокая тёмная с фиолетовым */
-        body.theme-night {
-            --bg-primary: #0f0a1f;
-            --bg-secondary: #1a1030;
-            --bg-sidebar: #1f1540;
-            --text-primary: #e9e0ff;
-            --text-secondary: #b8a8d0;
-            --accent: #7c3aed;
-            --accent-hover: #6d28d9;
-            --border-light: #3d2f5c;
-            --message-out-bg: #5b21b6;
-            --message-in-bg: #2d1f4e;
-            --messenger-color: #a78bfa;
-            --glow-color: rgba(124, 58, 237, 0.5);
-        }
-
         /* Тема "Стекло" - эффект жидкого стекла с размытием */
         body.theme-glass {
             --bg-primary: rgba(255, 255, 255, 0.25);
@@ -437,21 +421,54 @@
             --glow-color: rgba(66, 153, 225, 0.4);
         }
 
-        /* Тема "Киберпанк" - футуристичная жёлто-фиолетовая */
-        body.theme-cyberpunk {
-            --bg-primary: #1a1025;
-            --bg-secondary: #2a1f3d;
-            --bg-sidebar: #35254d;
-            --text-primary: #f0e6ff;
-            --text-secondary: #c4b5d9;
-            --accent: #fbbf24;
-            --accent-hover: #f59e0b;
-            --border-light: #4a355f;
-            --message-out-bg: #7c3aed;
-            --message-in-bg: #4a355f;
-            --messenger-color: #fbbf24;
-            --glow-color: rgba(251, 191, 36, 0.6);
+        /* Тема "Новый год" - уютная праздничная красно-золотая тема */
+        body.theme-newyear {
+            --bg-primary: #1a2f3a;
+            --bg-secondary: #0f1c24;
+            --bg-sidebar: #1a2f3a;
+            --text-primary: #f5e6d3;
+            --text-secondary: #c9a962;
+            --accent: #c9a962;
+            --accent-hover: #e0c078;
+            --border-light: #2d4a5c;
+            --message-out-bg: #8b2e2e;
+            --message-in-bg: #2d4a5c;
+            --messenger-color: #d4af37;
+            --glow-color: rgba(201, 169, 98, 0.5);
         }
+
+        /* Тема "Тёмная оливка" - тёмная тема с оливковым оттенком */
+        body.theme-darkolive {
+            --bg-primary: #3a3b22;
+            --bg-secondary: #2a2b18;
+            --bg-sidebar: #353620;
+            --text-primary: #e8e8d0;
+            --text-secondary: #a8b080;
+            --accent: #8a9a5b;
+            --accent-hover: #9aab6b;
+            --border-light: #4a4b30;
+            --message-out-bg: #5a6a3b;
+            --message-in-bg: #404130;
+            --messenger-color: #9aab6b;
+            --glow-color: rgba(138, 154, 91, 0.4);
+        }
+
+        /* Тема "Тёмное вино" - тёмная тема с винным оттенком */
+        body.theme-darkwine {
+            --bg-primary: #26090b;
+            --bg-secondary: #1a0608;
+            --bg-sidebar: #2f0d10;
+            --text-primary: #f0d8dc;
+            --text-secondary: #b08088;
+            --accent: #8b3a5b;
+            --accent-hover: #a04565;
+            --border-light: #3d1518;
+            --message-out-bg: #5a2535;
+            --message-in-bg: #351018;
+            --messenger-color: #c05070;
+            --glow-color: rgba(139, 58, 91, 0.5);
+        }
+
         html, body {
             overflow-x: hidden; /* предотвращает горизонтальный скролл */
         }
@@ -747,85 +764,6 @@
         body.theme-forest .chat-item:hover {
             border-left-color: var(--accent);
             background: linear-gradient(90deg, rgba(45, 106, 79, 0.1), transparent);
-        }
-
-        /* 🌃 ТЕМА НОЧЬ - Космическая со звёздами */
-        body.theme-night {
-            background: linear-gradient(135deg, #0f0a1f 0%, #1a1030 50%, #2d1f4e 100%);
-            background-attachment: fixed;
-        }
-
-        /* Звёзды на фоне всего приложения */
-        body.theme-night #app {
-            position: relative;
-            overflow: visible; /* Исправлено: было overflow: hidden, обрезало контент */
-        }
-
-        body.theme-night #app::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image:
-                radial-gradient(2px 2px at 20px 30px, #e9e0ff, transparent),
-                radial-gradient(2px 2px at 40px 70px, #ffffff, transparent),
-                radial-gradient(1px 1px at 90px 40px, #e9e0ff, transparent),
-                radial-gradient(2px 2px at 160px 120px, #ffffff, transparent),
-                radial-gradient(1px 1px at 230px 80px, #e9e0ff, transparent),
-                radial-gradient(2px 2px at 300px 150px, #ffffff, transparent),
-                radial-gradient(1px 1px at 370px 50px, #e9e0ff, transparent),
-                radial-gradient(2px 2px at 450px 100px, #ffffff, transparent);
-            background-size: 500px 200px;
-            animation: starsTwinkle 5s infinite;
-            pointer-events: none;
-            opacity: 0.6;
-            z-index: 0;
-        }
-
-        @keyframes starsTwinkle {
-            0%, 100% { opacity: 0.6; }
-            50% { opacity: 1; }
-        }
-
-        /* Контент поверх звёзд */
-        body.theme-night .app-header,
-        body.theme-night .messages-container,
-        body.theme-night .chats-sidebar {
-            position: relative;
-            z-index: 2; /* Исправлено: было z-index: 1, увеличено для надёжности */
-        }
-
-        body.theme-night .message {
-            animation: spaceAppear 0.5s ease-out;
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
-        }
-
-        @keyframes spaceAppear {
-            0% { transform: scale(0.9); opacity: 0; box-shadow: 0 0 0 transparent; }
-            100% { transform: scale(1); opacity: 1; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3); }
-        }
-
-        body.theme-night .btn-primary {
-            background: linear-gradient(45deg, #7c3aed, #6d28d9);
-            box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
-            transition: all 0.3s ease;
-        }
-
-        body.theme-night .btn-primary:hover {
-            box-shadow: 0 0 30px rgba(124, 58, 237, 0.8);
-            transform: translateY(-2px);
-        }
-
-        body.theme-night .chat-item {
-            border: 1px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        body.theme-night .chat-item:hover {
-            border-color: var(--accent);
-            box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
         }
 
         /* 🪟 ТЕМА СТЕКЛО - Улучшенный Glassmorphism с преломлением */
@@ -1219,102 +1157,218 @@
             transform: scale(1.01);
         }
 
-        /* 🤖 ТЕМА КИБЕРПАНК - Футуристичная с сеткой и сканированием */
-        body.theme-cyberpunk {
-            background:
-                linear-gradient(180deg, #1a1025 0%, #2a1f3d 100%),
-                linear-gradient(90deg, rgba(251, 191, 36, 0.15) 1px, transparent 1px),
-                linear-gradient(rgba(251, 191, 36, 0.15) 1px, transparent 1px);
-            background-size: 100% 100%, 40px 40px, 40px 40px;
+        /* 🎄 ТЕМА НОВЫЙ ГОД - Праздничная с гирляндами и уютом */
+        body.theme-newyear {
+            background: linear-gradient(135deg, #1a2f3a 0%, #0f1c24 50%, #2d4a5c 100%);
+            background-attachment: fixed;
+            position: relative;
+        }
+
+        /* Гирлянды на фоне */
+        body.theme-newyear #app::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background-image: 
+                radial-gradient(circle at 20px 20px, #c9a962 3px, transparent 4px),
+                radial-gradient(circle at 60px 20px, #8b2e2e 3px, transparent 4px),
+                radial-gradient(circle at 100px 20px, #c9a962 3px, transparent 4px),
+                radial-gradient(circle at 140px 20px, #8b2e2e 3px, transparent 4px),
+                radial-gradient(circle at 180px 20px, #c9a962 3px, transparent 4px),
+                radial-gradient(circle at 220px 20px, #8b2e2e 3px, transparent 4px);
+            background-size: 240px 40px;
+            animation: garlandBlink 3s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.7;
+        }
+
+        @keyframes garlandBlink {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        /* Контент поверх гирлянд */
+        body.theme-newyear .app-header,
+        body.theme-newyear .messages-container,
+        body.theme-newyear .chats-sidebar {
+            position: relative;
+            z-index: 1;
+        }
+
+        body.theme-newyear .message {
+            animation: cozyAppear 0.4s ease-out;
+            border-radius: 1.2rem;
+            box-shadow: 0 4px 15px rgba(201, 169, 98, 0.2);
+        }
+
+        @keyframes cozyAppear {
+            0% { transform: scale(0.95) translateY(10px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        body.theme-newyear .btn-primary {
+            background: linear-gradient(45deg, #c9a962, #d4af37);
+            box-shadow: 0 4px 15px rgba(201, 169, 98, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        body.theme-newyear .btn-primary:hover {
+            background: linear-gradient(45deg, #d4af37, #e0c078);
+            box-shadow: 0 6px 20px rgba(201, 169, 98, 0.6);
+            transform: translateY(-2px);
+        }
+
+        body.theme-newyear .chat-item {
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+            border-radius: 1rem;
+        }
+
+        body.theme-newyear .chat-item:hover {
+            border-left-color: var(--accent);
+            background: linear-gradient(90deg, rgba(201, 169, 98, 0.15), transparent);
+            transform: translateX(5px);
+        }
+
+        /* 🫒 ТЕМА ТЁМНАЯ ОЛИВКА - Спокойная с природными акцентами */
+        body.theme-darkolive {
+            background: linear-gradient(135deg, #3a3b22 0%, #2a2b18 50%, #404130 100%);
             background-attachment: fixed;
         }
 
-        /* Сетка и сканирующая линия на фоне приложения */
-        body.theme-cyberpunk #app {
-            position: relative;
-            overflow: visible; /* Исправлено: было overflow: hidden, обрезало контент */
-        }
-
-        body.theme-cyberpunk #app::after {
+        /* Лёгкие частицы на фоне */
+        body.theme-darkolive #app::after {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(180deg, transparent 0%, rgba(124, 58, 237, 0.3) 50%, transparent 100%);
-            animation: cyberpunkScan 4s linear infinite;
+            background-image:
+                radial-gradient(2px 2px at 50px 100px, rgba(138, 154, 91, 0.4), transparent),
+                radial-gradient(2px 2px at 150px 200px, rgba(138, 154, 91, 0.3), transparent),
+                radial-gradient(2px 2px at 250px 300px, rgba(138, 154, 91, 0.35), transparent),
+                radial-gradient(2px 2px at 350px 150px, rgba(138, 154, 91, 0.25), transparent);
+            background-size: 400px 400px;
+            animation: oliveFloat 20s ease-in-out infinite;
+            pointer-events: none;
+            opacity: 0.5;
+            z-index: 0;
+        }
+
+        @keyframes oliveFloat {
+            0%, 100% { transform: translateY(0); opacity: 0.5; }
+            50% { transform: translateY(-20px); opacity: 0.7; }
+        }
+
+        body.theme-darkolive .message {
+            animation: oliveSlide 0.4s ease-out;
+            box-shadow: 0 4px 12px rgba(138, 154, 91, 0.2);
+        }
+
+        @keyframes oliveSlide {
+            0% { transform: translateX(-15px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+
+        body.theme-darkolive .btn-primary {
+            background: linear-gradient(45deg, #8a9a5b, #9aab6b);
+            box-shadow: 0 4px 15px rgba(138, 154, 91, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        body.theme-darkolive .btn-primary:hover {
+            background: linear-gradient(45deg, #9aab6b, #aab57b);
+            box-shadow: 0 6px 20px rgba(138, 154, 91, 0.5);
+            transform: translateY(-2px);
+        }
+
+        body.theme-darkolive .chat-item {
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        body.theme-darkolive .chat-item:hover {
+            border-left-color: var(--accent);
+            background: linear-gradient(90deg, rgba(138, 154, 91, 0.1), transparent);
+            transform: translateX(5px);
+        }
+
+        /* 🍷 ТЕМА ТЁМНОЕ ВИНО - Глубокая с винными оттенками */
+        body.theme-darkwine {
+            background: linear-gradient(135deg, #26090b 0%, #1a0608 50%, #351018 100%);
+            background-attachment: fixed;
+            position: relative;
+        }
+
+        /* Винные волны на фоне */
+        body.theme-darkwine::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at 30% 70%, rgba(139, 58, 91, 0.15) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 30%, rgba(139, 58, 91, 0.1) 0%, transparent 50%);
+            animation: wineWave 15s ease-in-out infinite;
             pointer-events: none;
             z-index: 0;
         }
 
-        @keyframes cyberpunkScan {
-            0% { transform: translateY(-100%); opacity: 0; }
-            50% { opacity: 1; }
-            100% { transform: translateY(100%); opacity: 0; }
+        @keyframes wineWave {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.7; }
         }
 
-        /* Контент поверх сетки */
-        body.theme-cyberpunk .app-header,
-        body.theme-cyberpunk .messages-container,
-        body.theme-cyberpunk .chats-sidebar {
+        /* Контент поверх волн */
+        body.theme-darkwine .app-header,
+        body.theme-darkwine .messages-container,
+        body.theme-darkwine .chats-sidebar,
+        body.theme-darkwine .message,
+        body.theme-darkwine .chat-item {
             position: relative;
-            z-index: 2; /* Исправлено: было z-index: 1, увеличено для надёжности */
-            background: transparent; /* Исправлено: было rgba(...), мешало отображению */
-            backdrop-filter: none; /* Исправлено: было blur(5px), вызывало проблемы */
+            z-index: 1;
         }
 
-        body.theme-cyberpunk .message {
-            animation: digitalAppear 0.3s ease-out;
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+        body.theme-darkwine .message {
+            animation: wineFade 0.4s ease-out;
+            box-shadow: 0 4px 15px rgba(139, 58, 91, 0.3);
         }
 
-        @keyframes digitalAppear {
-            0% { transform: translateX(-10px); opacity: 0; filter: hue-rotate(90deg); }
-            100% { transform: translateX(0); opacity: 1; filter: hue-rotate(0deg); }
+        @keyframes wineFade {
+            0% { transform: translateY(15px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
         }
 
-        body.theme-cyberpunk .btn-primary {
-            background: linear-gradient(45deg, #fbbf24, #f59e0b);
-            color: #1a1025;
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
-            border: 2px solid #fbbf24;
-            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-            font-weight: 700;
+        body.theme-darkwine .btn-primary {
+            background: linear-gradient(45deg, #8b3a5b, #a04565);
+            box-shadow: 0 4px 15px rgba(139, 58, 91, 0.5);
+            transition: all 0.3s ease;
         }
 
-        body.theme-cyberpunk .btn-primary:hover {
-            background: linear-gradient(45deg, #f59e0b, #d97706);
-            box-shadow: 0 0 30px rgba(251, 191, 36, 0.8);
+        body.theme-darkwine .btn-primary:hover {
+            background: linear-gradient(45deg, #a04565, #b55075);
+            box-shadow: 0 6px 20px rgba(139, 58, 91, 0.7);
             transform: translateY(-2px);
         }
 
-        body.theme-cyberpunk .chat-item {
-            border: 1px solid rgba(251, 191, 36, 0.2);
+        body.theme-darkwine .chat-item {
+            border-left: 3px solid transparent;
             transition: all 0.3s ease;
-            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+            border-radius: 0.8rem;
         }
 
-        body.theme-cyberpunk .chat-item:hover {
-            border-color: #fbbf24;
-            box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+        body.theme-darkwine .chat-item:hover {
+            border-left-color: var(--accent);
+            background: linear-gradient(90deg, rgba(139, 58, 91, 0.15), transparent);
             transform: translateX(5px);
         }
 
-        body.theme-cyberpunk input:not([type="range"]):not([type="color"]),
-        body.theme-cyberpunk textarea {
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            background: rgba(251, 191, 36, 0.05);
-            font-family: 'Courier New', monospace;
-        }
-
-        body.theme-cyberpunk input:not([type="range"]):not([type="color"]):focus,
-        body.theme-cyberpunk textarea:focus {
-            border-color: #fbbf24;
-            box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
-        }
-        
         #app {
             width: 100%;
             height: 100dvh;
@@ -2743,62 +2797,6 @@
                ОПТИМИЗАЦИЯ ТЕМ НА МОБИЛЬНЫХ
                ============================================ */
 
-            /* 🌃 ТЕМА НОЧЬ - Отключаем тяжёлые анимации */
-            body.theme-night #app {
-                overflow: visible !important; /* Исправляем обрезку контента */
-            }
-            body.theme-night #app::before {
-                display: none; /* Отключаем звёзды */
-            }
-            body.theme-night .app-header,
-            body.theme-night .messages-container,
-            body.theme-night .chats-sidebar {
-                z-index: 2 !important; /* Поверх псевдоэлементов */
-            }
-            body.theme-night .message {
-                animation: none; /* Отключаем анимацию появления сообщений */
-                box-shadow: none;
-            }
-            body.theme-night .btn-primary:hover,
-            body.theme-night .chat-item:hover {
-                transform: none; /* Отключаем hover-трансформации */
-            }
-
-            /* 🤖 ТЕМА КИБЕРПАНК - Отключаем тяжёлые эффекты */
-            body.theme-cyberpunk #app {
-                overflow: visible !important; /* Исправляем обрезку контента */
-            }
-            body.theme-cyberpunk {
-                background: linear-gradient(180deg, #1a1025 0%, #2a1f3d 100%); /* Упрощаем фон */
-            }
-            body.theme-cyberpunk #app::after {
-                display: none; /* Отключаем сканирующую линию */
-            }
-            body.theme-cyberpunk .app-header,
-            body.theme-cyberpunk .messages-container,
-            body.theme-cyberpunk .chats-sidebar {
-                background: transparent !important; /* Убираем фон */
-                backdrop-filter: none !important; /* Отключаем размытие */
-                z-index: 2 !important; /* Поверх псевдоэлементов */
-            }
-            body.theme-cyberpunk .message {
-                animation: none; /* Отключаем анимацию сообщений */
-                clip-path: none; /* Отключаем clip-path */
-                border: 1px solid rgba(251, 191, 36, 0.3);
-            }
-            body.theme-cyberpunk .btn-primary {
-                clip-path: none; /* Отключаем clip-path кнопок */
-                border: 2px solid #fbbf24;
-            }
-            body.theme-cyberpunk .chat-item {
-                clip-path: none; /* Отключаем clip-path чатов */
-            }
-            body.theme-cyberpunk .btn-primary:hover,
-            body.theme-cyberpunk .chat-item:hover {
-                transform: none; /* Отключаем hover-трансформации */
-                box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
-            }
-
             /* 🌊 ТЕМА ОКЕАН - Отключаем пузырьки */
             body.theme-ocean #app::before,
             body.theme-ocean #app::after,
@@ -2818,6 +2816,30 @@
             body.theme-forest #app::before,
             body.theme-forest #app::after {
                 display: none;
+            }
+
+            /* 🎄 ТЕМА НОВЫЙ ГОД - Отключаем гирлянды */
+            body.theme-newyear #app::before {
+                display: none;
+            }
+            body.theme-newyear .message {
+                animation: none;
+            }
+
+            /* 🫒 ТЕМА ТЁМНАЯ ОЛИВКА - Отключаем частицы */
+            body.theme-darkolive #app::after {
+                display: none;
+            }
+            body.theme-darkolive .message {
+                animation: none;
+            }
+
+            /* 🍷 ТЕМА ТЁМНОЕ ВИНО - Отключаем волны */
+            body.theme-darkwine::before {
+                display: none;
+            }
+            body.theme-darkwine .message {
+                animation: none;
             }
 
             /* 🌌 ТЕМА СТЕКЛО - Отключаем частицы */
@@ -3053,11 +3075,6 @@
             color: #1b4332;
         }
 
-        .theme-option-night {
-            background: linear-gradient(135deg, #0f0a1f, #1a1030);
-            color: #e9e0ff;
-        }
-
         .theme-option-glass {
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
             color: #ffffff;
@@ -3082,10 +3099,22 @@
             border: 1px solid #bee3f8;
         }
 
-        .theme-option-cyberpunk {
-            background: linear-gradient(135deg, #1a1025, #2a1f3d);
-            color: #fbbf24;
-            border: 1px solid #fbbf24;
+        .theme-option-newyear {
+            background: linear-gradient(135deg, #1a2f3a, #0f1c24);
+            color: #c9a962;
+            border: 1px solid #c9a962;
+        }
+
+        .theme-option-darkolive {
+            background: linear-gradient(135deg, #3a3b22, #2a2b18);
+            color: #a8b080;
+            border: 1px solid #8a9a5b;
+        }
+
+        .theme-option-darkwine {
+            background: linear-gradient(135deg, #26090b, #1a0608);
+            color: #b08088;
+            border: 1px solid #8b3a5b;
         }
 
         .theme-option-name {
@@ -3454,10 +3483,6 @@
                     <div class="theme-option-preview">🌲</div>
                     <div class="theme-option-name">Лес</div>
                 </div>
-                <div class="theme-option theme-option-night" data-theme="night">
-                    <div class="theme-option-preview">🌃</div>
-                    <div class="theme-option-name">Ночь</div>
-                </div>
                 <div class="theme-option theme-option-glass" data-theme="glass">
                     <div class="theme-option-preview">🪟</div>
                     <div class="theme-option-name">Стекло</div>
@@ -3474,9 +3499,17 @@
                     <div class="theme-option-preview">❄️</div>
                     <div class="theme-option-name">Арктика</div>
                 </div>
-                <div class="theme-option theme-option-cyberpunk" data-theme="cyberpunk">
-                    <div class="theme-option-preview">🤖</div>
-                    <div class="theme-option-name">Киберпанк</div>
+                <div class="theme-option theme-option-newyear" data-theme="newyear">
+                    <div class="theme-option-preview">🎄</div>
+                    <div class="theme-option-name">Новый год</div>
+                </div>
+                <div class="theme-option theme-option-darkolive" data-theme="darkolive">
+                    <div class="theme-option-preview">🫒</div>
+                    <div class="theme-option-name">Тёмная оливка</div>
+                </div>
+                <div class="theme-option theme-option-darkwine" data-theme="darkwine">
+                    <div class="theme-option-preview">🍷</div>
+                    <div class="theme-option-name">Тёмное вино</div>
                 </div>
             </div>
             <button id="closeThemeSelectorBtn" class="btn-secondary" style="width: 100%; margin-top: 20px;">Закрыть</button>
@@ -3974,12 +4007,12 @@
                 }
             }
 
-            // Тема - расширенная с 11 темами
-            const themeOptions = ['light', 'dark', 'ocean', 'sunset', 'forest', 'night', 'glass', 'neon', 'desert', 'arctic', 'cyberpunk'];
+            // Тема - расширенная с 12 темами
+            const themeOptions = ['light', 'dark', 'ocean', 'sunset', 'forest', 'glass', 'neon', 'desert', 'arctic', 'newyear', 'darkolive', 'darkwine'];
 
             function applyTheme() {
                 // Удаляем все классы тем
-                document.body.classList.remove('dark-theme', 'theme-ocean', 'theme-sunset', 'theme-forest', 'theme-night', 'theme-glass', 'theme-neon', 'theme-desert', 'theme-arctic', 'theme-cyberpunk');
+                document.body.classList.remove('dark-theme', 'theme-ocean', 'theme-sunset', 'theme-forest', 'theme-glass', 'theme-neon', 'theme-desert', 'theme-arctic', 'theme-newyear', 'theme-darkolive', 'theme-darkwine');
 
                 const currentTheme = state.currentTheme || 'light';
 
@@ -3995,12 +4028,13 @@
                         ocean: '🌊',
                         sunset: '🌅',
                         forest: '🌲',
-                        night: '🌃',
                         glass: '🪟',
                         neon: '💡',
                         desert: '🏜️',
                         arctic: '❄️',
-                        cyberpunk: '🤖'
+                        newyear: '🎄',
+                        darkolive: '🫒',
+                        darkwine: '🍷'
                     };
                     themeToggle.textContent = themeIcons[currentTheme] || '🎨';
                 }
